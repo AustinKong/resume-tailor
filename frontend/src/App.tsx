@@ -1,21 +1,25 @@
+import { Button, Center, Heading } from '@chakra-ui/react';
 import { useState } from 'react';
-import './App.css';
 
 function App() {
   const [health, setHealth] = useState<string | null>(null);
 
   return (
     <>
-      <div>
-        <button onClick={() => {
-          fetch('/api/health')
-            .then(response => response.json())
-            .then(data => setHealth(data.message))
-        }}>
-          Healthcheck
-        </button>
-        <p>{health}</p>
-      </div>
+      <Center w="full" h="100vh" flexDir="column">
+        <Button
+          onClick={() => {
+            fetch('/api/health')
+              .then((response) => response.json())
+              .then((data) => setHealth(data.message));
+          }}
+        >
+          Health Check
+        </Button>
+        <Heading>
+          {health ? `Server Health: ${health}` : 'Click the button to check server health'}
+        </Heading>
+      </Center>
     </>
   );
 }

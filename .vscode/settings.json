@@ -6,13 +6,15 @@
   "eslint.format.enable": false,
   "editor.codeActionsOnSave": {
     "source.fixAll.eslint": "explicit",     // JS/TS: only when explicitly triggered
-    "source.fixAll.ruff": "always"          // Python: run Ruff fixes on every save
+    "source.fixAll.ruff": "always",         // Python: run Ruff fixes on every save
+    "source.organizeImports": "explicit",
+    "editor.organizeImports.mode": "removeUnused"
   },
 
   // Use repo toolchains (not global ones)
-  "typescript.tsdk": "node_modules/typescript/lib",
+  "typescript.tsdk": "frontend/node_modules/typescript/lib",
   "typescript.enablePromptUseWorkspaceTsdk": true,
-  "prettier.prettierPath": "node_modules/prettier",
+  "prettier.prettierPath": "frontend/node_modules/prettier",
   "prettier.requireConfig": true,
 
   // Monorepo: auto-detect ESLint roots in packages
@@ -47,6 +49,7 @@
     "**/node_modules": true,
     "**/venv": true,
     "**/.ruff_cache": true,
-    "**/__pycache__": true
+    "**/__pycache__": true,
+    ".vscode": true
   }
 }
