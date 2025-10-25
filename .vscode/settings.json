@@ -1,0 +1,52 @@
+{
+  // --- Global defaults (keep light) ---
+  "editor.formatOnSave": true,
+
+  // Let linters run via code actions, but don't let ESLint "format" text.
+  "eslint.format.enable": false,
+  "editor.codeActionsOnSave": {
+    "source.fixAll.eslint": "explicit",     // JS/TS: only when explicitly triggered
+    "source.fixAll.ruff": "always"          // Python: run Ruff fixes on every save
+  },
+
+  // Use repo toolchains (not global ones)
+  "typescript.tsdk": "node_modules/typescript/lib",
+  "typescript.enablePromptUseWorkspaceTsdk": true,
+  "prettier.prettierPath": "node_modules/prettier",
+  "prettier.requireConfig": true,
+
+  // Monorepo: auto-detect ESLint roots in packages
+  "eslint.workingDirectories": [{ "mode": "auto" }],
+
+  // --- Language-scoped formatter ownership ---
+  // JS/TS: Prettier formats; ESLint only reports/fixes on demand
+  "[javascript]":         { "editor.defaultFormatter": "esbenp.prettier-vscode" },
+  "[javascriptreact]":    { "editor.defaultFormatter": "esbenp.prettier-vscode" },
+  "[typescript]":         { "editor.defaultFormatter": "esbenp.prettier-vscode" },
+  "[typescriptreact]":    { "editor.defaultFormatter": "esbenp.prettier-vscode" },
+  "[json]":               { "editor.defaultFormatter": "esbenp.prettier-vscode" },
+  "[jsonc]":              { "editor.defaultFormatter": "esbenp.prettier-vscode" },
+
+  // Python: Ruff owns formatting and fixes
+  "[python]": { "editor.defaultFormatter": "charliermarsh.ruff" },
+
+  // --- Explorer hygiene (optional; but don't hide config you edit often) ---
+  "files.exclude": {
+    "**/.git": true,
+    "**/.svn": true,
+    "**/.hg": true,
+    "**/.DS_Store": true,
+    "**/Thumbs.db": true,
+    "**/.prettierignore": true,
+    "**/.prettierrc": true,
+    "**/eslint.config.js": true,
+    "**/tsconfig.app.json": true,
+    "**/tsconfig.node.json": true,
+    "**/tsconfig.json": true,
+    "**/vite.config.ts": true,
+    "**/node_modules": true,
+    "**/venv": true,
+    "**/.ruff_cache": true,
+    "**/__pycache__": true
+  }
+}

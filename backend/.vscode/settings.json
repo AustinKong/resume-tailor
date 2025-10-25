@@ -1,7 +1,0 @@
-{
-  "editor.defaultFormatter": "charliermarsh.ruff",
-  "editor.formatOnSave": true,
-  "editor.codeActionsOnSave": { "source.fixAll.ruff": "always" },
-  "python.analysis.autoImportCompletions": true,
-  "python.analysis.typeCheckingMode": "basic"
-}
