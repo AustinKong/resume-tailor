@@ -1,0 +1,13 @@
+{
+  "devDependencies": {
+    "concurrently": "^9.2.1"
+  },
+  "scripts": {
+    "dev:frontend": "npm --prefix frontend run dev",
+    "lint:fix:frontend": "npm --prefix frontend run lint:fix",
+    "dev:backend": "cd backend && uvicorn app.main:app --reload --port 3000",
+    "lint:fix:backend": "cd backend && ruff check --fix app",
+    "dev": "concurrently -n backend,frontend -c magenta,cyan \"npm:dev:backend\" \"npm:dev:frontend\"",
+    "lint:fix": "npm run lint:fix:backend && npm run lint:fix:frontend"
+  }
+}
