@@ -1,0 +1,24 @@
+[project]
+name = "backend"
+version = "0.1.0"
+requires-python = ">=3.11"
+dependencies = [
+  "fastapi>=0.115",
+  "uvicorn[standard]>=0.30",
+]
+
+[tool.ruff]
+line-length = 100
+indent-width = 2
+target-version = "py311"
+lint.extend-select = ["E", "F", "B", "UP", "I"]
+fix = true
+show-fixes = true
+
+[tool.ruff.lint.isort]
+known-first-party = ["app"]
+
+[tool.ruff.format]
+quote-style = "single"
+indent-style = "space"
+line-ending = "lf"
