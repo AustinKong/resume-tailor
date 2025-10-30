@@ -6,9 +6,7 @@
   "eslint.format.enable": false,
   "editor.codeActionsOnSave": {
     "source.fixAll.eslint": "explicit",     // JS/TS: only when explicitly triggered
-    "source.fixAll.ruff": "always",         // Python: run Ruff fixes on every save
-    "source.organizeImports": "explicit",
-    "editor.organizeImports.mode": "removeUnused"
+    "source.fixAll.ruff": "always"          // Python: run Ruff fixes on every save
   },
 
   // Use repo toolchains (not global ones)

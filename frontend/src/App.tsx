@@ -1,25 +1,18 @@
-import { Button, Center, Heading } from '@chakra-ui/react';
-import { useState } from 'react';
+import { Route, Routes } from 'react-router';
+
+import DashboardLayout from '@/components/layouts/DashboardLayout';
+import { Toaster } from '@/components/ui/toaster';
+import ProfilePage from '@/pages/profile-page';
 
 function App() {
-  const [health, setHealth] = useState<string | null>(null);
-
   return (
     <>
-      <Center w="full" h="100vh" flexDir="column">
-        <Button
-          onClick={() => {
-            fetch('/api/health')
-              .then((response) => response.json())
-              .then((data) => setHealth(data.message));
-          }}
-        >
-          Health Check
-        </Button>
-        <Heading>
-          {health ? `Server Health: ${health}` : 'Click the button to check server health'}
-        </Heading>
-      </Center>
+      <Routes>
+        <Route element={<DashboardLayout />}>
+          <Route path="profile" element={<ProfilePage />} />
+        </Route>
+      </Routes>
+      <Toaster />
     </>
   );
 }
