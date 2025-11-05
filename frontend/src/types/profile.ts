@@ -1,4 +1,4 @@
-import type { YearMonth } from '@/utils/yearMonth';
+import { YearMonth } from '@/utils/yearMonth';
 
 export type Education = {
   institution: string;
@@ -6,7 +6,7 @@ export type Education = {
   location?: string;
   startDate: YearMonth;
   endDate?: YearMonth;
-  bulletPoints: string[];
+  bullets: string[];
 };
 
 export type Profile = {
@@ -18,4 +18,19 @@ export type Profile = {
   education: Education[];
   certifications: string[];
   awards: string[];
+};
+
+export const emptyProfile: Profile = {
+  fullName: '',
+  email: '',
+  education: [],
+  certifications: [],
+  awards: [],
+};
+
+export const emptyEducation: Education = {
+  institution: '',
+  program: '',
+  startDate: YearMonth.today(),
+  bullets: [],
 };

@@ -9,24 +9,18 @@ import {
   Timeline,
   VStack,
 } from '@chakra-ui/react';
-import React, { useEffect, useState } from 'react';
 import { PiAcorn, PiArrowSquareOut } from 'react-icons/pi';
 
 import BulletInput from '@/components/custom/BulletInput';
 import FloatingLabelInput from '@/components/custom/FloatingLabelInput';
 import { useProfile } from '@/hooks/useProfile';
-import { type Education } from '@/types/profile';
+import { type Education, emptyEducation } from '@/types/profile';
 import { YearMonth } from '@/utils/yearMonth';
 
 export default function Education() {
-  const { profile, isGetLoading, updateProfile } = useProfile();
-  const [educations, setEducations] = useState<Education[]>([]);
+  const { profile, isGetLoading, setProfileField, saveProfile } = useProfile();
 
-  useEffect(() => {
-    if (profile) {
-      setEducations(profile.education);
-    }
-  }, [profile]);
+  const educations = profile.education || [];
 
   if (isGetLoading) {
     return <Text>Loading...</Text>;
@@ -44,7 +38,18 @@ export default function Education() {
               </Timeline.Indicator>
             </Timeline.Connector>
             <Timeline.Content pb="12">
-              <Entry education={education} setEducations={setEducations} />
+              <Entry
+                education={education}
+                updateEducation={(updates) => {
+                  setProfileField({
+                    education: [
+                      ...educations.slice(0, index),
+                      { ...education, ...updates },
+                      ...educations.slice(index + 1),
+                    ],
+                  });
+                }}
+              />
             </Timeline.Content>
           </Timeline.Item>
         ))}
@@ -52,27 +57,14 @@ export default function Education() {
           variant="outline"
           w="full"
           onClick={() =>
-            setEducations((prev) => [
-              ...prev,
-              {
-                institution: '',
-                program: '',
-                startDate: YearMonth.today(),
-                bulletPoints: [],
-              } as Education,
-            ])
+            setProfileField({
+              education: [...educations, emptyEducation],
+            })
           }
         >
           Add Education
         </Button>
-        <Button
-          variant="solid"
-          w="full"
-          mt="8"
-          onClick={() => {
-            updateProfile({ ...profile, education: educations });
-          }}
-        >
+        <Button variant="solid" w="full" mt="8" onClick={() => saveProfile()}>
           Save Changes
         </Button>
       </Timeline.Root>
@@ -100,15 +92,11 @@ export default function Education() {
 
 function Entry({
   education,
-  setEducations,
+  updateEducation,
 }: {
   education: Education;
-  setEducations: React.Dispatch<React.SetStateAction<Education[]>>;
+  updateEducation: (updates: Partial<Education>) => void;
 }) {
-  const updateEducation = (updates: Partial<Education>) => {
-    setEducations((prev) => prev.map((edu) => (edu === education ? { ...edu, ...updates } : edu)));
-  };
-
   return (
     <>
       <HStack w="full">
@@ -145,7 +133,7 @@ function Entry({
             value={education.endDate || ''}
             onChange={(e) =>
               updateEducation({
-                endDate: e.target.value ? YearMonth.parse(e.target.value) : undefined,
+                endDate: YearMonth.parse(e.target.value),
               })
             }
             disabled={!education.endDate}
@@ -163,8 +151,8 @@ function Entry({
         </Checkbox.Root>
       </HStack>
       <BulletInput
-        bullets={education.bulletPoints}
-        onBulletsChange={(points) => updateEducation({ bulletPoints: points })}
+        bullets={education.bullets}
+        onBulletsChange={(points) => updateEducation({ bullets: points })}
         label="Bullet Points"
       />
     </>

@@ -36,8 +36,14 @@ export default function BulletInput({
   label: string;
 }) {
   const idsRef = useRef<string[]>([]);
-  if (idsRef.current.length === 0 && bullets.length) {
-    idsRef.current = bullets.map(() => crypto.randomUUID());
+
+  // Sync ids with bullets length to ensure keys are always available
+  if (idsRef.current.length < bullets.length) {
+    idsRef.current.push(
+      ...Array.from({ length: bullets.length - idsRef.current.length }, () => crypto.randomUUID())
+    );
+  } else if (idsRef.current.length > bullets.length) {
+    idsRef.current = idsRef.current.slice(0, bullets.length);
   }
 
   // Ensure there is always at least one bullet.
@@ -45,9 +51,8 @@ export default function BulletInput({
     if (bullets.length === 0) {
       idsRef.current = [crypto.randomUUID()];
       onBulletsChange(['']);
-      return;
     }
-  }, [bullets, onBulletsChange]);
+  }, [bullets.length, onBulletsChange]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -112,7 +117,7 @@ export default function BulletInput({
       onDragEnd={handleDragEnd}
       modifiers={[restrictToVerticalAxis, restrictToParentElement]}
     >
-      <SortableContext items={idsRef.current} strategy={verticalListSortingStrategy}>
+      <SortableContext items={[...idsRef.current]} strategy={verticalListSortingStrategy}>
         <Text w="full" p="0" color="fg.muted" fontSize="sm" mb="-3">
           {label}
         </Text>
@@ -149,7 +154,9 @@ function Bullet({
   handleInsertBelow: (id: string) => void;
   handleDelete: (id: string) => void;
 }) {
-  const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id });
+  const { attributes, listeners, setNodeRef, transform, transition } = useSortable({
+    id,
+  });
 
   const style = {
     transform: CSS.Translate.toString(transform),
@@ -162,7 +169,7 @@ function Bullet({
         •
       </Text>
       <Textarea
-        value={content}
+        value={content ?? ''}
         onChange={(e) => onChange(id, e.target.value)}
         rows={1}
         autoresize

@@ -11,7 +11,7 @@ export async function getProfile() {
   return json;
 }
 
-export async function updateProfile(profile: Profile) {
+export async function updateProfile(profile: Profile): Promise<Profile> {
   const response = await fetch(`/api/profile`, {
     method: 'PUT',
     headers: {

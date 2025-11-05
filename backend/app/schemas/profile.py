@@ -12,7 +12,7 @@ class Education(BaseModel):
   location: str | None = None
   start_date: YearMonth
   end_date: YearMonth | None = None
-  bullet_points: list[str] = Field(
+  bullets: list[str] = Field(
     default_factory=list,
     description='Key courses, GPA, thesis, or other relevant details',
   )

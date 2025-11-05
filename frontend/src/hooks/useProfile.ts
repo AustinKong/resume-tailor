@@ -1,12 +1,14 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useEffect, useState } from 'react';
 
-import { getProfile, updateProfile as updateProfileSvc } from '@/services/profile';
+import { getProfile, updateProfile } from '@/services/profile';
+import { emptyProfile, type Profile } from '@/types/profile';
 
 export function useProfile() {
   const queryClient = useQueryClient();
 
   const {
-    data: profile,
+    data: initial,
     isLoading: isGetLoading,
     isError: isGetError,
   } = useQuery({
@@ -15,22 +17,39 @@ export function useProfile() {
   });
 
   const {
-    mutateAsync: updateProfile,
-    isPending: isUpdateLoading,
-    isError: isUpdateError,
+    mutateAsync: saveProfile,
+    isPending: isSaveLoading,
+    isError: isSaveError,
   } = useMutation({
-    mutationFn: updateProfileSvc,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['profile'] });
+    mutationFn: async () => {
+      return updateProfile(profile);
+    },
+    onSuccess: (updated) => {
+      queryClient.setQueryData(['profile'], updated);
+      setProfile(updated);
     },
   });
+
+  const [profile, setProfile] = useState<Profile>(emptyProfile);
+
+  useEffect(() => {
+    if (initial) {
+      setProfile(initial);
+    }
+  }, [initial]);
+
+  function setProfileField(updates: Partial<Profile>) {
+    setProfile((prev) => ({ ...prev, ...updates }));
+  }
 
   return {
     profile,
     isGetLoading,
     isGetError,
-    isUpdateLoading,
-    isUpdateError,
-    updateProfile,
+    saveProfile,
+    isSaveLoading,
+    isSaveError,
+    setProfile,
+    setProfileField,
   };
 }
