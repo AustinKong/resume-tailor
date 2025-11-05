@@ -1,14 +1,28 @@
 import { Button, Field, Input, VStack } from '@chakra-ui/react';
 import { useForm } from 'react-hook-form';
 
+import { useProfile } from '@/hooks/useProfile';
+import { type Profile } from '@/types/profile';
+
 export default function PersonalInformation() {
+  const { profile, updateProfile } = useProfile();
+
   const {
     register,
     handleSubmit,
     formState: { errors },
-  } = useForm<{ fullName: string; email: string; phone: string; website?: string }>();
+  } = useForm<Profile>({
+    defaultValues: {
+      fullName: '',
+      email: '',
+      phone: '',
+      website: '',
+    },
+    values: profile,
+  });
+
   return (
-    <form onSubmit={handleSubmit((data) => console.log(data))}>
+    <form onSubmit={handleSubmit((values) => updateProfile(values))}>
       <VStack maxW="3xl" gap="4" alignItems="start">
         <Field.Root required>
           <Field.Label>

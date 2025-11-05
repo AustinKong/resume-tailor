@@ -2,7 +2,7 @@ import { Breadcrumb as ChakraBreadcrumb } from '@chakra-ui/react';
 import { Fragment } from 'react';
 import { Link, useLocation } from 'react-router';
 
-import { toTitleCase } from '@/utils/textUtils';
+import { toTitleCase } from '@/utils/text';
 
 export default function Breadcrumb({ separator = '/ ', ...rest }) {
   const { pathname } = useLocation();

@@ -15,13 +15,8 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { PiDotsThreeVertical } from 'react-icons/pi';
-
-type SortableItem = {
-  id: string;
-  content: string;
-};
 
 /**
  * BulletInput is a draggable, sortable input component for managing a list of bullet points.
@@ -40,27 +35,19 @@ export default function BulletInput({
   onBulletsChange: (bullets: string[]) => void;
   label: string;
 }) {
-  const [sortableItems, setSortableItems] = useState<SortableItem[]>(
-    bullets.map((item, index) => ({
-      id: `item-${Date.now()}-${index}`,
-      content: item,
-    }))
-  );
+  const idsRef = useRef<string[]>([]);
+  if (idsRef.current.length === 0 && bullets.length) {
+    idsRef.current = bullets.map(() => crypto.randomUUID());
+  }
 
+  // Ensure there is always at least one bullet.
   useEffect(() => {
-    const internalContent = sortableItems.map((item) => item.content);
-    const externalContent = bullets;
-
-    if (JSON.stringify(internalContent) !== JSON.stringify(externalContent)) {
-      setSortableItems(
-        bullets.map((item, index) => ({
-          id: `item-${Date.now()}-${index}`,
-          content: item,
-        }))
-      );
+    if (bullets.length === 0) {
+      idsRef.current = [crypto.randomUUID()];
+      onBulletsChange(['']);
+      return;
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [bullets]);
+  }, [bullets, onBulletsChange]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -68,72 +55,54 @@ export default function BulletInput({
     })
   );
 
-  const itemIds = useMemo(() => sortableItems.map((item) => item.id), [sortableItems]);
+  const addAtIndex = useCallback(
+    (index: number) => {
+      const nextBullets = [...bullets];
+      nextBullets.splice(index, 0, '');
+      const nextIds = [...idsRef.current];
+      nextIds.splice(index, 0, crypto.randomUUID());
+
+      onBulletsChange(nextBullets);
+      idsRef.current = nextIds;
+    },
+    [bullets, onBulletsChange]
+  );
+
+  const removeAtIndex = useCallback(
+    (index: number) => {
+      if (bullets.length <= 1) return;
+
+      const nextBullets = [...bullets];
+      nextBullets.splice(index, 1);
+      const nextIds = [...idsRef.current];
+      nextIds.splice(index, 1);
+
+      onBulletsChange(nextBullets);
+      idsRef.current = nextIds;
+    },
+    [bullets, onBulletsChange]
+  );
+
+  const handleChange = useCallback(
+    (id: string, content: string) => {
+      const index = idsRef.current.indexOf(id);
+      const nextBullets = [...bullets];
+      nextBullets[index] = content;
+      onBulletsChange(nextBullets);
+    },
+    [bullets, onBulletsChange]
+  );
 
   const handleDragEnd = useCallback(
-    (event: DragEndEvent) => {
-      const { active, over } = event;
+    ({ active, over }: DragEndEvent) => {
+      if (!over || active.id === over.id) return;
+      const oldIndex = idsRef.current.indexOf(active.id as string);
+      const newIndex = idsRef.current.indexOf(over.id as string);
 
-      if (over && active.id !== over.id) {
-        const oldIndex = sortableItems.findIndex((item) => item.id === active.id);
-        const newIndex = sortableItems.findIndex((item) => item.id === over.id);
-
-        const newItems = arrayMove(sortableItems, oldIndex, newIndex);
-
-        setSortableItems(newItems);
-        onBulletsChange(newItems.map((item) => item.content));
-      }
+      idsRef.current = arrayMove(idsRef.current, oldIndex, newIndex);
+      onBulletsChange(arrayMove(bullets, oldIndex, newIndex));
     },
-    [sortableItems, onBulletsChange]
-  );
-
-  const onBulletContentChange = useCallback(
-    (id: string, content: string) => {
-      const newItems = sortableItems.map((item) => (item.id === id ? { ...item, content } : item));
-      setSortableItems(newItems);
-      onBulletsChange(newItems.map((item) => item.content));
-    },
-    [sortableItems, onBulletsChange]
-  );
-
-  const addBulletAtIndex = useCallback(
-    (index: number) => {
-      const newItem: SortableItem = {
-        id: `item-${Date.now()}`,
-        content: '',
-      };
-
-      const newItems = [...sortableItems];
-      newItems.splice(index, 0, newItem);
-      setSortableItems(newItems);
-      onBulletsChange(newItems.map((item) => item.content));
-    },
-    [sortableItems, onBulletsChange]
-  );
-
-  const deleteBullet = useCallback(
-    (id: string) => {
-      const newItems = sortableItems.filter((item) => item.id !== id);
-      setSortableItems(newItems);
-      onBulletsChange(newItems.map((item) => item.content));
-    },
-    [sortableItems, onBulletsChange]
-  );
-
-  const insertBulletAbove = useCallback(
-    (id: string) => {
-      const index = sortableItems.findIndex((item) => item.id === id);
-      addBulletAtIndex(index);
-    },
-    [sortableItems, addBulletAtIndex]
-  );
-
-  const insertBulletBelow = useCallback(
-    (id: string) => {
-      const index = sortableItems.findIndex((item) => item.id === id);
-      addBulletAtIndex(index + 1);
-    },
-    [sortableItems, addBulletAtIndex]
+    [bullets, onBulletsChange]
   );
 
   return (
@@ -143,20 +112,20 @@ export default function BulletInput({
       onDragEnd={handleDragEnd}
       modifiers={[restrictToVerticalAxis, restrictToParentElement]}
     >
-      <SortableContext items={itemIds} strategy={verticalListSortingStrategy}>
+      <SortableContext items={idsRef.current} strategy={verticalListSortingStrategy}>
         <Text w="full" p="0" color="fg.muted" fontSize="sm" mb="-3">
           {label}
         </Text>
         <VStack gap="0.5" w="full">
-          {sortableItems.map((item) => (
+          {bullets.map((content, index) => (
             <Bullet
-              key={item.id}
-              id={item.id}
-              content={item.content}
-              onChange={onBulletContentChange}
-              handleInsertAbove={insertBulletAbove}
-              handleInsertBelow={insertBulletBelow}
-              handleDelete={deleteBullet}
+              key={idsRef.current[index]}
+              id={idsRef.current[index]}
+              content={content}
+              onChange={handleChange}
+              handleInsertAbove={() => addAtIndex(index)}
+              handleInsertBelow={() => addAtIndex(index + 1)}
+              handleDelete={() => removeAtIndex(index)}
             />
           ))}
         </VStack>
