@@ -1,27 +1,18 @@
-import os
-import sqlite3
 from uuid import UUID
 
-from langchain_chroma import Chroma
+from backend.app.repositories.database_repository import DatabaseRepository
+from backend.app.repositories.vector_repository import VectorRepository
 from langchain_core.documents import Document
-from langchain_openai import OpenAIEmbeddings
 
 from app.schemas.experience import Experience
 
-DB_PATH = os.getenv('DB_PATH', 'data/db.sqlite3')
-VEC_PATH = os.getenv('VEC_PATH', 'data/vecs')
 
-embeddings = OpenAIEmbeddings(model='text-embedding-3-large')
-vector_store = Chroma(
-  collection_name='experience_bullets',
-  embedding_function=embeddings,
-  persist_directory=VEC_PATH,
-)
+class ExperienceService(DatabaseRepository, VectorRepository):
+  def __init__(self):
+    super().__init__()
 
-
-def save_experience(experience: Experience) -> Experience:
-  with sqlite3.connect(DB_PATH) as db:
-    db.execute(
+  def save_experience(self, experience: Experience) -> Experience:
+    self.execute(
       """
       INSERT INTO experiences (id, title, organization, type, location, start_date, end_date)
       VALUES (?, ?, ?, ?, ?, ?, ?)
@@ -58,7 +49,7 @@ def save_experience(experience: Experience) -> Experience:
       )
 
     if bullets:
-      db.executemany(
+      self.execute_many(
         """
         INSERT INTO experience_bullets (experience_id, text)
         VALUES (?, ?)
@@ -66,31 +57,24 @@ def save_experience(experience: Experience) -> Experience:
         bullets,
       )
 
-    if documents:
-      vector_store.add_documents(documents)
+    self.add_to_vector_store('experience_bullets', documents)
 
-    db.commit()
+    return experience
 
-  return experience
-
-
-def load_experiences() -> list[Experience]:
-  with sqlite3.connect(DB_PATH) as db:
-    db.row_factory = sqlite3.Row
-
-    cursor = db.execute(
+  def load_experiences(self) -> list[Experience]:
+    rows = self.fetch_all(
       """
       SELECT id, title, organization, type, location, start_date, end_date
       FROM experiences
       ORDER BY start_date DESC
-      """,
+      """
     )
 
     experiences = []
-    for row in cursor.fetchall():
+    for row in rows:
       exp_id = row['id']
 
-      cursor_bullets = db.execute(
+      bullet_rows = self.fetch_all(
         """
         SELECT text
         FROM experience_bullets
@@ -99,7 +83,7 @@ def load_experiences() -> list[Experience]:
         """,
         (exp_id,),
       )
-      bullets = [r['text'] for r in cursor_bullets.fetchall()]
+      bullets = [r['text'] for r in bullet_rows]
 
       experience = dict(row)
       experience['bullets'] = bullets
@@ -108,12 +92,8 @@ def load_experiences() -> list[Experience]:
 
     return experiences
 
-
-def load_experience(id: UUID) -> Experience:
-  with sqlite3.connect(DB_PATH) as db:
-    db.row_factory = sqlite3.Row
-
-    cursor = db.execute(
+  def load_experience(self, id: UUID) -> Experience:
+    row = self.fetch_one(
       """
       SELECT id, title, organization, type, location, start_date, end_date
       FROM experiences
@@ -121,11 +101,10 @@ def load_experience(id: UUID) -> Experience:
       """,
       (str(id),),
     )
-    row = cursor.fetchone()
     if not row:
       raise ValueError(f'Experience with id {id} not found')
 
-    cursor = db.execute(
+    bullet_rows = self.fetch_all(
       """
       SELECT text
       FROM experience_bullets
@@ -134,17 +113,15 @@ def load_experience(id: UUID) -> Experience:
       """,
       (str(id),),
     )
-    bullets = [r['text'] for r in cursor.fetchall()]
+    bullets = [r['text'] for r in bullet_rows]
 
     experience = dict(row)
     experience['bullets'] = bullets
 
     return Experience(**experience)
 
-
-def update_experience(experience: Experience) -> Experience:
-  with sqlite3.connect(DB_PATH) as db:
-    db.execute(
+  def update_experience(self, experience: Experience) -> Experience:
+    self.execute(
       """
       UPDATE experiences
       SET title = ?, organization = ?, type = ?, location = ?, start_date = ?, end_date = ?
@@ -161,7 +138,7 @@ def update_experience(experience: Experience) -> Experience:
       ),
     )
 
-    db.execute(
+    self.execute(
       """
       DELETE FROM experience_bullets
       WHERE experience_id = ?
@@ -190,7 +167,7 @@ def update_experience(experience: Experience) -> Experience:
       )
 
     if bullets:
-      db.executemany(
+      self.execute_many(
         """
         INSERT INTO experience_bullets (experience_id, text)
         VALUES (?, ?)
@@ -198,22 +175,13 @@ def update_experience(experience: Experience) -> Experience:
         bullets,
       )
 
-    existing_docs = vector_store.get(where={'experience_id': str(experience.id)})
+    self.delete_from_vector_store('experience_bullets', {'experience_id': str(experience.id)})
+    self.add_to_vector_store('experience_bullets', documents)
 
-    if existing_docs['ids']:
-      vector_store.delete(ids=existing_docs['ids'])
+    return experience
 
-    if documents:
-      vector_store.add_documents(documents)
-
-    db.commit()
-
-  return experience
-
-
-def delete_experience(id: UUID) -> None:
-  with sqlite3.connect(DB_PATH) as db:
-    db.execute(
+  def delete_experience(self, id: UUID) -> None:
+    self.execute(
       """
       DELETE FROM experiences
       WHERE id = ?
@@ -221,7 +189,7 @@ def delete_experience(id: UUID) -> None:
       (str(id),),
     )
 
-    db.execute(
+    self.execute(
       """
       DELETE FROM experience_bullets
       WHERE experience_id = ?
@@ -229,9 +197,13 @@ def delete_experience(id: UUID) -> None:
       (str(id),),
     )
 
-    existing_docs = vector_store.get(where={'experience_id': str(id)})
+    self.delete_from_vector_store('experience_bullets', {'experience_id': str(id)})
 
-    if existing_docs['ids']:
-      vector_store.delete(ids=existing_docs['ids'])
 
-    db.commit()
+_service = ExperienceService()
+
+save_experience = _service.save_experience
+load_experiences = _service.load_experiences
+load_experience = _service.load_experience
+update_experience = _service.update_experience
+delete_experience = _service.delete_experience

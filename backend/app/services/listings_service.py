@@ -1,34 +1,23 @@
-import os
-import sqlite3
-
+from backend.app.repositories.database_repository import DatabaseRepository
 from schemas.listing import Listing
 
-DB_PATH = os.getenv('DB_PATH', 'data/database.db')
 
+class ListingsService(DatabaseRepository):
+  def __init__(self):
+    super().__init__()
 
-def load_listings() -> list[Listing]:
-  with sqlite3.connect(DB_PATH) as db:
-    db.row_factory = sqlite3.Row
-
-    cursor = db.execute(
+  def load_listings(self) -> list[Listing]:
+    rows = self.fetch_all(
       """
       SELECT id, title, company, location, posted_date, url
       FROM listings
       ORDER BY posted_date DESC
-      """,
+      """
     )
+    return [Listing(**dict(row)) for row in rows]
 
-    listings = []
-    for row in cursor.fetchall():
-      listing = dict(row)
-      listings.append(Listing(**listing))
-
-    return listings
-
-
-def save_listing(listing: Listing) -> Listing:
-  with sqlite3.connect(DB_PATH) as db:
-    db.execute(
+  def save_listing(self, listing: Listing) -> Listing:
+    self.execute(
       """
       INSERT INTO listings (id, title, company, location, posted_date, url)
       VALUES (?, ?, ?, ?, ?, ?)
@@ -42,6 +31,10 @@ def save_listing(listing: Listing) -> Listing:
         str(listing.url),
       ),
     )
-    db.commit()
+    return listing
 
-  return listing
+
+_service = ListingsService()
+
+load_listings = _service.load_listings
+save_listing = _service.save_listing

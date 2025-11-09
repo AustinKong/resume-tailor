@@ -1,26 +1,22 @@
-import json
-import os
-
+from app.repositories.json_repository import JSONRepository
 from app.schemas.profile import Profile
 
-PROFILE_PATH = os.getenv('PROFILE_PATH', 'data/profile.json')
+
+class ProfileService(JSONRepository):
+  def __init__(self):
+    super().__init__()
+
+  def load_profile(self) -> Profile:
+    try:
+      return self.read_json('profile.json', Profile)
+    except FileNotFoundError:
+      return Profile.empty()
+
+  def save_profile(self, profile: Profile) -> None:
+    self.write_json('profile.json', profile)
 
 
-def load_profile() -> Profile:
-  try:
-    with open(PROFILE_PATH) as f:
-      data = json.load(f)
-      return Profile(**data)
-  except FileNotFoundError:
-    return Profile.empty()
-  except Exception as e:
-    raise e
+_service = ProfileService()
 
-
-def save_profile(profile: Profile) -> None:
-  try:
-    os.makedirs(os.path.dirname(PROFILE_PATH), exist_ok=True)
-    with open(PROFILE_PATH, 'w') as f:
-      json.dump(profile.model_dump(), f, indent=2)
-  except Exception as e:
-    raise e
+load_profile = _service.load_profile
+save_profile = _service.save_profile
