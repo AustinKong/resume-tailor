@@ -1,9 +1,7 @@
 from uuid import UUID
 
-from backend.app.repositories.database_repository import DatabaseRepository
-from backend.app.repositories.vector_repository import VectorRepository
-from langchain_core.documents import Document
-
+from app.repositories.database_repository import DatabaseRepository
+from app.repositories.vector_repository import VectorRepository
 from app.schemas.experience import Experience
 
 
@@ -29,6 +27,7 @@ class ExperienceService(DatabaseRepository, VectorRepository):
     )
 
     documents = []
+    metadatas = []
     bullets = []
 
     for i, bullet_text in enumerate(experience.bullets):
@@ -41,12 +40,8 @@ class ExperienceService(DatabaseRepository, VectorRepository):
         f'Achievement: {bullet_text}\n'
       )
 
-      documents.append(
-        Document(
-          page_content=context_aware_text,
-          metadata={'experience_id': str(experience.id), 'bullet_index': i},
-        ),
-      )
+      documents.append(context_aware_text)
+      metadatas.append({'experience_id': str(experience.id), 'bullet_index': i})
 
     if bullets:
       self.execute_many(
@@ -57,7 +52,8 @@ class ExperienceService(DatabaseRepository, VectorRepository):
         bullets,
       )
 
-    self.add_to_vector_store('experience_bullets', documents)
+    if documents:
+      self.add_to_vector_store('experience_bullets', documents, metadatas)
 
     return experience
 
@@ -147,6 +143,7 @@ class ExperienceService(DatabaseRepository, VectorRepository):
     )
 
     documents = []
+    metadatas = []
     bullets = []
 
     for i, bullet_text in enumerate(experience.bullets):
@@ -159,12 +156,8 @@ class ExperienceService(DatabaseRepository, VectorRepository):
         f'Achievement: {bullet_text}\n'
       )
 
-      documents.append(
-        Document(
-          page_content=context_aware_text,
-          metadata={'experience_id': str(experience.id), 'bullet_index': i},
-        ),
-      )
+      documents.append(context_aware_text)
+      metadatas.append({'experience_id': str(experience.id), 'bullet_index': i})
 
     if bullets:
       self.execute_many(
@@ -174,6 +167,9 @@ class ExperienceService(DatabaseRepository, VectorRepository):
         """,
         bullets,
       )
+
+    if documents:
+      self.add_to_vector_store('experience_bullets', documents, metadatas)
 
     self.delete_from_vector_store('experience_bullets', {'experience_id': str(experience.id)})
     self.add_to_vector_store('experience_bullets', documents)

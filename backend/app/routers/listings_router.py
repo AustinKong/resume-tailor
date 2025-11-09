@@ -1,10 +1,11 @@
 import asyncio
 
-from backend.app.utils.url import normalize_url
 from fastapi import APIRouter
 from pydantic import HttpUrl
-from schemas.listing import Listing
-from services import listings_service, scraping_service
+
+from app.schemas.listing import Listing
+from app.services import listings_service, scraping_service
+from app.utils.url import normalize_url
 
 router = APIRouter(
   prefix='/listings',
@@ -30,9 +31,13 @@ async def scrape_listings(urls: list[HttpUrl]):
   # 7. Return new listings
   # 8. If user wants to forcefully scrape the duplicates, provide an endpoint for that which appends
   # a special param to the URL
-  urls = list(set([normalize_url(url) for url in urls]))
+  urls = [normalize_url(url) for url in urls]
+  unique_urls = set(urls)
+  unique_urls -= set(listings_service.check_existing_urls(list(unique_urls)))
 
-  page_contents = await asyncio.gather(*[scraping_service.fetch_and_clean(url) for url in urls])
+  page_contents = await asyncio.gather(
+    *[scraping_service.fetch_and_clean(url) for url in unique_urls]
+  )
 
   # TODO: More processing
   return page_contents
