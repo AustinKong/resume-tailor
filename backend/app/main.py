@@ -7,7 +7,7 @@ from fastapi.responses import JSONResponse
 
 load_dotenv()
 
-from app.routers import experience_router, profile_router  # noqa: E402
+from app.routers import experience_router, listings_router, profile_router  # noqa: E402
 
 app = FastAPI()
 app.add_middleware(
@@ -19,6 +19,7 @@ app.add_middleware(
 )
 app.include_router(profile_router.router)
 app.include_router(experience_router.router)
+app.include_router(listings_router.router)
 
 
 @app.get('/health')

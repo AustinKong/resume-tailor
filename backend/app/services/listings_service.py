@@ -1,3 +1,5 @@
+import json
+
 from pydantic import HttpUrl
 
 from app.repositories.database_repository import DatabaseRepository
@@ -11,31 +13,43 @@ class ListingsService(DatabaseRepository):
   def load_listings(self) -> list[Listing]:
     rows = self.fetch_all(
       """
-      SELECT id, title, company, location, posted_date, url
+      SELECT id, url, title, company, location, description, posted_date, keywords
       FROM listings
       ORDER BY posted_date DESC
       """
     )
-    return [Listing(**dict(row)) for row in rows]
+
+    listings = []
+    for row in rows:
+      data = dict(row)
+      if data.get('keywords'):
+        data['keywords'] = json.loads(data['keywords'])
+      else:
+        data['keywords'] = []
+      listings.append(Listing(**data))
+
+    return listings
 
   def save_listing(self, listing: Listing) -> Listing:
     self.execute(
       """
-      INSERT INTO listings (id, title, company, location, posted_date, url)
-      VALUES (?, ?, ?, ?, ?, ?)
+      INSERT INTO listings (id, url, title, company, location, description, posted_date, keywords)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
       """,
       (
-        listing.id,
+        str(listing.id),
+        str(listing.url),
         listing.title,
         listing.company,
         listing.location,
-        listing.posted_date,
-        str(listing.url),
+        listing.description,
+        listing.posted_date.isoformat() if listing.posted_date else None,
+        json.dumps(listing.keywords),
       ),
     )
     return listing
 
-  def check_existing_urls(self, urls: list[HttpUrl]) -> list[HttpUrl]:
+  def get_existing_urls(self, urls: list[HttpUrl]) -> list[HttpUrl]:
     """
     Check which URLs already exist in the database. Returns a list of urls that already exist.
     """
@@ -59,4 +73,4 @@ _service = ListingsService()
 
 load_listings = _service.load_listings
 save_listing = _service.save_listing
-check_existing_urls = _service.check_existing_urls
+get_existing_urls = _service.get_existing_urls

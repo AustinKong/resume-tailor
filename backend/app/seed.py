@@ -35,6 +35,19 @@ def create_tables():
             )
         """)
 
+    db.execute("""
+            CREATE TABLE IF NOT EXISTS listings (
+                id TEXT PRIMARY KEY,
+                url TEXT NOT NULL UNIQUE,
+                title TEXT NOT NULL,
+                company TEXT NOT NULL,
+                location TEXT,
+                description TEXT NOT NULL,
+                posted_date TEXT,
+                keywords TEXT
+            )
+        """)
+
     db.commit()
 
   print(f'Database tables created successfully at {DB_PATH}')

@@ -7,6 +7,7 @@ from pydantic import BaseModel
 T = TypeVar('T', bound=BaseModel)
 
 
+# TODO: Add caching
 class JSONRepository:
   def __init__(self, **kwargs):
     super().__init__(**kwargs)

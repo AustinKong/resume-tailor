@@ -1,8 +1,6 @@
-from collections.abc import Iterable
 from typing import TypeVar
 
-from openai import OpenAI
-from openai.types.chat import ChatCompletionMessageParam
+from openai import AsyncOpenAI
 from pydantic import BaseModel
 
 T = TypeVar('T', bound=BaseModel)
@@ -16,12 +14,12 @@ class LLMService:
   @property
   def client(self):
     if self._client is None:
-      self._client = OpenAI()
+      self._client = AsyncOpenAI()
     return self._client
 
-  def call(
+  async def call(
     self,
-    messages: Iterable[ChatCompletionMessageParam],
+    input: str,
     response_model: type[T] | None = None,
     temperature: float = 0.7,
     model: str = 'gpt-4o-mini',
@@ -30,7 +28,7 @@ class LLMService:
     Make an LLM API call with optional structured output.
 
     Args:
-      messages: List of message dicts with 'role' and 'content'.
+      input: User input string.
       response_model: Optional Pydantic model for structured output.
       temperature: Sampling temperature (0.0 - 2.0).
       model: OpenAI model to use.
@@ -39,16 +37,21 @@ class LLMService:
       Parsed Pydantic model instance if response_model provided, else string content.
     """
     if response_model is not None:
-      completion = self.client.beta.chat.completions.parse(
-        model=model, messages=messages, response_format=response_model, temperature=temperature
+      response = await self.client.responses.parse(
+        model=model, input=input, text_format=response_model, temperature=temperature
       )
-      return completion.choices[0].message.parsed  # type: ignore
+      parsed = response.output_parsed
+      if parsed is None:
+        return response.output_text
+      return parsed
 
-    completion = self.client.chat.completions.create(
-      model=model, messages=messages, temperature=temperature
+    response = await self.client.responses.create(
+      model=model,
+      input=input,
+      temperature=temperature,
     )
-    return completion.choices[0].message.content or ''
+    return response.output_text
 
 
 _service = LLMService()
-llm_call = _service.call
+call = _service.call

@@ -33,11 +33,19 @@ async def scrape_listings(urls: list[HttpUrl]):
   # a special param to the URL
   urls = [normalize_url(url) for url in urls]
   unique_urls = set(urls)
-  unique_urls -= set(listings_service.check_existing_urls(list(unique_urls)))
+  unique_urls -= set(listings_service.get_existing_urls(list(unique_urls)))
 
   page_contents = await asyncio.gather(
     *[scraping_service.fetch_and_clean(url) for url in unique_urls]
   )
+
+  prompt = """
+  Extract job listing information from the content below:
+  {content}
+  """
+  # processed_contents = await asyncio.gather(
+  #   *[llm_service.call(prompt.format(content=content)) for content in page_contents]
+  # )
 
   # TODO: More processing
   return page_contents
