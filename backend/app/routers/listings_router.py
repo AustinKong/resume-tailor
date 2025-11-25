@@ -1,12 +1,16 @@
 import asyncio
 
-from backend.app.services import llm_service
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException, status
 from pydantic import HttpUrl
 
 from app.schemas.listing import Listing, LLMResponseListing
-from app.services import listings_service, scraping_service
+from app.services import listings_service, llm_service, scraping_service
 from app.utils.url import normalize_url
+
+LISTING_EXTRACTION_PROMPT = """
+Extract job listing information from the content below:
+{content}
+"""
 
 router = APIRouter(
   prefix='/listings',
@@ -22,6 +26,9 @@ async def get_listings():
 
 @router.post('/scrape')
 async def scrape_listings(urls: list[HttpUrl]):
+  if not urls:
+    raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail='No URLs provided')
+
   # 1. Normalize all URLs and remove duplicates within provided URLs
   urls = [normalize_url(url) for url in urls]
   unique_urls = set(urls)
@@ -34,14 +41,11 @@ async def scrape_listings(urls: list[HttpUrl]):
     *[scraping_service.fetch_and_clean(url) for url in unique_urls]
   )
 
-  prompt = """
-  Extract job listing information from the content below:
-  {content}
-  """
   llm_listings: list[LLMResponseListing] = await asyncio.gather(
     *[
       llm_service.call_structured(
-        input=prompt.format(content=content), response_model=LLMResponseListing
+        input=LISTING_EXTRACTION_PROMPT.format(content=content),
+        response_model=LLMResponseListing,
       )
       for content in page_contents
     ]

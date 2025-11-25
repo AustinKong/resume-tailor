@@ -168,11 +168,9 @@ class ExperienceService(DatabaseRepository, VectorRepository):
         bullets,
       )
 
+    self.delete_documents('experience_bullets', {'experience_id': str(experience.id)})
     if documents:
       self.add_documents('experience_bullets', documents, metadatas)
-
-    self.delete_documents('experience_bullets', {'experience_id': str(experience.id)})
-    self.add_documents('experience_bullets', documents)
 
     return experience
 

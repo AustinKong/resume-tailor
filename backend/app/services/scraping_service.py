@@ -7,12 +7,13 @@ from pydantic import HttpUrl
 
 class ScrapingService:
   def __init__(self):
-    pass
+    # Configuration
+    self.scraping_aggressive_clean = True
+    self.scraping_headless = True
 
   async def _scrape_page(self, url: HttpUrl) -> str:
     async with async_playwright() as p:
-      # browser = await p.chromium.launch(headless=True)
-      browser = await p.chromium.launch(headless=False, slow_mo=1000)
+      browser = await p.chromium.launch(headless=self.scraping_headless)
       page = await browser.new_page()
       await page.goto(str(url), wait_until='networkidle')
       html = await page.content()
@@ -34,7 +35,7 @@ class ScrapingService:
     text = re.sub(r'\s+', ' ', text)
     return text[:10000]
 
-  def _clean_html_aggresive(self, html: str) -> str:
+  def _clean_html_aggressive(self, html: str) -> str:
     """
     Aggressively cleans HTML for LLM input by:
 
@@ -100,11 +101,11 @@ class ScrapingService:
 
     return ' '.join(filtered_sentences)[:10000]
 
-  async def fetch_and_clean(self, url: HttpUrl, aggressive=True) -> str:
+  async def fetch_and_clean(self, url: HttpUrl) -> str:
     raw_html = await self._scrape_page(url)
 
-    if aggressive:
-      cleaned_text = self._clean_html_aggresive(raw_html)
+    if self.scraping_aggressive_clean:
+      cleaned_text = self._clean_html_aggressive(raw_html)
     else:
       cleaned_text = self._clean_html(raw_html)
 

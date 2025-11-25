@@ -8,6 +8,10 @@ T = TypeVar('T', bound=BaseModel)
 
 class LLMService:
   def __init__(self):
+    # Configuration
+    self.model = 'gpt-4o-mini'
+    self.temperature = 0.7
+
     self._client = None
     self._cache = {}
 
@@ -21,8 +25,6 @@ class LLMService:
     self,
     input: str,
     response_model: type[T],
-    temperature: float = 0.7,
-    model: str = 'gpt-4o-mini',
   ) -> T:
     """
     Make an LLM API call with structured output.
@@ -30,14 +32,15 @@ class LLMService:
     Args:
       input: User input string.
       response_model: Pydantic model for structured output (required).
-      temperature: Sampling temperature (0.0 - 2.0).
-      model: OpenAI model to use.
 
     Returns:
       Parsed Pydantic model instance.
     """
     response = await self.client.responses.parse(
-      model=model, input=input, text_format=response_model, temperature=temperature
+      model=self.model,
+      input=input,
+      temperature=self.temperature,
+      text_format=response_model,
     )
 
     parsed = response.output_parsed
@@ -49,24 +52,20 @@ class LLMService:
   async def call_unstructured(
     self,
     input: str,
-    temperature: float = 0.7,
-    model: str = 'gpt-4o-mini',
   ) -> str:
     """
     Make an LLM API call with unstructured text output.
 
     Args:
       input: User input string.
-      temperature: Sampling temperature (0.0 - 2.0).
-      model: OpenAI model to use.
 
     Returns:
       Text response from the model.
     """
     response = await self.client.responses.create(
-      model=model,
+      model=self.model,
       input=input,
-      temperature=temperature,
+      temperature=self.temperature,
     )
     return response.output_text
 

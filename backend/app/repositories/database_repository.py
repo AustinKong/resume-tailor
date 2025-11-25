@@ -6,6 +6,8 @@ from contextlib import contextmanager
 class DatabaseRepository:
   def __init__(self, **kwargs):
     super().__init__(**kwargs)
+
+    # Configuration
     self.db_path = os.getenv('DB_PATH', 'data/db.sqlite3')
 
   @contextmanager

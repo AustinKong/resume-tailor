@@ -8,15 +8,14 @@ from chromadb.utils.embedding_functions import OpenAIEmbeddingFunction
 
 
 class VectorRepository:
-  def __init__(
-    self,
-    embedding_model: str = 'text-embedding-3-large',
-    **kwargs,
-  ):
+  def __init__(self, **kwargs):
     super().__init__(**kwargs)
 
-    self.vector_persist_dir = os.getenv('VEC_PATH', 'data/vecs')
-    self.embedding_model = embedding_model
+    # Configuration
+    self.openai_api_key = os.getenv('OPENAI_API_KEY')
+    self.vector_path = os.getenv('VECTOR_PATH', 'data/vecs')
+    self.embedding_model = 'text-embedding-3-large'
+
     self._chroma_client = None
     self._embedding_function = None
     self._collection_cache: dict[str, chromadb.Collection] = {}
@@ -24,14 +23,14 @@ class VectorRepository:
   @property
   def chroma_client(self):
     if self._chroma_client is None:
-      self._chroma_client = chromadb.PersistentClient(path=self.vector_persist_dir)
+      self._chroma_client = chromadb.PersistentClient(path=self.vector_path)
     return self._chroma_client
 
   @property
   def embedding_function(self) -> chromadb.EmbeddingFunction:
     if self._embedding_function is None:
       self._embedding_function = OpenAIEmbeddingFunction(
-        api_key=os.getenv('OPENAI_API_KEY'),
+        api_key=self.openai_api_key,
         model_name=self.embedding_model,
       )
     return self._embedding_function

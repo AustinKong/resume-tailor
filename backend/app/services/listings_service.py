@@ -8,10 +8,16 @@ from app.repositories.vector_repository import VectorRepository
 from app.schemas.listing import Listing
 from app.utils.deduplication import fuzzy_text_similarity
 
-LISTINGS_COLLECTION = 'listings'
-
 
 class ListingsService(DatabaseRepository, VectorRepository):
+  def __init__(self, **kwargs):
+    super().__init__(**kwargs)
+
+    # Configuration
+    self.semantic_similarity_threshold = 0.90
+    self.title_similarity_threshold = 0.85
+    self.company_similarity_threshold = 0.90
+
   def load_listings(self) -> list[Listing]:
     rows = self.fetch_all(
       """
@@ -36,7 +42,6 @@ class ListingsService(DatabaseRepository, VectorRepository):
     if not listings:
       return []
 
-    # Save to database
     self.execute_many(
       """
       INSERT INTO listings (id, url, title, company, location, description, posted_date, keywords)
@@ -68,9 +73,7 @@ class ListingsService(DatabaseRepository, VectorRepository):
       for listing in listings
     ]
 
-    self.add_documents(
-      collection_name=LISTINGS_COLLECTION, documents=documents, metadatas=metadatas
-    )
+    self.add_documents(collection_name='listings', documents=documents, metadatas=metadatas)
 
     return listings
 
@@ -133,9 +136,7 @@ class ListingsService(DatabaseRepository, VectorRepository):
     """
     # Search for similar listings using ChromaDB's built-in similarity scores
     query_text = self._create_listing_embedding_text(new_listing)
-    search_results = self.search_documents(
-      collection_name=LISTINGS_COLLECTION, query=query_text, k=k
-    )
+    search_results = self.search_documents(collection_name='listings', query=query_text, k=k)
 
     # Filter by threshold and extract listing IDs
     matching_ids = []
@@ -191,11 +192,6 @@ class ListingsService(DatabaseRepository, VectorRepository):
 
     Returns:
       List of (similar_listing, similarity_score) tuples above threshold
-
-    Note:
-      This method loads all existing listings from the database and compares
-      them in memory. This is acceptable because fuzzy matching is fast and
-      doesn't require indexing infrastructure like semantic search does.
     """
     # Load all existing listings for fuzzy matching
     existing_listings = self.load_listings()
@@ -235,11 +231,6 @@ class ListingsService(DatabaseRepository, VectorRepository):
     Returns:
       List of (new_listing, similar_listing) tuples for listings that have a match
       above the thresholds. Listings without matches are not included.
-
-    Note:
-      All listings are automatically indexed when saved via save_listings().
-      The vector store is assumed to be up to date with the database.
-      Both search methods are memory efficient.
     """
     similar_pairs = []
 
