@@ -5,9 +5,7 @@ from pydantic import BaseModel, ConfigDict, Field, HttpUrl
 from pydantic.alias_generators import to_camel
 
 
-class Listing(BaseModel):
-  id: UUID = Field(default_factory=uuid4)
-  url: HttpUrl
+class LLMResponseListing(BaseModel):
   title: str
   company: str
   location: str | None = None
@@ -22,3 +20,8 @@ class Listing(BaseModel):
     alias_generator=to_camel,
     populate_by_name=True,
   )
+
+
+class Listing(LLMResponseListing):
+  id: UUID = Field(default_factory=uuid4)
+  url: HttpUrl

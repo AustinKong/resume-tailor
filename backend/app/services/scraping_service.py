@@ -100,10 +100,10 @@ class ScrapingService:
 
     return ' '.join(filtered_sentences)[:10000]
 
-  async def fetch_and_clean(self, url: HttpUrl, aggresive=True) -> str:
+  async def fetch_and_clean(self, url: HttpUrl, aggressive=True) -> str:
     raw_html = await self._scrape_page(url)
 
-    if aggresive:
+    if aggressive:
       cleaned_text = self._clean_html_aggresive(raw_html)
     else:
       cleaned_text = self._clean_html(raw_html)

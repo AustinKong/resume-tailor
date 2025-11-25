@@ -1,8 +1,10 @@
 import os
+from typing import Any, cast
 from uuid import uuid4
 
 import chromadb
-from openai import OpenAI
+from chromadb.api.types import Metadata
+from chromadb.utils.embedding_functions import OpenAIEmbeddingFunction
 
 
 class VectorRepository:
@@ -16,8 +18,8 @@ class VectorRepository:
     self.vector_persist_dir = os.getenv('VEC_PATH', 'data/vecs')
     self.embedding_model = embedding_model
     self._chroma_client = None
-    self._openai_client = None
-    self._collections = {}
+    self._embedding_function = None
+    self._collection_cache: dict[str, chromadb.Collection] = {}
 
   @property
   def chroma_client(self):
@@ -26,43 +28,92 @@ class VectorRepository:
     return self._chroma_client
 
   @property
-  def openai_client(self):
-    if self._openai_client is None:
-      self._openai_client = OpenAI()
-    return self._openai_client
-
-  def _get_collection(self, collection_name: str):
-    if collection_name not in self._collections:
-      self._collections[collection_name] = self.chroma_client.get_or_create_collection(
-        name=collection_name
+  def embedding_function(self) -> chromadb.EmbeddingFunction:
+    if self._embedding_function is None:
+      self._embedding_function = OpenAIEmbeddingFunction(
+        api_key=os.getenv('OPENAI_API_KEY'),
+        model_name=self.embedding_model,
       )
-    return self._collections[collection_name]
+    return self._embedding_function
 
-  def _get_embeddings(self, texts: list[str]) -> list[list[float]]:
-    response = self.openai_client.embeddings.create(model=self.embedding_model, input=texts)
-    return [item.embedding for item in response.data]
+  def _get_collection(self, collection_name: str) -> chromadb.Collection:
+    """
+    Get or create a collection with cosine similarity and embedding function.
 
-  def add_to_vector_store(
-    self, collection_name: str, documents: list[str], metadatas: list[dict] | None = None
+    Args:
+      collection_name: Name of the collection
+
+    Returns:
+      ChromaDB collection
+
+    Note:
+      Distance metric is hardcoded to 'cosine' because our similarity calculation
+      (similarity = 1 - distance) only works correctly with cosine distance.
+    """
+    if collection_name not in self._collection_cache:
+      self._collection_cache[collection_name] = self.chroma_client.get_or_create_collection(
+        name=collection_name,
+        embedding_function=self.embedding_function,
+        metadata={'hnsw:space': 'cosine'},
+      )
+    return self._collection_cache[collection_name]
+
+  def add_documents(
+    self,
+    collection_name: str,
+    documents: list[str],
+    metadatas: list[Metadata] | None = None,
   ) -> None:
     """
-    Add documents to a vector store collection.
+    Add documents to a collection. Embeddings are automatically generated.
 
     Args:
       collection_name: Name of the collection.
       documents: List of text strings to add.
       metadatas: Optional list of metadata dicts (one per document).
+        Each metadata dict can contain str, int, float, bool, or None values.
     """
     if not documents:
       return
 
     collection = self._get_collection(collection_name)
-    embeddings = self._get_embeddings(documents)
     ids = [str(uuid4()) for _ in documents]
 
-    collection.add(documents=documents, embeddings=embeddings, metadatas=metadatas, ids=ids)
+    collection.add(
+      documents=documents,
+      metadatas=metadatas,
+      ids=ids,
+    )
 
-  def delete_from_vector_store(self, collection_name: str, where: dict) -> None:
+  def get_documents(
+    self, collection_name: str, where: dict[str, Any] | None = None
+  ) -> list[tuple[str, dict[str, Any]]]:
+    """
+    Get all documents and metadata from a collection.
+
+    Args:
+      collection_name: Name of the collection.
+      where: Optional metadata filter dict.
+
+    Returns:
+      List of (document_text, metadata) tuples.
+    """
+    collection = self._get_collection(collection_name)
+    results = collection.get(where=where)
+
+    documents: list[tuple[str, dict[str, Any]]] = []
+    ids = results.get('ids', [])
+    docs = results.get('documents') or []
+    metas = results.get('metadatas') or []
+
+    for i in range(len(ids)):
+      doc_text = docs[i] if i < len(docs) else ''
+      metadata = metas[i] if i < len(metas) else {}
+      documents.append((str(doc_text), dict(metadata or {})))
+
+    return documents
+
+  def delete_documents(self, collection_name: str, where: dict[str, Any]) -> None:
     """
     Delete documents from a collection matching metadata filter.
 
@@ -72,12 +123,13 @@ class VectorRepository:
     """
     collection = self._get_collection(collection_name)
     results = collection.get(where=where)
-    if results['ids']:
-      collection.delete(ids=results['ids'])
+    ids = results.get('ids', [])
+    if ids:
+      collection.delete(ids=ids)
 
-  def search_vector_store(
+  def search_documents(
     self, collection_name: str, query: str, k: int = 10
-  ) -> list[tuple[str, dict]]:
+  ) -> list[tuple[str, dict[str, Any], float]]:
     """
     Search for similar documents in a collection.
 
@@ -87,48 +139,29 @@ class VectorRepository:
       k: Number of results to return.
 
     Returns:
-      List of (document_text, metadata) tuples.
+      List of (document_text, metadata, similarity_score) tuples.
+      Similarity score is 0-1, where higher means more similar.
     """
     collection = self._get_collection(collection_name)
-    query_embedding = self._get_embeddings([query])[0]
 
-    results = collection.query(query_embeddings=[query_embedding], n_results=k)
+    results = collection.query(query_texts=[query], n_results=k)
 
-    documents = []
-    for i in range(len(results['ids'][0])):
-      doc_text = results['documents'][0][i]
-      metadata = results['metadatas'][0][i] or {}
-      documents.append((doc_text, metadata))
+    documents: list[tuple[str, dict[str, Any], float]] = []
+
+    result_ids = cast(list[list[str]], results.get('ids', [[]]))[0]
+    result_docs = cast(list[list[str]], results.get('documents', [[]]))[0]
+    result_metas = cast(list[list[dict[str, Any]]], results.get('metadatas', [[]]))[0]
+    result_distances = cast(list[list[float]], results.get('distances', [[]]))[0]
+
+    for i in range(len(result_ids)):
+      doc_text = result_docs[i] if i < len(result_docs) else ''
+      metadata = result_metas[i] if i < len(result_metas) else {}
+      distance = result_distances[i] if i < len(result_distances) else 1.0
+
+      # Convert cosine distance to similarity (0-1, higher is more similar)
+      # ChromaDB returns cosine distance (0-2), we convert to similarity: 1 - distance
+      similarity = 1 - distance
+
+      documents.append((str(doc_text), dict(metadata or {}), float(similarity)))
 
     return documents
-
-  def search_vector_store_with_score(
-    self,
-    collection_name: str,
-    query: str,
-    k: int = 10,
-  ) -> list[tuple[str, dict, float]]:
-    """
-    Search for similar documents with relevance scores.
-
-    Args:
-      collection_name: Name of the collection.
-      query: Search query text.
-      k: Number of results to return.
-
-    Returns:
-      List of (document_text, metadata, distance) tuples where distance is lower for more similar.
-    """
-    collection = self._get_collection(collection_name)
-    query_embedding = self._get_embeddings([query])[0]
-
-    results = collection.query(query_embeddings=[query_embedding], n_results=k)
-
-    documents_with_scores = []
-    for i in range(len(results['ids'][0])):
-      doc_text = results['documents'][0][i]
-      metadata = results['metadatas'][0][i] or {}
-      distance = results['distances'][0][i]
-      documents_with_scores.append((doc_text, metadata, distance))
-
-    return documents_with_scores

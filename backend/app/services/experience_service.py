@@ -53,7 +53,7 @@ class ExperienceService(DatabaseRepository, VectorRepository):
       )
 
     if documents:
-      self.add_to_vector_store('experience_bullets', documents, metadatas)
+      self.add_documents('experience_bullets', documents, metadatas)
 
     return experience
 
@@ -169,10 +169,10 @@ class ExperienceService(DatabaseRepository, VectorRepository):
       )
 
     if documents:
-      self.add_to_vector_store('experience_bullets', documents, metadatas)
+      self.add_documents('experience_bullets', documents, metadatas)
 
-    self.delete_from_vector_store('experience_bullets', {'experience_id': str(experience.id)})
-    self.add_to_vector_store('experience_bullets', documents)
+    self.delete_documents('experience_bullets', {'experience_id': str(experience.id)})
+    self.add_documents('experience_bullets', documents)
 
     return experience
 
@@ -193,7 +193,7 @@ class ExperienceService(DatabaseRepository, VectorRepository):
       (str(id),),
     )
 
-    self.delete_from_vector_store('experience_bullets', {'experience_id': str(id)})
+    self.delete_documents('experience_bullets', {'experience_id': str(id)})
 
 
 _service = ExperienceService()
