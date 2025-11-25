@@ -15,7 +15,7 @@ import BulletInput from '@/components/custom/BulletInput';
 import FloatingLabelInput from '@/components/custom/FloatingLabelInput';
 import { useProfile } from '@/hooks/useProfile';
 import { type Education, emptyEducation } from '@/types/profile';
-import { YearMonth } from '@/utils/yearMonth';
+import { ISOYearMonth } from '@/utils/date';
 
 export default function Education() {
   const { profile, isGetLoading, setProfileField, saveProfile } = useProfile();
@@ -122,7 +122,7 @@ function Entry({
             label="Start date"
             type="month"
             value={education.startDate}
-            onChange={(e) => updateEducation({ startDate: YearMonth.parse(e.target.value) })}
+            onChange={(e) => updateEducation({ startDate: ISOYearMonth.parse(e.target.value) })}
           />
         </Field.Root>
         <Text>-</Text>
@@ -133,7 +133,7 @@ function Entry({
             value={education.endDate || ''}
             onChange={(e) =>
               updateEducation({
-                endDate: YearMonth.parse(e.target.value),
+                endDate: ISOYearMonth.parse(e.target.value),
               })
             }
             disabled={!education.endDate}
@@ -142,7 +142,7 @@ function Entry({
         <Checkbox.Root
           checked={!education.endDate}
           onCheckedChange={(e) =>
-            updateEducation({ endDate: e.checked ? undefined : YearMonth.today() })
+            updateEducation({ endDate: e.checked ? undefined : ISOYearMonth.today() })
           }
         >
           <Checkbox.HiddenInput />

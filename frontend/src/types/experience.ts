@@ -1,4 +1,4 @@
-import { YearMonth } from '@/utils/yearMonth';
+import { ISOYearMonth } from '@/utils/date';
 
 export type ExperienceType = 'Full-time' | 'Part-time' | 'Internship' | 'Freelance' | 'Contract';
 
@@ -8,8 +8,8 @@ export type Experience = {
   organization: string;
   type: ExperienceType;
   location?: string;
-  startDate: YearMonth;
-  endDate?: YearMonth;
+  startDate: ISOYearMonth;
+  endDate?: ISOYearMonth;
   bullets: string[];
 };
 
@@ -17,7 +17,7 @@ export function emptyExperience<T extends ExperienceType>(type: T): Experience {
   return {
     title: '',
     organization: '',
-    startDate: YearMonth.today(),
+    startDate: ISOYearMonth.today(),
     bullets: [],
     type,
   };

@@ -5,7 +5,7 @@ import BulletInput from '@/components/custom/BulletInput';
 import FloatingLabelInput from '@/components/custom/FloatingLabelInput';
 import { useExperiences } from '@/hooks/useExperiences';
 import { emptyExperience, type Experience, type ExperienceType } from '@/types/experience';
-import { YearMonth } from '@/utils/yearMonth';
+import { ISOYearMonth } from '@/utils/date';
 
 const EXPERIENCE_TYPES: ExperienceType[] = [
   'Full-time',
@@ -131,7 +131,7 @@ function Entry({
             label="Start Date"
             type="month"
             value={experience.startDate}
-            onChange={(e) => updateExperience({ startDate: YearMonth.parse(e.target.value) })}
+            onChange={(e) => updateExperience({ startDate: ISOYearMonth.parse(e.target.value) })}
           />
         </Field.Root>
         <Text>-</Text>
@@ -140,14 +140,14 @@ function Entry({
             label="End Date"
             type="month"
             value={experience.endDate || ''}
-            onChange={(e) => updateExperience({ endDate: YearMonth.parse(e.target.value) })}
+            onChange={(e) => updateExperience({ endDate: ISOYearMonth.parse(e.target.value) })}
             disabled={!experience.endDate}
           />
         </Field.Root>
         <Checkbox.Root
           checked={!experience.endDate}
           onCheckedChange={(e) =>
-            updateExperience({ endDate: e.checked ? undefined : YearMonth.today() })
+            updateExperience({ endDate: e.checked ? undefined : ISOYearMonth.today() })
           }
         >
           <Checkbox.HiddenInput />

@@ -1,11 +1,11 @@
-import { YearMonth } from '@/utils/yearMonth';
+import { ISOYearMonth } from '@/utils/date';
 
 export type Education = {
   institution: string;
   program: string;
   location?: string;
-  startDate: YearMonth;
-  endDate?: YearMonth;
+  startDate: ISOYearMonth;
+  endDate?: ISOYearMonth;
   bullets: string[];
 };
 
@@ -31,6 +31,6 @@ export const emptyProfile: Profile = {
 export const emptyEducation: Education = {
   institution: '',
   program: '',
-  startDate: YearMonth.today(),
+  startDate: ISOYearMonth.today(),
   bullets: [],
 };
