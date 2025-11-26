@@ -15,7 +15,8 @@ class ScrapingService:
     async with async_playwright() as p:
       browser = await p.chromium.launch(headless=self.scraping_headless)
       page = await browser.new_page()
-      await page.goto(str(url), wait_until='networkidle')
+
+      await page.goto(str(url), wait_until='load')
       html = await page.content()
       await browser.close()
       return html

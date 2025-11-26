@@ -3,7 +3,12 @@ import asyncio
 from fastapi import APIRouter, HTTPException, status
 from pydantic import HttpUrl
 
-from app.schemas.listing import Listing, LLMResponseListing
+from app.schemas.listing import (
+  DuplicateListing,
+  Listing,
+  LLMResponseListing,
+  ScrapeResult,
+)
 from app.services import listings_service, llm_service, scraping_service
 from app.utils.url import normalize_url
 
@@ -24,21 +29,28 @@ async def get_listings():
   return listings
 
 
-@router.post('/scrape')
+@router.post('/scrape', response_model=ScrapeResult)
 async def scrape_listings(urls: list[HttpUrl]):
   if not urls:
     raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail='No URLs provided')
 
-  # 1. Normalize all URLs and remove duplicates within provided URLs
-  urls = [normalize_url(url) for url in urls]
-  unique_urls = set(urls)
+  # 1. Normalize all URLs and deduplicate
+  normalized_urls = [normalize_url(url) for url in urls]
+  unique_urls = list(dict.fromkeys(normalized_urls))
 
-  # 2. Remove URLs that already exist in the database
-  unique_urls -= set(listings_service.get_existing_urls(list(unique_urls)))
+  # 2. Check which URLs already exist in database and mark as duplicates
+  existing_listings = listings_service.get_listings_by_urls(unique_urls)
+  existing_listings_map = {listing.url: listing for listing in existing_listings}
 
-  # 3. Scrape all unique URLs concurrently and LLM-process content
+  duplicates = [
+    DuplicateListing(listing=listing, duplicate_of=listing) for listing in existing_listings
+  ]
+
+  # 3. Scrape URLs not in database
+  urls_to_scrape = [url for url in unique_urls if url not in existing_listings_map]
+
   page_contents = await asyncio.gather(
-    *[scraping_service.fetch_and_clean(url) for url in unique_urls]
+    *[scraping_service.fetch_and_clean(url) for url in urls_to_scrape]
   )
 
   llm_listings: list[LLMResponseListing] = await asyncio.gather(
@@ -51,28 +63,25 @@ async def scrape_listings(urls: list[HttpUrl]):
     ]
   )
 
-  new_listings: list[Listing] = [
+  scraped_listings: list[Listing] = [
     Listing(**llm_listing.model_dump(), url=url)
-    for url, llm_listing in zip(unique_urls, llm_listings, strict=False)
+    for url, llm_listing in zip(urls_to_scrape, llm_listings, strict=False)
   ]
 
-  # 4. Find similar/duplicate listings using both semantic and heuristic methods
-  duplicate_pairs = listings_service.find_similar_listings(new_listings)
+  # 4. Find similar/duplicate listings among newly scraped and mark as duplicates
+  similar_duplicate_pairs = listings_service.find_similar_listings(scraped_listings)
 
-  duplicate_listing_ids = {pair[0].id for pair in duplicate_pairs}
+  duplicates.extend(
+    [
+      DuplicateListing(listing=listing, duplicate_of=dup)
+      for listing, dup in similar_duplicate_pairs
+    ]
+  )
 
-  unique_listings = [listing for listing in new_listings if listing.id not in duplicate_listing_ids]
+  similar_duplicate_ids = {pair[0].id for pair in similar_duplicate_pairs}
+  unique = [listing for listing in scraped_listings if listing.id not in similar_duplicate_ids]
 
-  return {
-    'unique': unique_listings,
-    'duplicates': [
-      {
-        'listing': pair[0],
-        'duplicate_of': pair[1],
-      }
-      for pair in duplicate_pairs
-    ],
-  }
+  return ScrapeResult(unique=unique, duplicates=duplicates)
 
 
 @router.post('')

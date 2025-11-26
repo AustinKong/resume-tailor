@@ -27,16 +27,7 @@ class ListingsService(DatabaseRepository, VectorRepository):
       """
     )
 
-    listings = []
-    for row in rows:
-      data = dict(row)
-      if data.get('keywords'):
-        data['keywords'] = json.loads(data['keywords'])
-      else:
-        data['keywords'] = []
-      listings.append(Listing(**data))
-
-    return listings
+    return [Listing(**dict(row)) for row in rows]
 
   def save_listings(self, listings: list[Listing]) -> list[Listing]:
     if not listings:
@@ -77,9 +68,10 @@ class ListingsService(DatabaseRepository, VectorRepository):
 
     return listings
 
-  def get_existing_urls(self, urls: list[HttpUrl]) -> list[HttpUrl]:
+  def get_listings_by_urls(self, urls: list[HttpUrl]) -> list[Listing]:
     """
-    Check which URLs already exist in the database. Returns a list of urls that already exist.
+    Get listings from the database that match the provided URLs.
+    Returns a list of Listing objects.
     """
     if not urls:
       return []
@@ -88,13 +80,14 @@ class ListingsService(DatabaseRepository, VectorRepository):
     placeholders = ','.join('?' * len(url_strings))
     rows = self.fetch_all(
       f"""
-      SELECT url
+      SELECT id, url, title, company, location, description, posted_date, keywords
       FROM listings
       WHERE url IN ({placeholders})
       """,
       tuple(url_strings),
     )
-    return [HttpUrl(row['url']) for row in rows]
+
+    return [Listing(**dict(row)) for row in rows]
 
   def _create_listing_embedding_text(self, listing: Listing) -> str:
     """
@@ -165,12 +158,7 @@ class ListingsService(DatabaseRepository, VectorRepository):
     # Convert rows to Listing objects
     similar = []
     for row in rows:
-      data = dict(row)
-      if data.get('keywords'):
-        data['keywords'] = json.loads(data['keywords'])
-      else:
-        data['keywords'] = []
-      listing = Listing(**data)
+      listing = Listing(**dict(row))
       score = similarity_scores.get(str(listing.id), 0.0)
       similar.append((listing, score))
 
@@ -260,6 +248,10 @@ class ListingsService(DatabaseRepository, VectorRepository):
           best_match = match
           best_score = score
 
+      # Even with semantically similar listings, different company = different listing
+      if best_match and new_listing.company != best_match.company:
+        best_match = None
+
       if best_match:
         similar_pairs.append((new_listing, best_match))
 
@@ -270,5 +262,5 @@ _service = ListingsService()
 
 load_listings = _service.load_listings
 save_listings = _service.save_listings
-get_existing_urls = _service.get_existing_urls
+get_listings_by_urls = _service.get_listings_by_urls
 find_similar_listings = _service.find_similar_listings
