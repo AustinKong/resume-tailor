@@ -1,5 +1,4 @@
 import {
-  Accordion,
   Badge,
   Box,
   Checkbox,
@@ -7,10 +6,12 @@ import {
   HStack,
   Link,
   Portal,
+  Table,
   Text,
   VStack,
 } from '@chakra-ui/react';
 
+import CollapsibleTableRow from '@/components/custom/CollapsibleTableRow';
 import { type Listing } from '@/types/listing';
 
 export default function Listings({
@@ -36,29 +37,39 @@ export default function Listings({
   ];
 
   return (
-    <Accordion.Root multiple variant="outline">
-      {allListings.map((item, index) => (
-        <ListingItem
-          key={index}
-          index={index}
-          listing={item.listing}
-          duplicateOf={item.duplicateOf}
-          isSelected={selectedListings.has(item.listing.id)}
-          onSelectionChange={onSelectionChange}
-        />
-      ))}
-    </Accordion.Root>
+    <Table.Root variant="outline" size="sm" width="100%">
+      <Table.Header>
+        <Table.Row>
+          <Table.ColumnHeader w="6" /> {/* Checkbox column - no label */}
+          <Table.ColumnHeader w="auto" /> {/* Chevron column - handled by CollapsibleTableRow */}
+          <Table.ColumnHeader w="200px">Company</Table.ColumnHeader>
+          <Table.ColumnHeader w="250px">Title</Table.ColumnHeader>
+          <Table.ColumnHeader w="150px">Location</Table.ColumnHeader>
+          <Table.ColumnHeader w="120px">Posted</Table.ColumnHeader>
+          <Table.ColumnHeader w="150px">Status</Table.ColumnHeader>
+        </Table.Row>
+      </Table.Header>
+      <Table.Body>
+        {allListings.map((item, index) => (
+          <ListingItem
+            key={index}
+            listing={item.listing}
+            duplicateOf={item.duplicateOf}
+            isSelected={selectedListings.has(item.listing.id)}
+            onSelectionChange={onSelectionChange}
+          />
+        ))}
+      </Table.Body>
+    </Table.Root>
   );
 }
 
 function ListingItem({
-  index,
   listing,
   duplicateOf,
   isSelected,
   onSelectionChange,
 }: {
-  index: number;
   listing: Listing;
   duplicateOf?: Listing;
   isSelected: boolean;
@@ -72,108 +83,113 @@ function ListingItem({
   const hasDateDiff = duplicateOf && listing.postedDate !== duplicateOf.postedDate;
 
   return (
-    <Accordion.Item value={`listing-${index}`}>
-      <HStack justifyContent="space-between" alignItems="flex-start" gap="4">
-        <Accordion.ItemTrigger flex="1" paddingY="3" gap="2" alignItems="flex-start">
-          <Accordion.ItemIndicator mt="1" />
-          <VStack flex="1" align="stretch" gap="1">
-            {/* Company - Title */}
-            <HStack gap="1" flexWrap="wrap" alignItems="baseline">
-              {hasCompanyDiff ? (
-                <DiffField
-                  label="Company"
-                  oldValue={duplicateOf.company}
-                  newValue={listing.company}
-                  description="Company name has changed"
-                >
-                  <Text fontWeight="bold" fontSize="md" textDecoration="underline" cursor="help">
-                    {listing.company}
-                  </Text>
-                </DiffField>
-              ) : (
-                <Text fontWeight="bold" fontSize="md">
-                  {listing.company}
-                </Text>
-              )}
-              <Text fontSize="md">-</Text>
-              {hasTitleDiff ? (
-                <DiffField
-                  label="Title"
-                  oldValue={duplicateOf.title}
-                  newValue={listing.title}
-                  description="Job title has changed"
-                >
-                  <Text fontSize="md" textDecoration="underline" cursor="help">
-                    {listing.title}
-                  </Text>
-                </DiffField>
-              ) : (
-                <Text fontSize="md">{listing.title}</Text>
-              )}
-              {isDuplicate && (
-                <Badge colorScheme={isSameUrl ? 'purple' : 'yellow'} size="sm" ml="2">
-                  {isSameUrl ? 'Already Saved' : 'Similar Content'}
-                </Badge>
-              )}
-            </HStack>
-
-            {/* Location and Posted Date */}
-            <HStack gap="1" fontSize="sm" color="gray.600">
-              {listing.location && (
-                <>
-                  {hasLocationDiff ? (
-                    <DiffField
-                      label="Location"
-                      oldValue={duplicateOf.location || 'Not specified'}
-                      newValue={listing.location}
-                      description="Location has changed"
-                    >
-                      <Text textDecoration="underline" cursor="help">
-                        {listing.location}
-                      </Text>
-                    </DiffField>
-                  ) : (
-                    <Text>{listing.location}</Text>
-                  )}
-                </>
-              )}
-              {listing.postedDate && (
-                <>
-                  {listing.location && <Text>•</Text>}
-                  {hasDateDiff ? (
-                    <DiffField
-                      label="Posted Date"
-                      oldValue={duplicateOf.postedDate || 'Not specified'}
-                      newValue={listing.postedDate}
-                      description="Posting date has changed"
-                    >
-                      <Text textDecoration="underline" cursor="help">
-                        Posted: {listing.postedDate}
-                      </Text>
-                    </DiffField>
-                  ) : (
-                    <Text>Posted: {listing.postedDate}</Text>
-                  )}
-                </>
-              )}
-            </HStack>
-          </VStack>
-        </Accordion.ItemTrigger>
+    <CollapsibleTableRow
+      expandedContent={<ListingDetails listing={listing} duplicateOf={duplicateOf} />}
+    >
+      {/* Checkbox column */}
+      <Table.Cell w="6" p="2">
         <Checkbox.Root
-          mt="3"
+          size="sm"
+          mt="0.5"
           checked={isSelected}
-          onCheckedChange={(e) => onSelectionChange(listing.id, e.checked === true)}
+          onCheckedChange={(details) => onSelectionChange(listing.id, details.checked === true)}
         >
           <Checkbox.HiddenInput />
           <Checkbox.Control />
         </Checkbox.Root>
-      </HStack>
-      <Accordion.ItemContent>
-        <Accordion.ItemBody>
-          <ListingDetails listing={listing} duplicateOf={duplicateOf} />
-        </Accordion.ItemBody>
-      </Accordion.ItemContent>
-    </Accordion.Item>
+      </Table.Cell>
+
+      {/* Company column */}
+      <Table.Cell w="200px" p="2">
+        {hasCompanyDiff ? (
+          <DiffField
+            label="Company"
+            oldValue={duplicateOf.company}
+            newValue={listing.company}
+            description="Company name has changed"
+          >
+            <Text fontWeight="bold" fontSize="sm" textDecoration="underline" cursor="help">
+              {listing.company}
+            </Text>
+          </DiffField>
+        ) : (
+          <Text fontWeight="bold" fontSize="sm">
+            {listing.company}
+          </Text>
+        )}
+      </Table.Cell>
+
+      {/* Title column */}
+      <Table.Cell w="250px" p="2">
+        {hasTitleDiff ? (
+          <DiffField
+            label="Title"
+            oldValue={duplicateOf.title}
+            newValue={listing.title}
+            description="Job title has changed"
+          >
+            <Text fontSize="sm" textDecoration="underline" cursor="help">
+              {listing.title}
+            </Text>
+          </DiffField>
+        ) : (
+          <Text fontSize="sm">{listing.title}</Text>
+        )}
+      </Table.Cell>
+
+      {/* Location column */}
+      <Table.Cell w="150px" p="2">
+        {listing.location && (
+          <>
+            {hasLocationDiff ? (
+              <DiffField
+                label="Location"
+                oldValue={duplicateOf.location || 'Not specified'}
+                newValue={listing.location}
+                description="Location has changed"
+              >
+                <Text fontSize="sm" textDecoration="underline" cursor="help">
+                  {listing.location}
+                </Text>
+              </DiffField>
+            ) : (
+              <Text fontSize="sm">{listing.location}</Text>
+            )}
+          </>
+        )}
+      </Table.Cell>
+
+      {/* Posted Date column */}
+      <Table.Cell w="120px" p="2">
+        {listing.postedDate && (
+          <>
+            {hasDateDiff ? (
+              <DiffField
+                label="Posted Date"
+                oldValue={duplicateOf.postedDate || 'Not specified'}
+                newValue={listing.postedDate}
+                description="Posting date has changed"
+              >
+                <Text fontSize="sm" textDecoration="underline" cursor="help">
+                  {listing.postedDate}
+                </Text>
+              </DiffField>
+            ) : (
+              <Text fontSize="sm">{listing.postedDate}</Text>
+            )}
+          </>
+        )}
+      </Table.Cell>
+
+      {/* Status column */}
+      <Table.Cell w="150px" p="2">
+        {isDuplicate && (
+          <Badge colorScheme={isSameUrl ? 'purple' : 'yellow'} size="sm">
+            {isSameUrl ? 'Already Saved' : 'Similar Content'}
+          </Badge>
+        )}
+      </Table.Cell>
+    </CollapsibleTableRow>
   );
 }
 
