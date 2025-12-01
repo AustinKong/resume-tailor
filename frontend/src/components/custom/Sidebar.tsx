@@ -13,7 +13,7 @@ export default function Sidebar({
       w="fit-content"
       h="full"
       bg="bg.panel"
-      minW="xs"
+      minW="3xs"
       alignItems="stretch"
       p="2"
       gap="2"

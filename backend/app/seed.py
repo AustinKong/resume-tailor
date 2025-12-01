@@ -48,6 +48,17 @@ def create_tables():
             )
         """)
 
+    db.execute("""
+            CREATE TABLE IF NOT EXISTS resumes (
+                id TEXT PRIMARY KEY,
+                listing_id TEXT NOT NULL UNIQUE,
+                template TEXT NOT NULL,
+                data JSON NOT NULL,
+                exported TEXT,
+                FOREIGN KEY (listing_id) REFERENCES listings (id) ON DELETE CASCADE
+            )
+        """)
+
     db.commit()
 
   print(f'Database tables created successfully at {DB_PATH}')

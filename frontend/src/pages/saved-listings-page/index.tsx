@@ -55,6 +55,18 @@ export default function SavedListingsPage() {
                   expandedContent={
                     <VStack align="stretch" gap="3">
                       <div>
+                        <Link
+                          fontSize="sm"
+                          color="blue.600"
+                          _dark={{ color: 'blue.400' }}
+                          href={`/resume-generation?listingId=${listing.id}`}
+                          fontWeight="semibold"
+                          textDecoration="underline"
+                        >
+                          → Generate Resume for this Listing
+                        </Link>
+                      </div>
+                      <div>
                         <Text fontWeight="semibold" mb="2">
                           Description
                         </Text>
