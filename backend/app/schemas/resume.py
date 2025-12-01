@@ -44,9 +44,3 @@ class Resume(BaseModel):
   template: str
   data: ResumeData
   exported: str | None = None
-
-
-class ResumeSummary(BaseModel):
-  id: UUID
-  listing_id: UUID
-  exported: str | None

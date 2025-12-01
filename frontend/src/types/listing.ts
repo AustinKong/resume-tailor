@@ -9,6 +9,7 @@ export type Listing = {
   description: string;
   postedDate?: ISODate;
   keywords: string[];
+  resumeIds: string[];
 };
 
 export type ScrapeResult = {

@@ -21,13 +21,25 @@ class ListingsService(DatabaseRepository, VectorRepository):
   def load_listings(self) -> list[Listing]:
     rows = self.fetch_all(
       """
-      SELECT id, url, title, company, location, description, posted_date, keywords
-      FROM listings
-      ORDER BY posted_date DESC
+      SELECT 
+        l.id, l.url, l.title, l.company, l.location, l.description, l.posted_date, l.keywords,
+        COALESCE(
+          GROUP_CONCAT(r.id),
+          ''
+        ) as resume_ids
+      FROM listings l
+      LEFT JOIN resumes r ON l.id = r.listing_id
+      GROUP BY l.id
+      ORDER BY l.posted_date DESC
       """
     )
 
-    return [Listing(**dict(row)) for row in rows]
+    return [
+      Listing(
+        **{**dict(row), 'resume_ids': row['resume_ids'].split(',') if row['resume_ids'] else []}
+      )
+      for row in rows
+    ]
 
   def save_listings(self, listings: list[Listing]) -> list[Listing]:
     if not listings:
@@ -35,7 +47,9 @@ class ListingsService(DatabaseRepository, VectorRepository):
 
     self.execute_many(
       """
-      INSERT INTO listings (id, url, title, company, location, description, posted_date, keywords)
+      INSERT INTO listings (
+        id, url, title, company, location, description, posted_date, keywords
+      )
       VALUES (?, ?, ?, ?, ?, ?, ?, ?)
       """,
       [
@@ -80,14 +94,26 @@ class ListingsService(DatabaseRepository, VectorRepository):
     placeholders = ','.join('?' * len(url_strings))
     rows = self.fetch_all(
       f"""
-      SELECT id, url, title, company, location, description, posted_date, keywords
-      FROM listings
-      WHERE url IN ({placeholders})
+      SELECT 
+        l.id, l.url, l.title, l.company, l.location, l.description, l.posted_date, l.keywords,
+        COALESCE(
+          GROUP_CONCAT(r.id),
+          ''
+        ) as resume_ids
+      FROM listings l
+      LEFT JOIN resumes r ON l.id = r.listing_id
+      WHERE l.url IN ({placeholders})
+      GROUP BY l.id
       """,
       tuple(url_strings),
     )
 
-    return [Listing(**dict(row)) for row in rows]
+    return [
+      Listing(
+        **{**dict(row), 'resume_ids': row['resume_ids'].split(',') if row['resume_ids'] else []}
+      )
+      for row in rows
+    ]
 
   def _create_listing_embedding_text(self, listing: Listing) -> str:
     """
@@ -148,9 +174,16 @@ class ListingsService(DatabaseRepository, VectorRepository):
     placeholders = ','.join('?' * len(matching_ids))
     rows = self.fetch_all(
       f"""
-      SELECT id, url, title, company, location, description, posted_date, keywords
-      FROM listings
-      WHERE id IN ({placeholders})
+      SELECT 
+        l.id, l.url, l.title, l.company, l.location, l.description, l.posted_date, l.keywords,
+        COALESCE(
+          GROUP_CONCAT(r.id),
+          ''
+        ) as resume_ids
+      FROM listings l
+      LEFT JOIN resumes r ON l.id = r.listing_id
+      WHERE l.id IN ({placeholders})
+      GROUP BY l.id
       """,
       tuple(matching_ids),
     )
@@ -158,7 +191,9 @@ class ListingsService(DatabaseRepository, VectorRepository):
     # Convert rows to Listing objects
     similar = []
     for row in rows:
-      listing = Listing(**dict(row))
+      listing = Listing(
+        **{**dict(row), 'resume_ids': row['resume_ids'].split(',') if row['resume_ids'] else []}
+      )
       score = similarity_scores.get(str(listing.id), 0.0)
       similar.append((listing, score))
 

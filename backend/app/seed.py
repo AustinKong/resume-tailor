@@ -51,7 +51,7 @@ def create_tables():
     db.execute("""
             CREATE TABLE IF NOT EXISTS resumes (
                 id TEXT PRIMARY KEY,
-                listing_id TEXT NOT NULL UNIQUE,
+                listing_id TEXT NOT NULL,
                 template TEXT NOT NULL,
                 data JSON NOT NULL,
                 exported TEXT,

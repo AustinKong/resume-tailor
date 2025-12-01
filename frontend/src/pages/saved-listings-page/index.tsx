@@ -1,10 +1,24 @@
-import { Badge, Heading, HStack, Link, Spinner, Table, Text, VStack } from '@chakra-ui/react';
-import { useQuery } from '@tanstack/react-query';
+import {
+  Badge,
+  Button,
+  Heading,
+  HStack,
+  Link,
+  Spinner,
+  Table,
+  Text,
+  VStack,
+} from '@chakra-ui/react';
+import { useMutation, useQuery } from '@tanstack/react-query';
+import { useNavigate } from 'react-router';
 
 import CollapsibleTableRow from '@/components/custom/CollapsibleTableRow';
 import { getListings } from '@/services/listings';
+import { createShellResume } from '@/services/resume';
 
 export default function SavedListingsPage() {
+  const navigate = useNavigate();
+
   const {
     data: listings,
     isLoading,
@@ -12,6 +26,14 @@ export default function SavedListingsPage() {
   } = useQuery({
     queryKey: ['listings'],
     queryFn: getListings,
+  });
+
+  const { mutate: createResume, isPending: isCreating } = useMutation({
+    mutationFn: (listingId: string) => createShellResume(listingId),
+    onSuccess: (data) => {
+      // Navigate immediately to editor with the shell resume
+      navigate(`/resume-generation?resumeId=${data.id}`);
+    },
   });
 
   return (
@@ -55,16 +77,15 @@ export default function SavedListingsPage() {
                   expandedContent={
                     <VStack align="stretch" gap="3">
                       <div>
-                        <Link
-                          fontSize="sm"
-                          color="blue.600"
-                          _dark={{ color: 'blue.400' }}
-                          href={`/resume-generation?listingId=${listing.id}`}
-                          fontWeight="semibold"
-                          textDecoration="underline"
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          colorScheme="blue"
+                          onClick={() => createResume(listing.id)}
+                          loading={isCreating}
                         >
                           → Generate Resume for this Listing
-                        </Link>
+                        </Button>
                       </div>
                       <div>
                         <Text fontWeight="semibold" mb="2">

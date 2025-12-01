@@ -11,12 +11,6 @@ class ResumeService(DatabaseRepository):
     if not listing:
       raise ValueError(f'Listing {resume.listing_id} not found')
 
-    existing = self.fetch_one(
-      'SELECT id FROM resumes WHERE listing_id = ?', (str(resume.listing_id),)
-    )
-    if existing:
-      raise ValueError(f'Resume already exists for listing {resume.listing_id}')
-
     self.execute(
       'INSERT INTO resumes (id, listing_id, template, data, exported) VALUES (?, ?, ?, ?, ?)',
       (
@@ -61,18 +55,21 @@ class ResumeService(DatabaseRepository):
       exported=row['exported'],
     )
 
-  def get_resume_by_listing_id(self, listing_id: str) -> Resume | None:
-    row = self.fetch_one('SELECT * FROM resumes WHERE listing_id = ?', (listing_id,))
-    if not row:
-      return None
+  def get_resumes_by_listing_id(self, listing_id: str) -> list[Resume]:
+    rows = self.fetch_all('SELECT * FROM resumes WHERE listing_id = ?', (listing_id,))
 
-    return Resume(
-      id=row['id'],
-      listing_id=row['listing_id'],
-      template=row['template'],
-      data=ResumeData.model_validate_json(row['data']),
-      exported=row['exported'],
-    )
+    return [
+      Resume(**{**dict(row), 'data': ResumeData.model_validate_json(row['data'])}) for row in rows
+    ]
+
+  def delete_resume(self, resume_id: str) -> bool:
+    row = self.fetch_one('SELECT id FROM resumes WHERE id = ?', (resume_id,))
+    if not row:
+      return False
+
+    self.execute('DELETE FROM resumes WHERE id = ?', (resume_id,))
+
+    return True
 
 
 _service = ResumeService()
@@ -80,4 +77,5 @@ _service = ResumeService()
 create_resume = _service.create_resume
 update_resume = _service.update_resume
 get_resume_by_id = _service.get_resume_by_id
-get_resume_by_listing_id = _service.get_resume_by_listing_id
+get_resumes_by_listing_id = _service.get_resumes_by_listing_id
+delete_resume = _service.delete_resume

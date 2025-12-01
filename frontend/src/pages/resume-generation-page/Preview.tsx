@@ -1,4 +1,4 @@
-import { Box, VStack } from '@chakra-ui/react';
+import { Badge, Box, VStack } from '@chakra-ui/react';
 import { useLayoutEffect, useRef, useState } from 'react';
 
 const PAPER_WIDTH = 816;
@@ -6,9 +6,11 @@ const PAPER_HEIGHT = 1056;
 
 interface PreviewProps {
   html: string;
+  isSaving?: boolean;
+  isGenerating?: boolean;
 }
 
-export default function Preview({ html }: PreviewProps) {
+export default function Preview({ html, isSaving, isGenerating }: PreviewProps) {
   const previewRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(1);
 
@@ -42,8 +44,36 @@ export default function Preview({ html }: PreviewProps) {
       overflowX="hidden"
       p={4}
       align="center"
-      gap={0}
+      gap={2}
+      position="relative"
     >
+      {/* Loading indicators */}
+      {isGenerating && (
+        <Badge
+          position="absolute"
+          top={4}
+          right={4}
+          colorScheme="purple"
+          variant="solid"
+          size="lg"
+          zIndex={10}
+        >
+          ✨ Generating...
+        </Badge>
+      )}
+      {isSaving && !isGenerating && (
+        <Badge
+          position="absolute"
+          top={4}
+          right={4}
+          colorScheme="blue"
+          variant="solid"
+          size="sm"
+          zIndex={10}
+        >
+          Saving...
+        </Badge>
+      )}
       {/* Ghost wrapper - takes up the space of the scaled content */}
       <Box
         width={`${PAPER_WIDTH * scale}px`}

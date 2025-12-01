@@ -1,8 +1,10 @@
 import os
 from pathlib import Path
-from typing import Any
 
 from jinja2 import Environment, FileSystemLoader, TemplateNotFound
+
+from app.schemas.profile import Profile
+from app.schemas.resume import Resume
 
 
 class TemplateService:
@@ -18,13 +20,14 @@ class TemplateService:
       lstrip_blocks=True,
     )
 
-  def render(self, template_name: str, context: dict[str, Any] | None = None) -> str:
+  def render(self, template_name: str, profile: Profile, resume: Resume) -> str:
     """
-    Render a template with the given context.
+    Render a template with the given profile and resume.
 
     Args:
-      template_name: Name of the template file (e.g., 'resume.html')
-      context: Dictionary of variables to pass to the template
+      template_name: Name of the template file (e.g., 'template-1.html')
+      profile: Profile object containing personal information
+      resume: Resume object containing resume data and sections
 
     Returns:
       Rendered HTML string
@@ -32,8 +35,10 @@ class TemplateService:
     Raises:
       TemplateNotFound: If the template file doesn't exist
     """
-    if context is None:
-      context = {}
+    context = {
+      'profile': profile.model_dump(mode='json'),
+      'resume': resume.data.model_dump(mode='json'),
+    }
 
     try:
       template = self.env.get_template(template_name)

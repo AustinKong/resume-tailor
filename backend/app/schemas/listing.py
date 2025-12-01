@@ -6,6 +6,7 @@ from pydantic import BaseModel, ConfigDict, Field, HttpUrl, field_validator
 from pydantic.alias_generators import to_camel
 
 
+# TODO: Make field_validator a reusable utility function
 class LLMResponseListing(BaseModel):
   title: str
   company: str
@@ -36,6 +37,10 @@ class LLMResponseListing(BaseModel):
 class Listing(LLMResponseListing):
   id: UUID = Field(default_factory=uuid4)
   url: HttpUrl
+  resume_ids: list[str] = Field(
+    default_factory=list,
+    description='List of resume IDs associated with this listing (populated via JOIN)',
+  )
 
 
 class DuplicateListing(BaseModel):
