@@ -1,4 +1,4 @@
-import { HStack, IconButton, Menu, Text, Textarea, VStack } from '@chakra-ui/react';
+import { HStack, IconButton, Menu, Portal, Text, Textarea, VStack } from '@chakra-ui/react';
 import {
   closestCorners,
   DndContext,
@@ -164,8 +164,16 @@ function Bullet({
   };
 
   return (
-    <HStack ref={setNodeRef} style={style} {...attributes} {...listeners} w="full">
-      <Text mb="auto" pt="0.25rem" pl="2" cursor="grab">
+    <HStack ref={setNodeRef} style={style} w="full">
+      <Text
+        {...attributes}
+        {...listeners}
+        mb="auto"
+        pt="0.25rem"
+        pl="2"
+        cursor="grab"
+        _active={{ cursor: 'grabbing' }}
+      >
         •
       </Text>
       <Textarea
@@ -219,15 +227,21 @@ function BulletMenu({
           <PiDotsThreeVertical />
         </IconButton>
       </Menu.Trigger>
-      <Menu.Positioner>
-        <Menu.Content>
-          <Menu.Item value="insert-above">Insert Above</Menu.Item>
-          <Menu.Item value="insert-below">Insert Below</Menu.Item>
-          <Menu.Item value="delete" color="fg.error" _hover={{ bg: 'bg.error', color: 'fg.error' }}>
-            Delete
-          </Menu.Item>
-        </Menu.Content>
-      </Menu.Positioner>
+      <Portal>
+        <Menu.Positioner>
+          <Menu.Content>
+            <Menu.Item value="insert-above">Insert Above</Menu.Item>
+            <Menu.Item value="insert-below">Insert Below</Menu.Item>
+            <Menu.Item
+              value="delete"
+              color="fg.error"
+              _hover={{ bg: 'bg.error', color: 'fg.error' }}
+            >
+              Delete
+            </Menu.Item>
+          </Menu.Content>
+        </Menu.Positioner>
+      </Portal>
     </Menu.Root>
   );
 }

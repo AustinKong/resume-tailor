@@ -1,10 +1,17 @@
-import { Splitter } from '@chakra-ui/react';
+import { Button, DownloadTrigger, HStack, Splitter, VStack } from '@chakra-ui/react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useRef, useState } from 'react';
+import { LuDownload } from 'react-icons/lu';
 import { useSearchParams } from 'react-router';
 
 import { useDebouncedMutation } from '@/hooks/utils/useDebouncedMutation';
-import { generateResumeContent, getResume, getResumeHtml, updateResume } from '@/services/resume';
+import {
+  exportResumePdf,
+  generateResumeContent,
+  getResume,
+  getResumeHtml,
+  updateResume,
+} from '@/services/resume';
 import type { Resume, ResumeData } from '@/types/resume';
 
 import Editor from './Editor';
@@ -92,17 +99,39 @@ export default function ResumeGenerationPage() {
     }
   };
 
+  // Export PDF mutation
+  const { isPending: isExporting } = useMutation({
+    mutationFn: () => exportResumePdf(resumeId!, JSON.parse(resumeData)),
+  });
+
   return (
-    <Splitter.Root panels={[{ id: 'editor' }, { id: 'preview' }]}>
-      <Splitter.Panel id="editor">
-        <Editor value={resumeData} onChange={handleEditorChange} />
-      </Splitter.Panel>
+    <VStack>
+      <HStack w="full">
+        <DownloadTrigger
+          data={async () => {
+            if (!resumeId || !resumeData) throw new Error('No resume data');
+            return exportResumePdf(resumeId, JSON.parse(resumeData));
+          }}
+          fileName={`resume_${resumeId}.pdf`}
+          mimeType="application/pdf"
+          asChild
+        >
+          <Button variant="outline" size="sm" disabled={isExporting}>
+            <LuDownload /> {isExporting ? 'Exporting...' : 'Download PDF'}
+          </Button>
+        </DownloadTrigger>
+      </HStack>
+      <Splitter.Root panels={[{ id: 'editor' }, { id: 'preview' }]}>
+        <Splitter.Panel id="editor">
+          <Editor value={resumeData} onChange={handleEditorChange} />
+        </Splitter.Panel>
 
-      <Splitter.ResizeTrigger id="editor:preview" />
+        <Splitter.ResizeTrigger id="editor:preview" />
 
-      <Splitter.Panel id="preview">
-        <Preview html={html} isSaving={isSaving} isGenerating={isGenerating} />
-      </Splitter.Panel>
-    </Splitter.Root>
+        <Splitter.Panel id="preview">
+          <Preview html={html} isSaving={isSaving} isGenerating={isGenerating} />
+        </Splitter.Panel>
+      </Splitter.Root>
+    </VStack>
   );
 }

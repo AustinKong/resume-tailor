@@ -70,3 +70,15 @@ export async function deleteResume(resumeId: string): Promise<void> {
     throw new Error('Failed to delete resume');
   }
 }
+
+export async function exportResumePdf(resumeId: string, latestData: ResumeData): Promise<Blob> {
+  await updateResume(resumeId, latestData);
+
+  const response = await fetch(`/api/resume/${resumeId}/export`);
+
+  if (!response.ok) {
+    throw new Error('Failed to export resume as PDF');
+  }
+
+  return response.blob();
+}

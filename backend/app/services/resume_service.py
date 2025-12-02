@@ -12,13 +12,12 @@ class ResumeService(DatabaseRepository):
       raise ValueError(f'Listing {resume.listing_id} not found')
 
     self.execute(
-      'INSERT INTO resumes (id, listing_id, template, data, exported) VALUES (?, ?, ?, ?, ?)',
+      'INSERT INTO resumes (id, listing_id, template, data) VALUES (?, ?, ?, ?)',
       (
         str(resume.id),
         str(resume.listing_id),
         resume.template,
         resume.data.model_dump_json(),
-        resume.exported,
       ),
     )
 
@@ -30,12 +29,11 @@ class ResumeService(DatabaseRepository):
       raise ValueError(f'Resume {resume.id} not found')
 
     self.execute(
-      'UPDATE resumes SET listing_id = ?, template = ?, data = ?, exported = ? WHERE id = ?',
+      'UPDATE resumes SET listing_id = ?, template = ?, data = ? WHERE id = ?',
       (
         str(resume.listing_id),
         resume.template,
         resume.data.model_dump_json(),
-        resume.exported,
         str(resume.id),
       ),
     )
@@ -52,14 +50,19 @@ class ResumeService(DatabaseRepository):
       listing_id=row['listing_id'],
       template=row['template'],
       data=ResumeData.model_validate_json(row['data']),
-      exported=row['exported'],
     )
 
   def get_resumes_by_listing_id(self, listing_id: str) -> list[Resume]:
     rows = self.fetch_all('SELECT * FROM resumes WHERE listing_id = ?', (listing_id,))
 
     return [
-      Resume(**{**dict(row), 'data': ResumeData.model_validate_json(row['data'])}) for row in rows
+      Resume(
+        id=row['id'],
+        listing_id=row['listing_id'],
+        template=row['template'],
+        data=ResumeData.model_validate_json(row['data']),
+      )
+      for row in rows
     ]
 
   def delete_resume(self, resume_id: str) -> bool:

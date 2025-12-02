@@ -2,6 +2,7 @@ import os
 from pathlib import Path
 
 from jinja2 import Environment, FileSystemLoader, TemplateNotFound
+from weasyprint import HTML
 
 from app.schemas.profile import Profile
 from app.schemas.resume import Resume
@@ -94,6 +95,20 @@ class TemplateService:
 
     return template_path.read_text(encoding='utf-8')
 
+  def render_pdf(self, template_name: str, profile: 'Profile', resume: 'Resume') -> bytes:
+    html = self.render(template_name, profile, resume)
+    base_url = str(self.templates_dir.resolve())
+    try:
+      pdf = HTML(string=html, base_url=base_url).write_pdf(
+        presentational_hints=True,
+        uncompressed_pdf=False,
+      )
+      if pdf is None:
+        raise RuntimeError('WeasyPrint returned no data')
+      return pdf
+    except Exception as exc:
+      raise RuntimeError(f'Failed to render PDF: {exc}') from exc
+
 
 _service = TemplateService()
 
@@ -101,3 +116,4 @@ render = _service.render
 list_templates = _service.list_templates
 template_exists = _service.template_exists
 get_template_source = _service.get_template_source
+render_pdf = _service.render_pdf

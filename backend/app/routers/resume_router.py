@@ -2,6 +2,7 @@ import time
 from uuid import UUID, uuid4
 
 from fastapi import APIRouter, HTTPException
+from fastapi.responses import Response
 
 from app.schemas.resume import (
   DetailedItem,
@@ -49,7 +50,6 @@ async def create_resume(listing_id: str):
     listing_id=UUID(listing_id),
     template='template-1.html',
     data=empty_data,
-    exported=None,
   )
   resume_service.create_resume(resume)
   return resume
@@ -139,3 +139,25 @@ async def delete_resume(resume_id: str):
     raise HTTPException(404, f'Resume {resume_id} not found')
 
   return {'message': 'Resume deleted successfully'}
+
+
+@router.get('/{resume_id}/export')
+async def export_resume(resume_id: str) -> Response:
+  resume = resume_service.get_resume_by_id(resume_id)
+  if not resume:
+    raise HTTPException(404, f'Resume {resume_id} not found')
+
+  profile = profile_service.load_profile()
+  try:
+    pdf_bytes = template_service.render_pdf(resume.template, profile, resume)
+  except Exception as e:
+    raise HTTPException(500, f'Failed to render PDF: {e}') from e
+
+  filename = f'resume_{resume.id}.pdf'
+  return Response(
+    content=pdf_bytes,
+    media_type='application/pdf',
+    headers={
+      'Content-Disposition': f'attachment; filename="{filename}"',
+    },
+  )

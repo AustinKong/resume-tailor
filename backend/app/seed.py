@@ -54,7 +54,6 @@ def create_tables():
                 listing_id TEXT NOT NULL,
                 template TEXT NOT NULL,
                 data JSON NOT NULL,
-                exported TEXT,
                 FOREIGN KEY (listing_id) REFERENCES listings (id) ON DELETE CASCADE
             )
         """)

@@ -43,4 +43,3 @@ class Resume(BaseModel):
   listing_id: UUID
   template: str
   data: ResumeData
-  exported: str | None = None

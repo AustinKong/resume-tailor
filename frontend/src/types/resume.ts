@@ -40,5 +40,4 @@ export interface Resume {
   listingId: string;
   template: string;
   data: ResumeData;
-  exported: string | null;
 }
