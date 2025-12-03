@@ -34,3 +34,10 @@ class Experience(BaseModel):
     alias_generator=to_camel,
     populate_by_name=True,
   )
+
+
+class LLMResponseExperience(BaseModel):
+  bullets: list[str] = Field(
+    default_factory=list,
+    description='List of bullet points describing the experience',
+  )

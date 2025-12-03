@@ -44,7 +44,8 @@ def create_tables():
                 location TEXT,
                 description TEXT NOT NULL,
                 posted_date TEXT,
-                keywords TEXT
+                skills TEXT,
+                requirements TEXT
             )
         """)
 

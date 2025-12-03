@@ -1,23 +1,62 @@
-import time
+import asyncio
 from uuid import UUID, uuid4
 
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import Response
 
+from app.schemas.experience import Experience, LLMResponseExperience
 from app.schemas.resume import (
   DetailedItem,
   DetailedSectionContent,
   Resume,
   ResumeData,
   Section,
-  SimpleSectionContent,
 )
-from app.services import profile_service, resume_service, template_service
+from app.services import (
+  experience_service,
+  listings_service,
+  llm_service,
+  profile_service,
+  resume_service,
+  template_service,
+)
 
 router = APIRouter(
   prefix='/resume',
   tags=['Resume'],
 )
+
+OPTIMIZATION_PROMPT = """
+You are an expert Resume Editor. Your goal is to reframe the candidate's existing experience to 
+align with the Job Listing, WITHOUT inventing new facts.
+
+### THE TARGET (JOB LISTING)
+Role: {listing_title}
+Requirements: {listing_requirements}
+Keywords: {listing_skills}
+
+### THE SOURCE (CANDIDATE EXPERIENCE)
+Role: {exp_title}
+Company: {exp_organization}
+Original Bullets:
+{exp_bullets}
+
+### STRICT GROUNDING RULES (READ CAREFULLY)
+1. **NO HALLUCINATIONS:** You are strictly forbidden from adding "Hard Skills" 
+    (Programming Languages, Frameworks, Spoken Languages) that are not present in the Source text.
+   - *Example:* If Listing asks for "C++" but Source only mentions "Web Apps", DO NOT write "C++".
+   - *Example:* If Listing asks for "Chinese" but Source does not mention it, DO NOT write "Fluent 
+    in Chinese".
+
+2. **EVIDENCE-BASED REWRITING:** Every claim you write must be logically supported by the Source.
+   - *Source:* "Built web apps." -> *Rewrite:* "Architected scalable web solutions." (OK - Rephrasing)
+   - *Source:* "Built web apps." -> *Rewrite:* "Built web apps using Java." (FAIL - Inventing Java)
+
+3. **OMISSION IS BETTER THAN LYING:** If the Candidate's experience does not match a specific 
+    Requirement in the Listing, IGNORE that requirement. Do not force a match.
+
+4. **STYLE:** Use strong, high-impact action verbs. Keep it professional.
+"""
 
 
 @router.get('/{resume_id}')
@@ -61,8 +100,55 @@ async def generate_resume_content(resume_id: str):
   if not resume:
     raise HTTPException(404, f'Resume {resume_id} not found')
 
-  # TODO: Replace with actual LLM service that uses the listing data
-  # For now, generate dummy data
+  listing = listings_service.get_listing_by_id(str(resume.listing_id))
+
+  if not listing:
+    raise HTTPException(404, f'Listing {resume.listing_id} not found')
+
+  relevant_experiences: list[Experience] = experience_service.search_relevant_experiences(listing)
+
+  responses = await asyncio.gather(
+    *[
+      llm_service.call_structured(
+        input=OPTIMIZATION_PROMPT.format(
+          listing_title=listing.title,
+          listing_requirements=listing.requirements,
+          listing_skills=listing.skills,
+          exp_title=exp.title,
+          exp_organization=exp.organization,
+          exp_bullets='\n'.join(exp.bullets),
+        ),
+        response_model=LLMResponseExperience,
+      )
+      for exp in relevant_experiences
+    ]
+  )
+
+  customised_experiences: list[Experience] = []
+  for exp, resp in zip(relevant_experiences, responses, strict=False):
+    exp.bullets = resp.bullets
+    customised_experiences.append(exp)
+
+  # Map pruned experiences to DetailedItem objects and sort by end_date (desc), then start_date (desc)
+  def sort_key(exp: Experience):
+    # If end_date is None, treat as ongoing (sort first)
+    end = exp.end_date or '9999-12'
+    start = exp.start_date or '0000-00'
+    return (end, start)
+
+  sorted_experiences = sorted(customised_experiences, key=sort_key, reverse=True)
+  detailed_items = [
+    DetailedItem(
+      title=exp.title,
+      subtitle=exp.organization,
+      start_date=exp.start_date,
+      end_date=exp.end_date,
+      bullets=exp.bullets,
+    )
+    for exp in sorted_experiences
+  ]
+
+  # Create a single "Work Experience" section (exclude skills for now)
   generated_data = ResumeData(
     sections=[
       Section(
@@ -70,50 +156,12 @@ async def generate_resume_content(resume_id: str):
         type='detailed',
         title='Work Experience',
         order=0,
-        content=DetailedSectionContent(
-          bullets=[
-            DetailedItem(
-              title='Senior Software Engineer',
-              subtitle='Tech Corp',
-              start_date='2020-01',
-              end_date='2023-06',
-              bullets=[
-                'Led team of 5 engineers in developing microservices architecture',
-                'Improved system performance by 40% through optimization',
-                'Mentored junior developers and conducted code reviews',
-              ],
-            ),
-            DetailedItem(
-              title='Software Engineer',
-              subtitle='StartupCo',
-              start_date='2018-06',
-              end_date='2019-12',
-              bullets=[
-                'Built RESTful APIs using Python and FastAPI',
-                'Implemented CI/CD pipelines with Docker and GitHub Actions',
-              ],
-            ),
-          ]
-        ),
-      ),
-      Section(
-        id='2',
-        type='simple',
-        title='Skills',
-        order=1,
-        content=SimpleSectionContent(
-          bullets=[
-            'Python, FastAPI, React, TypeScript',
-            'PostgreSQL, MongoDB, Redis',
-            'Docker, Kubernetes, AWS',
-            'Git, CI/CD, Agile/Scrum',
-          ]
-        ),
-      ),
+        content=DetailedSectionContent(bullets=detailed_items),
+      )
     ]
   )
 
-  time.sleep(2)
+  # TODO: Add a projects section
 
   resume.data = generated_data
   updated_resume = resume_service.update_resume(resume)

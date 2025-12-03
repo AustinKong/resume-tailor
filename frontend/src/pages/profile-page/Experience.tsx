@@ -50,6 +50,9 @@ export default function Experience() {
                     return newExperiences;
                   });
                 }}
+                onDelete={() => {
+                  setExperiences((prev) => prev.filter((e) => e !== exp));
+                }}
               />
             ))}
             <Button
@@ -91,9 +94,11 @@ export default function Experience() {
 function Entry({
   experience,
   updateExperience,
+  onDelete,
 }: {
   experience: Experience;
   updateExperience: (updates: Partial<Experience>) => void;
+  onDelete: () => void;
 }) {
   return (
     <VStack align="stretch" gap="4" p="4" border="1px solid" borderColor="border" borderRadius="md">
@@ -160,6 +165,9 @@ function Entry({
         onBulletsChange={(bullets) => updateExperience({ bullets })}
         label="Bullet Points"
       />
+      <Button colorScheme="red" variant="outline" onClick={onDelete} alignSelf="flex-end">
+        Delete Experience
+      </Button>
     </VStack>
   );
 }

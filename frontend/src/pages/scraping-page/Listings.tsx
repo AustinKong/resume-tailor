@@ -216,18 +216,17 @@ function ListingDetails({ listing, duplicateOf }: { listing: Listing; duplicateO
         </Text>
       )}
 
-      {/* Keywords - underlined if different */}
-      {listing.keywords.length > 0 &&
-        (duplicateOf &&
-        JSON.stringify(listing.keywords) !== JSON.stringify(duplicateOf.keywords) ? (
+      {/* Skills - underlined if different */}
+      {listing.skills.length > 0 &&
+        (duplicateOf && JSON.stringify(listing.skills) !== JSON.stringify(duplicateOf.skills) ? (
           <DiffField
-            label="Keywords"
-            oldValue={duplicateOf.keywords.join(', ')}
-            newValue={listing.keywords.join(', ')}
-            description="Keywords have changed"
+            label="Skills"
+            oldValue={duplicateOf.skills.join(', ')}
+            newValue={listing.skills.join(', ')}
+            description="Skills have changed"
           >
             <HStack flexWrap="wrap" gap="1">
-              {listing.keywords.map((keyword, idx) => (
+              {listing.skills.map((skill, idx) => (
                 <Badge
                   key={idx}
                   size="sm"
@@ -235,19 +234,47 @@ function ListingDetails({ listing, duplicateOf }: { listing: Listing; duplicateO
                   textDecoration="underline"
                   cursor="help"
                 >
-                  {keyword}
+                  {skill}
                 </Badge>
               ))}
             </HStack>
           </DiffField>
         ) : (
           <HStack flexWrap="wrap" gap="1">
-            {listing.keywords.map((keyword, idx) => (
+            {listing.skills.map((skill, idx) => (
               <Badge key={idx} size="sm" colorScheme="blue">
-                {keyword}
+                {skill}
               </Badge>
             ))}
           </HStack>
+        ))}
+
+      {/* Requirements - underlined if different */}
+      {listing.requirements.length > 0 &&
+        (duplicateOf &&
+        JSON.stringify(listing.requirements) !== JSON.stringify(duplicateOf.requirements) ? (
+          <DiffField
+            label="Requirements"
+            oldValue={duplicateOf.requirements.join(', ')}
+            newValue={listing.requirements.join(', ')}
+            description="Requirements have changed"
+          >
+            <VStack align="start" gap="1">
+              {listing.requirements.map((req, idx) => (
+                <Text key={idx} fontSize="sm" textDecoration="underline" cursor="help">
+                  • {req}
+                </Text>
+              ))}
+            </VStack>
+          </DiffField>
+        ) : (
+          <VStack align="start" gap="1">
+            {listing.requirements.map((req, idx) => (
+              <Text key={idx} fontSize="sm">
+                • {req}
+              </Text>
+            ))}
+          </VStack>
         ))}
 
       {/* URL - underlined if same (shows it's identical) */}

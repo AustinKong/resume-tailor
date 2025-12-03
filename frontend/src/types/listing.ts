@@ -8,7 +8,8 @@ export type Listing = {
   location?: string;
   description: string;
   postedDate?: ISODate;
-  keywords: string[];
+  skills: string[];
+  requirements: string[];
   resumeIds: string[];
 };
 

@@ -1,18 +1,9 @@
-import {
-  Badge,
-  Button,
-  Heading,
-  HStack,
-  Link,
-  Spinner,
-  Table,
-  Text,
-  VStack,
-} from '@chakra-ui/react';
+import { Badge, Heading, HStack, Link, Spinner, Table, Text, VStack } from '@chakra-ui/react';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router';
 
 import CollapsibleTableRow from '@/components/custom/CollapsibleTableRow';
+import ResumeMenu from '@/components/custom/ResumeMenu';
 import { getListings } from '@/services/listings';
 import { createShellResume } from '@/services/resume';
 
@@ -28,7 +19,7 @@ export default function SavedListingsPage() {
     queryFn: getListings,
   });
 
-  const { mutate: createResume, isPending: isCreating } = useMutation({
+  const { mutate: createResume } = useMutation({
     mutationFn: (listingId: string) => createShellResume(listingId),
     onSuccess: (data) => {
       // Navigate immediately to editor with the shell resume
@@ -67,7 +58,8 @@ export default function SavedListingsPage() {
                 <Table.ColumnHeader width="250px">Title</Table.ColumnHeader>
                 <Table.ColumnHeader width="150px">Location</Table.ColumnHeader>
                 <Table.ColumnHeader width="120px">Posted</Table.ColumnHeader>
-                <Table.ColumnHeader width="auto">Keywords</Table.ColumnHeader>
+                <Table.ColumnHeader width="auto">Skills</Table.ColumnHeader>
+                <Table.ColumnHeader width="80px">Resumes</Table.ColumnHeader>
               </Table.Row>
             </Table.Header>
             <Table.Body>
@@ -76,17 +68,6 @@ export default function SavedListingsPage() {
                   key={listing.id}
                   expandedContent={
                     <VStack align="stretch" gap="3">
-                      <div>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          colorScheme="blue"
-                          onClick={() => createResume(listing.id)}
-                          loading={isCreating}
-                        >
-                          → Generate Resume for this Listing
-                        </Button>
-                      </div>
                       <div>
                         <Text fontWeight="semibold" mb="2">
                           Description
@@ -97,12 +78,12 @@ export default function SavedListingsPage() {
                       </div>
                       <div>
                         <Text fontWeight="semibold" mb="2">
-                          All Keywords
+                          All Skills
                         </Text>
                         <HStack flexWrap="wrap" gap="2">
-                          {listing.keywords.map((keyword, idx) => (
+                          {listing.skills.map((skill, idx) => (
                             <Badge key={idx} size="sm" colorScheme="blue">
-                              {keyword}
+                              {skill}
                             </Badge>
                           ))}
                         </HStack>
@@ -134,17 +115,23 @@ export default function SavedListingsPage() {
                   <Table.Cell width="120px">{listing.postedDate}</Table.Cell>
                   <Table.Cell width="auto">
                     <HStack gap="1" flexWrap="wrap">
-                      {listing.keywords.slice(0, 3).map((keyword, idx) => (
+                      {listing.skills.slice(0, 3).map((skill, idx) => (
                         <Badge key={idx} size="sm" colorScheme="blue">
-                          {keyword}
+                          {skill}
                         </Badge>
                       ))}
-                      {listing.keywords.length > 3 && (
+                      {listing.skills.length > 3 && (
                         <Badge size="sm" colorScheme="gray">
-                          +{listing.keywords.length - 3} more
+                          +{listing.skills.length - 3} more
                         </Badge>
                       )}
                     </HStack>
+                  </Table.Cell>
+                  <Table.Cell width="80px">
+                    <ResumeMenu
+                      resumeIds={listing.resumeIds}
+                      onCreateNew={() => createResume(listing.id)}
+                    />
                   </Table.Cell>
                 </CollapsibleTableRow>
               ))}

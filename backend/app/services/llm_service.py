@@ -10,7 +10,7 @@ class LLMService:
   def __init__(self):
     # Configuration
     self.model = 'gpt-4o-mini'
-    self.temperature = 0.7
+    self.temperature = 0.3
 
     self._client = None
     self._cache = {}

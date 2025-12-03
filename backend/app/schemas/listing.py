@@ -14,14 +14,26 @@ class LLMResponseListing(BaseModel):
   description: str
   posted_date: date | None = None
 
-  keywords: list[str] = Field(
-    default_factory=list, description='List of keywords associated with the listing'
+  skills: list[str] = Field(
+    default_factory=list,
+    description=(
+      'List of specific tools, software, certifications, licenses, or hard skills '
+      'mentioned (e.g., Excel, CPR Certified, Forklift, Python, Salesforce, GAAP).'
+    ),
   )
 
-  # Ensures keywords is always a list when parsing from database
-  @field_validator('keywords', mode='before')
+  requirements: list[str] = Field(
+    default_factory=list,
+    description=(
+      'A list of 5-10 distinct, atomic requirements. These can be soft skills, '
+      'years of experience, or specific duties.'
+    ),
+  )
+
+  # Ensures skills and requirements are always lists when parsing from database
+  @field_validator('skills', 'requirements', mode='before')
   @classmethod
-  def parse_keywords(cls, v):
+  def parse_fields(cls, v):
     if isinstance(v, str):
       return json.loads(v)
     if not v:

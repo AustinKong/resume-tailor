@@ -22,7 +22,8 @@ class ListingsService(DatabaseRepository, VectorRepository):
     rows = self.fetch_all(
       """
       SELECT 
-        l.id, l.url, l.title, l.company, l.location, l.description, l.posted_date, l.keywords,
+        l.id, l.url, l.title, l.company, l.location, l.description, l.posted_date,
+        l.skills, l.requirements,
         COALESCE(
           GROUP_CONCAT(r.id),
           ''
@@ -48,9 +49,10 @@ class ListingsService(DatabaseRepository, VectorRepository):
     self.execute_many(
       """
       INSERT INTO listings (
-        id, url, title, company, location, description, posted_date, keywords
+        id, url, title, company, location, description, posted_date, skills,
+        requirements
       )
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
       """,
       [
         (
@@ -61,7 +63,8 @@ class ListingsService(DatabaseRepository, VectorRepository):
           listing.location,
           listing.description,
           listing.posted_date.isoformat() if listing.posted_date else None,
-          json.dumps(listing.keywords),
+          json.dumps(listing.skills),
+          json.dumps(listing.requirements),
         )
         for listing in listings
       ],
@@ -95,7 +98,8 @@ class ListingsService(DatabaseRepository, VectorRepository):
     rows = self.fetch_all(
       f"""
       SELECT 
-        l.id, l.url, l.title, l.company, l.location, l.description, l.posted_date, l.keywords,
+        l.id, l.url, l.title, l.company, l.location, l.description, l.posted_date,
+        l.skills, l.requirements,
         COALESCE(
           GROUP_CONCAT(r.id),
           ''
@@ -115,6 +119,32 @@ class ListingsService(DatabaseRepository, VectorRepository):
       for row in rows
     ]
 
+  # TODO: Change to take in UUID instead?
+  def get_listing_by_id(self, listing_id: str) -> Listing | None:
+    row = self.fetch_one(
+      """
+      SELECT 
+        l.id, l.url, l.title, l.company, l.location, l.description, l.posted_date,
+        l.skills, l.requirements,
+        COALESCE(
+          GROUP_CONCAT(r.id),
+          ''
+        ) as resume_ids
+      FROM listings l
+      LEFT JOIN resumes r ON l.id = r.listing_id
+      WHERE l.id = ?
+      GROUP BY l.id
+      """,
+      (listing_id,),
+    )
+
+    if not row:
+      return None
+
+    return Listing(
+      **{**dict(row), 'resume_ids': row['resume_ids'].split(',') if row['resume_ids'] else []}
+    )
+
   def _create_listing_embedding_text(self, listing: Listing) -> str:
     """
     Create a text representation of a listing for embedding generation.
@@ -127,8 +157,11 @@ class ListingsService(DatabaseRepository, VectorRepository):
       f'Description: {listing.description}',
     ]
 
-    if listing.keywords:
-      parts.append(f'Keywords: {", ".join(listing.keywords)}')
+    if listing.skills:
+      parts.append(f'Skills: {", ".join(listing.skills)}')
+
+    if listing.requirements:
+      parts.append(f'Requirements: {", ".join(listing.requirements)}')
 
     return '\n'.join(parts)
 
@@ -175,7 +208,8 @@ class ListingsService(DatabaseRepository, VectorRepository):
     rows = self.fetch_all(
       f"""
       SELECT 
-        l.id, l.url, l.title, l.company, l.location, l.description, l.posted_date, l.keywords,
+        l.id, l.url, l.title, l.company, l.location, l.description, l.posted_date,
+        l.skills, l.requirements,
         COALESCE(
           GROUP_CONCAT(r.id),
           ''
@@ -298,4 +332,5 @@ _service = ListingsService()
 load_listings = _service.load_listings
 save_listings = _service.save_listings
 get_listings_by_urls = _service.get_listings_by_urls
+get_listing_by_id = _service.get_listing_by_id
 find_similar_listings = _service.find_similar_listings
