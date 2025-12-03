@@ -1,7 +1,7 @@
 from enum import Enum
 from uuid import UUID, uuid4
 
-from pydantic import BaseModel, Field
+from pydantic import Field
 
 from app.schemas.types import CamelModel, YearMonth
 
@@ -29,7 +29,7 @@ class Experience(CamelModel):
   )
 
 
-class LLMResponseExperience(BaseModel):
+class LLMResponseExperience(CamelModel):
   bullets: list[str] = Field(
     default_factory=list,
     description='List of bullet points describing the experience',

@@ -19,7 +19,10 @@ class CamelModel(BaseModel):
 def parse_json_list(v: Any) -> list[str] | None:
   """Parse a JSON string into a list, or return the value if already a list."""
   if isinstance(v, str):
-    return json.loads(v)
+    try:
+      return json.loads(v)
+    except json.JSONDecodeError:
+      return None
   if not v:
     return None
   return v

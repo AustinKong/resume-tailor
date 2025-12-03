@@ -14,7 +14,13 @@ def _parse_resume_ids(resume_ids_str: str) -> list[UUID]:
   """Convert comma-separated resume ID string to list of UUIDs."""
   if not resume_ids_str:
     return []
-  return [UUID(id_str) for id_str in resume_ids_str.split(',')]
+  result = []
+  for id_str in resume_ids_str.split(','):
+    try:
+      result.append(UUID(id_str.strip()))
+    except ValueError:
+      continue
+  return result
 
 
 class ListingsService(DatabaseRepository, VectorRepository):
