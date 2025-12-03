@@ -8,6 +8,7 @@ from app.repositories.database_repository import DatabaseRepository
 from app.repositories.vector_repository import VectorRepository
 from app.schemas.listing import Listing
 from app.utils.deduplication import fuzzy_text_similarity
+from app.utils.errors import NotFoundError
 
 
 def _parse_resume_ids(resume_ids_str: str) -> list[UUID]:
@@ -121,7 +122,7 @@ class ListingsService(DatabaseRepository, VectorRepository):
       Listing(**{**dict(row), 'resume_ids': _parse_resume_ids(row['resume_ids'])}) for row in rows
     ]
 
-  def get_listing_by_id(self, listing_id: str) -> Listing | None:
+  def get_listing_by_id(self, listing_id: str) -> Listing:
     row = self.fetch_one(
       """
       SELECT 
@@ -140,7 +141,7 @@ class ListingsService(DatabaseRepository, VectorRepository):
     )
 
     if not row:
-      return None
+      raise NotFoundError(f'Listing {listing_id} not found')
 
     return Listing(**{**dict(row), 'resume_ids': _parse_resume_ids(row['resume_ids'])})
 

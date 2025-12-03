@@ -5,6 +5,7 @@ from app.repositories.database_repository import DatabaseRepository
 from app.repositories.vector_repository import VectorRepository
 from app.schemas.experience import Experience
 from app.schemas.listing import Listing
+from app.utils.errors import NotFoundError, ServiceError
 
 
 class ExperienceService(DatabaseRepository, VectorRepository):
@@ -51,7 +52,10 @@ class ExperienceService(DatabaseRepository, VectorRepository):
       )
 
     if documents:
-      self.add_documents('experience_bullets', documents, metadatas)
+      try:
+        self.add_documents('experience_bullets', documents, metadatas)
+      except Exception as e:
+        raise ServiceError(f'Failed to save experience embeddings: {str(e)}') from e
 
     return experience
 
@@ -96,7 +100,7 @@ class ExperienceService(DatabaseRepository, VectorRepository):
       (str(id),),
     )
     if not row:
-      raise ValueError(f'Experience with id {id} not found')
+      raise NotFoundError(f'Experience with id {id} not found')
 
     bullet_rows = self.fetch_all(
       """

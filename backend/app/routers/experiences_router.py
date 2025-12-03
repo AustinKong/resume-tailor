@@ -1,6 +1,6 @@
 from uuid import UUID
 
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter
 
 from app.schemas.experience import Experience
 from app.services import experience_service
@@ -18,12 +18,9 @@ async def get_experiences():
 
 
 @router.get('/{id}', response_model=Experience)
-async def get_experience(id: str):
-  try:
-    experience = experience_service.load_experience(UUID(id))
-    return experience
-  except ValueError as e:
-    raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from e
+async def get_experience(id: UUID):
+  experience = experience_service.load_experience(id)
+  return experience
 
 
 @router.post('', response_model=Experience)
@@ -39,6 +36,6 @@ async def update_experience(experience: Experience):
 
 
 @router.delete('/{id}', response_model=None)
-async def delete_experience(id: str):
-  experience_service.delete_experience(UUID(id))
+async def delete_experience(id: UUID):
+  experience_service.delete_experience(id)
   return None

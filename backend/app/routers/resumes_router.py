@@ -1,7 +1,7 @@
 import asyncio
 from uuid import UUID, uuid4
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter
 from fastapi.responses import Response
 
 from app.schemas.experience import Experience, LLMResponseExperience
@@ -20,6 +20,7 @@ from app.services import (
   resume_service,
   template_service,
 )
+from app.utils.errors import NotFoundError
 
 router = APIRouter(
   prefix='/resumes',
@@ -62,19 +63,13 @@ Original Bullets:
 
 
 @router.get('/{resume_id}')
-async def get_resume(resume_id: str) -> Resume:
-  resume = resume_service.get_resume_by_id(resume_id)
-  if not resume:
-    raise HTTPException(404, f'Resume {resume_id} not found')
-  return resume
+async def get_resume(resume_id: UUID) -> Resume:
+  return resume_service.get_resume_by_id(resume_id)
 
 
 @router.get('/{resume_id}/html')
-async def get_html(resume_id: str):
+async def get_html(resume_id: UUID):
   resume = resume_service.get_resume_by_id(resume_id)
-  if not resume:
-    raise HTTPException(404, f'Resume {resume_id} not found')
-
   profile = profile_service.load_profile()
   html = template_service.render(resume.template, profile, resume)
 
@@ -82,13 +77,13 @@ async def get_html(resume_id: str):
 
 
 @router.post('/')
-async def create_resume(listing_id: str):
+async def create_resume(listing_id: UUID):
   # TODO: Add an empty constructor to ResumeData
   empty_data = ResumeData(sections=[])
 
   resume = Resume(
     id=uuid4(),
-    listing_id=UUID(listing_id),
+    listing_id=listing_id,
     template='template-1.html',
     data=empty_data,
   )
@@ -97,16 +92,9 @@ async def create_resume(listing_id: str):
 
 
 @router.post('/{resume_id}/generate')
-async def generate_resume_content(resume_id: str):
+async def generate_resume_content(resume_id: UUID):
   resume = resume_service.get_resume_by_id(resume_id)
-  if not resume:
-    raise HTTPException(404, f'Resume {resume_id} not found')
-
   listing = listings_service.get_listing_by_id(str(resume.listing_id))
-
-  if not listing:
-    raise HTTPException(404, f'Listing {resume.listing_id} not found')
-
   relevant_experiences: list[Experience] = experience_service.search_relevant_experiences(listing)
 
   responses = await asyncio.gather(
@@ -172,37 +160,28 @@ async def generate_resume_content(resume_id: str):
 
 
 @router.put('/{resume_id}')
-async def update_resume(resume_id: str, data: ResumeData) -> Resume:
+async def update_resume(resume_id: UUID, data: ResumeData) -> Resume:
   resume = resume_service.get_resume_by_id(resume_id)
-  if not resume:
-    raise HTTPException(404, f'Resume {resume_id} not found')
-
   resume.data = data
   updated_resume = resume_service.update_resume(resume)
   return updated_resume
 
 
 @router.delete('/{resume_id}')
-async def delete_resume(resume_id: str):
+async def delete_resume(resume_id: UUID):
   """Delete a resume by ID."""
-  deleted = resume_service.delete_resume(resume_id)
-  if not deleted:
-    raise HTTPException(404, f'Resume {resume_id} not found')
-
+  resume_service.delete_resume(resume_id)
   return {'message': 'Resume deleted successfully'}
 
 
 @router.get('/{resume_id}/export')
-async def export_resume(resume_id: str) -> Response:
+async def export_resume(resume_id: UUID) -> Response:
   resume = resume_service.get_resume_by_id(resume_id)
-  if not resume:
-    raise HTTPException(404, f'Resume {resume_id} not found')
-
   profile = profile_service.load_profile()
   try:
     pdf_bytes = template_service.render_pdf(resume.template, profile, resume)
   except Exception as e:
-    raise HTTPException(500, f'Failed to render PDF: {e}') from e
+    raise NotFoundError(f'Failed to render PDF: {e}') from e
 
   filename = f'resume_{resume.id}.pdf'
   return Response(

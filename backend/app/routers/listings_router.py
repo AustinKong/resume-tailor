@@ -1,6 +1,6 @@
 import asyncio
 
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter
 from pydantic import HttpUrl
 
 from app.schemas.listing import (
@@ -10,6 +10,7 @@ from app.schemas.listing import (
   ScrapeResult,
 )
 from app.services import listings_service, llm_service, scraping_service
+from app.utils.errors import ValidationError
 from app.utils.url import normalize_url
 
 LISTING_EXTRACTION_PROMPT = """
@@ -69,7 +70,7 @@ async def get_listings():
 @router.post('/scrape', response_model=ScrapeResult)
 async def scrape_listings(urls: list[HttpUrl]):
   if not urls:
-    raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail='No URLs provided')
+    raise ValidationError('No URLs provided')
 
   # 1. Normalize all URLs and deduplicate
   normalized_urls = [normalize_url(url) for url in urls]

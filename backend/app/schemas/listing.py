@@ -1,7 +1,8 @@
 from datetime import date
+from typing import Annotated
 from uuid import UUID, uuid4
 
-from pydantic import Field, HttpUrl, field_validator
+from pydantic import BeforeValidator, Field, HttpUrl
 
 from app.schemas.types import CamelModel, parse_json_list
 
@@ -13,26 +14,29 @@ class LLMResponseListing(CamelModel):
   description: str
   posted_date: date | None = None
 
-  skills: list[str] = Field(
-    default_factory=list,
-    description=(
-      'List of specific tools, software, certifications, licenses, or hard skills '
-      'mentioned (e.g., Excel, CPR Certified, Forklift, Python, Salesforce, GAAP).'
+  skills: Annotated[
+    list[str],
+    BeforeValidator(parse_json_list),
+    Field(
+      default_factory=list,
+      description=(
+        'List of specific tools, software, certifications, licenses, or hard skills '
+        'mentioned (e.g., Excel, CPR Certified, Forklift, Python, Salesforce, GAAP).'
+      ),
     ),
-  )
+  ]
 
-  requirements: list[str] = Field(
-    default_factory=list,
-    description=(
-      'A list of 5-10 distinct, atomic requirements. These can be soft skills, '
-      'years of experience, or specific duties.'
+  requirements: Annotated[
+    list[str],
+    BeforeValidator(parse_json_list),
+    Field(
+      default_factory=list,
+      description=(
+        'A list of 5-10 distinct, atomic requirements. These can be soft skills, '
+        'years of experience, or specific duties.'
+      ),
     ),
-  )
-
-  @field_validator('skills', 'requirements', mode='before')
-  @classmethod
-  def parse_fields(cls, v):
-    return parse_json_list(v)
+  ]
 
 
 class Listing(LLMResponseListing):

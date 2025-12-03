@@ -13,6 +13,11 @@ from app.routers import (  # noqa: E402
   profile_router,
   resumes_router,
 )
+from app.utils.errors import (  # noqa: E402
+  ApplicationError,
+  NotFoundError,
+  ServiceError,
+)
 
 app = FastAPI()
 app.add_middleware(
@@ -26,6 +31,30 @@ app.include_router(profile_router.router)
 app.include_router(experiences_router.router)
 app.include_router(listings_router.router)
 app.include_router(resumes_router.router)
+
+
+@app.exception_handler(NotFoundError)
+async def not_found_exception_handler(request, exc):
+  return JSONResponse(
+    status_code=status.HTTP_404_NOT_FOUND,
+    content={'detail': str(exc)},
+  )
+
+
+@app.exception_handler(ServiceError)
+async def service_error_exception_handler(request, exc):
+  return JSONResponse(
+    status_code=status.HTTP_400_BAD_REQUEST,
+    content={'detail': str(exc)},
+  )
+
+
+@app.exception_handler(ApplicationError)
+async def application_error_exception_handler(request, exc):
+  return JSONResponse(
+    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+    content={'detail': str(exc)},
+  )
 
 
 @app.get('/health')

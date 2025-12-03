@@ -4,6 +4,8 @@ from bs4 import BeautifulSoup
 from playwright.async_api import async_playwright
 from pydantic import HttpUrl
 
+from app.utils.errors import ServiceError
+
 
 class ScrapingService:
   def __init__(self):
@@ -12,14 +14,17 @@ class ScrapingService:
     self.scraping_headless = True
 
   async def _scrape_page(self, url: HttpUrl) -> str:
-    async with async_playwright() as p:
-      browser = await p.chromium.launch(headless=self.scraping_headless)
-      page = await browser.new_page()
+    try:
+      async with async_playwright() as p:
+        browser = await p.chromium.launch(headless=self.scraping_headless)
+        page = await browser.new_page()
 
-      await page.goto(str(url), wait_until='load')
-      html = await page.content()
-      await browser.close()
-      return html
+        await page.goto(str(url), wait_until='load')
+        html = await page.content()
+        await browser.close()
+        return html
+    except Exception as e:
+      raise ServiceError(f'Failed to scrape page {url}: {str(e)}') from e
 
   def _clean_html(self, html: str) -> str:
     BOILERPLATE_TAGS = [

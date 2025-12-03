@@ -7,10 +7,7 @@ class ProfileService(JSONRepository):
     super().__init__()
 
   def load_profile(self) -> Profile:
-    try:
-      return self.read_json('profile.json', Profile)
-    except FileNotFoundError:
-      return Profile.empty()
+    return self.read_json('profile.json', Profile)
 
   def save_profile(self, profile: Profile) -> None:
     self.write_json('profile.json', profile)
