@@ -1,13 +1,12 @@
-import json
 from datetime import date
 from uuid import UUID, uuid4
 
-from pydantic import BaseModel, ConfigDict, Field, HttpUrl, field_validator
-from pydantic.alias_generators import to_camel
+from pydantic import Field, HttpUrl, field_validator
+
+from app.schemas.types import CamelModel, parse_json_list
 
 
-# TODO: Make field_validator a reusable utility function
-class LLMResponseListing(BaseModel):
+class LLMResponseListing(CamelModel):
   title: str
   company: str
   location: str | None = None
@@ -30,46 +29,26 @@ class LLMResponseListing(BaseModel):
     ),
   )
 
-  # Ensures skills and requirements are always lists when parsing from database
   @field_validator('skills', 'requirements', mode='before')
   @classmethod
   def parse_fields(cls, v):
-    if isinstance(v, str):
-      return json.loads(v)
-    if not v:
-      return None
-    return v
-
-  model_config = ConfigDict(
-    alias_generator=to_camel,
-    populate_by_name=True,
-  )
+    return parse_json_list(v)
 
 
 class Listing(LLMResponseListing):
   id: UUID = Field(default_factory=uuid4)
   url: HttpUrl
-  resume_ids: list[str] = Field(
+  resume_ids: list[UUID] = Field(
     default_factory=list,
     description='List of resume IDs associated with this listing (populated via JOIN)',
   )
 
 
-class DuplicateListing(BaseModel):
+class DuplicateListing(CamelModel):
   listing: Listing
   duplicate_of: Listing
 
-  model_config = ConfigDict(
-    alias_generator=to_camel,
-    populate_by_name=True,
-  )
 
-
-class ScrapeResult(BaseModel):
+class ScrapeResult(CamelModel):
   unique: list[Listing]
   duplicates: list[DuplicateListing]
-
-  model_config = ConfigDict(
-    alias_generator=to_camel,
-    populate_by_name=True,
-  )

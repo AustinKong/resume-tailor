@@ -1,10 +1,9 @@
 from enum import Enum
 from uuid import UUID, uuid4
 
-from pydantic import BaseModel, ConfigDict, Field
-from pydantic.alias_generators import to_camel
+from pydantic import BaseModel, Field
 
-from app.schemas.types import YearMonth
+from app.schemas.types import CamelModel, YearMonth
 
 
 class ExperienceType(Enum):
@@ -15,7 +14,7 @@ class ExperienceType(Enum):
   CONTRACT = 'Contract'
 
 
-class Experience(BaseModel):
+class Experience(CamelModel):
   id: UUID = Field(default_factory=uuid4)
   title: str
   organization: str
@@ -27,11 +26,6 @@ class Experience(BaseModel):
   bullets: list[str] = Field(
     default_factory=list,
     description='List of bullet points describing the experience',
-  )
-
-  model_config = ConfigDict(
-    alias_generator=to_camel,
-    populate_by_name=True,
   )
 
 

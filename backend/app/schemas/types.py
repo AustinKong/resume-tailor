@@ -1,6 +1,25 @@
-from typing import Annotated
+import json
+from typing import Annotated, Any
 
-from pydantic import StringConstraints
+from pydantic import BaseModel, ConfigDict, StringConstraints
+from pydantic.alias_generators import to_camel
 
-# Shared type for year-month strings in YYYY-MM format
 YearMonth = Annotated[str, StringConstraints(pattern=r'^\d{4}-\d{2}$')]
+
+
+class CamelModel(BaseModel):
+  """Base model with camelCase aliases for JSON serialization."""
+
+  model_config = ConfigDict(
+    alias_generator=to_camel,
+    populate_by_name=True,
+  )
+
+
+def parse_json_list(v: Any) -> list[str] | None:
+  """Parse a JSON string into a list, or return the value if already a list."""
+  if isinstance(v, str):
+    return json.loads(v)
+  if not v:
+    return None
+  return v
