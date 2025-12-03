@@ -27,10 +27,10 @@ app.add_middleware(
   allow_methods=['*'],
   allow_headers=['*'],
 )
-app.include_router(profile_router.router)
-app.include_router(experiences_router.router)
-app.include_router(listings_router.router)
-app.include_router(resumes_router.router)
+app.include_router(profile_router)
+app.include_router(experiences_router)
+app.include_router(listings_router)
+app.include_router(resumes_router)
 
 
 @app.exception_handler(NotFoundError)

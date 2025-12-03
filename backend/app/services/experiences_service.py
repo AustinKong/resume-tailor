@@ -6,7 +6,7 @@ from app.schemas import Experience, Listing
 from app.utils.errors import NotFoundError, ServiceError
 
 
-class ExperienceService(DatabaseRepository, VectorRepository):
+class ExperiencesService(DatabaseRepository, VectorRepository):
   def __init__(self):
     super().__init__()
 
@@ -195,6 +195,13 @@ class ExperienceService(DatabaseRepository, VectorRepository):
     """
     Find the best matching job experiences for a given Job Listing.
 
+    This function uses a 6-step process:
+    1. Synthetic Query Generation: Generate embedding query for each requirement
+    2. Parallel Search Strategy: Search each requirement separately (top 5 per requirement)
+    3. Filter & Aggregation: Track bullets that matched with their scores
+    4. Experience Scoring: Calculate total relevance score for each experience
+    5. Selection & Pruning: Sort by score and select top_k_experiences
+
     Args:
       listing: The job listing with requirements to match against.
       top_k_experiences: Number of top experiences to return.
@@ -209,22 +216,16 @@ class ExperienceService(DatabaseRepository, VectorRepository):
     if not listing.requirements:
       return []
 
-    # Step 1: Synthetic Query Generation
-    # For each requirement, generate an embedding query
     requirement_queries = []
     for requirement in listing.requirements:
       query_text = f'Role: {listing.title}\nAchievement: {requirement}'
       requirement_queries.append((requirement, query_text))
 
-    # Step 2: Parallel Search Strategy
-    # Search for each requirement separately (top 5 matches per requirement)
     all_search_results = []
     for _requirement_text, query_text in requirement_queries:
       results = self.search_documents('experience_bullets', query_text, k=5)
       all_search_results.extend(results)
 
-    # Step 3 & 4: Filter & Aggregation (The Accumulator)
-    # Track which specific bullets matched with their scores
     experience_hits = defaultdict(lambda: defaultdict(lambda: {'score': 0.0, 'text': ''}))
 
     for _doc_text, metadata, similarity_score in all_search_results:
@@ -234,22 +235,17 @@ class ExperienceService(DatabaseRepository, VectorRepository):
       if experience_id is None or bullet_index is None:
         continue
 
-      # Accumulate score and set text (text will be overwritten, but it's always the same bullet)
       experience_hits[experience_id][bullet_index]['score'] += similarity_score
       experience_hits[experience_id][bullet_index]['text'] = _doc_text
 
     if not experience_hits:
       return []
 
-    # Step 5: Experience Scoring
-    # Calculate total relevance score for each experience (sum of accumulated bullet scores)
     experience_scores = {}
     for exp_id, bullets in experience_hits.items():
       total_score = sum(float(bullet_data['score']) for bullet_data in bullets.values())
       experience_scores[exp_id] = total_score
 
-    # Step 6: Selection & Pruning
-    # Sort by score descending and take top_k_experiences
     sorted_experiences = sorted(experience_scores.items(), key=lambda x: x[1], reverse=True)[
       :top_k_experiences
     ]
@@ -272,13 +268,3 @@ class ExperienceService(DatabaseRepository, VectorRepository):
       result.append(pruned_experience)
 
     return result
-
-
-_service = ExperienceService()
-
-save_experience = _service.save_experience
-load_experiences = _service.load_experiences
-load_experience = _service.load_experience
-update_experience = _service.update_experience
-delete_experience = _service.delete_experience
-search_relevant_experiences = _service.search_relevant_experiences

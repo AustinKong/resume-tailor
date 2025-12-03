@@ -11,9 +11,3 @@ class ProfileService(JSONRepository):
 
   def save_profile(self, profile: Profile) -> None:
     self.write_json('profile.json', profile)
-
-
-_service = ProfileService()
-
-load_profile = _service.load_profile
-save_profile = _service.save_profile

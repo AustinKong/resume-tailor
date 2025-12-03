@@ -5,7 +5,7 @@ from app.schemas import Resume, ResumeData
 from app.utils.errors import NotFoundError
 
 
-class ResumeService(DatabaseRepository):
+class ResumesService(DatabaseRepository):
   def __init__(self, **kwargs):
     super().__init__(**kwargs)
 
@@ -55,31 +55,9 @@ class ResumeService(DatabaseRepository):
       data=ResumeData.model_validate_json(row['data']),
     )
 
-  def get_resumes_by_listing_id(self, listing_id: UUID) -> list[Resume]:
-    rows = self.fetch_all('SELECT * FROM resumes WHERE listing_id = ?', (str(listing_id),))
-
-    return [
-      Resume(
-        id=row['id'],
-        listing_id=row['listing_id'],
-        template=row['template'],
-        data=ResumeData.model_validate_json(row['data']),
-      )
-      for row in rows
-    ]
-
   def delete_resume(self, resume_id: UUID) -> None:
     row = self.fetch_one('SELECT id FROM resumes WHERE id = ?', (str(resume_id),))
     if not row:
       raise NotFoundError(f'Resume {resume_id} not found')
 
     self.execute('DELETE FROM resumes WHERE id = ?', (str(resume_id),))
-
-
-_service = ResumeService()
-
-create_resume = _service.create_resume
-update_resume = _service.update_resume
-get_resume_by_id = _service.get_resume_by_id
-get_resumes_by_listing_id = _service.get_resumes_by_listing_id
-delete_resume = _service.delete_resume

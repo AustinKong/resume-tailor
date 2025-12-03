@@ -9,7 +9,6 @@ from app.utils.errors import ServiceError
 
 class ScrapingService:
   def __init__(self):
-    # Configuration
     self.scraping_aggressive_clean = True
     self.scraping_headless = True
 
@@ -116,8 +115,3 @@ class ScrapingService:
       cleaned_text = self._clean_html(raw_html)
 
     return cleaned_text
-
-
-_service = ScrapingService()
-
-fetch_and_clean = _service.fetch_and_clean

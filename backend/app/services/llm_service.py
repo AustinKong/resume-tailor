@@ -8,7 +8,6 @@ T = TypeVar('T', bound=BaseModel)
 
 class LLMService:
   def __init__(self):
-    # Configuration
     self.model = 'gpt-4o-mini'
     self.temperature = 0.3
 
@@ -67,8 +66,3 @@ class LLMService:
       temperature=self.temperature,
     )
     return response.output_text
-
-
-_service = LLMService()
-call_structured = _service.call_structured
-call_unstructured = _service.call_unstructured

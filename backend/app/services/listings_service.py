@@ -300,12 +300,3 @@ class ListingsService(DatabaseRepository, VectorRepository):
         similar_pairs.append((new_listing, best_match))
 
     return similar_pairs
-
-
-_service = ListingsService()
-
-load_listings = _service.load_listings
-save_listings = _service.save_listings
-get_listings_by_urls = _service.get_listings_by_urls
-get_listing_by_id = _service.get_listing_by_id
-find_similar_listings = _service.find_similar_listings
