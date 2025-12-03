@@ -6,8 +6,8 @@ from app.schemas.experience import Experience
 from app.services import experience_service
 
 router = APIRouter(
-  prefix='/experience',
-  tags=['Experience'],
+  prefix='/experiences',
+  tags=['Experiences'],
 )
 
 

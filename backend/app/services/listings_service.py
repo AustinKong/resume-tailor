@@ -1,4 +1,5 @@
 import json
+from uuid import UUID
 
 from chromadb.api.types import Metadata
 from pydantic import HttpUrl
@@ -9,11 +10,22 @@ from app.schemas.listing import Listing
 from app.utils.deduplication import fuzzy_text_similarity
 
 
+def _parse_resume_ids(resume_ids_str: str) -> list[UUID]:
+  """Convert comma-separated resume ID string to list of UUIDs."""
+  if not resume_ids_str:
+    return []
+  result = []
+  for id_str in resume_ids_str.split(','):
+    try:
+      result.append(UUID(id_str.strip()))
+    except ValueError:
+      continue
+  return result
+
+
 class ListingsService(DatabaseRepository, VectorRepository):
   def __init__(self, **kwargs):
     super().__init__(**kwargs)
-
-    # Configuration
     self.semantic_similarity_threshold = 0.90
     self.title_similarity_threshold = 0.85
     self.company_similarity_threshold = 0.90
@@ -36,10 +48,7 @@ class ListingsService(DatabaseRepository, VectorRepository):
     )
 
     return [
-      Listing(
-        **{**dict(row), 'resume_ids': row['resume_ids'].split(',') if row['resume_ids'] else []}
-      )
-      for row in rows
+      Listing(**{**dict(row), 'resume_ids': _parse_resume_ids(row['resume_ids'])}) for row in rows
     ]
 
   def save_listings(self, listings: list[Listing]) -> list[Listing]:
@@ -86,10 +95,6 @@ class ListingsService(DatabaseRepository, VectorRepository):
     return listings
 
   def get_listings_by_urls(self, urls: list[HttpUrl]) -> list[Listing]:
-    """
-    Get listings from the database that match the provided URLs.
-    Returns a list of Listing objects.
-    """
     if not urls:
       return []
 
@@ -113,13 +118,9 @@ class ListingsService(DatabaseRepository, VectorRepository):
     )
 
     return [
-      Listing(
-        **{**dict(row), 'resume_ids': row['resume_ids'].split(',') if row['resume_ids'] else []}
-      )
-      for row in rows
+      Listing(**{**dict(row), 'resume_ids': _parse_resume_ids(row['resume_ids'])}) for row in rows
     ]
 
-  # TODO: Change to take in UUID instead?
   def get_listing_by_id(self, listing_id: str) -> Listing | None:
     row = self.fetch_one(
       """
@@ -141,15 +142,9 @@ class ListingsService(DatabaseRepository, VectorRepository):
     if not row:
       return None
 
-    return Listing(
-      **{**dict(row), 'resume_ids': row['resume_ids'].split(',') if row['resume_ids'] else []}
-    )
+    return Listing(**{**dict(row), 'resume_ids': _parse_resume_ids(row['resume_ids'])})
 
   def _create_listing_embedding_text(self, listing: Listing) -> str:
-    """
-    Create a text representation of a listing for embedding generation.
-    Combines key fields that capture the essence of the job.
-    """
     parts = [
       f'Company: {listing.company}',
       f'Title: {listing.title}',
@@ -181,16 +176,10 @@ class ListingsService(DatabaseRepository, VectorRepository):
 
     Returns:
       List of (similar_listing, similarity_score) tuples above threshold
-
-    Note:
-      Does NOT load all existing listings into memory - only loads the specific
-      listings returned by the vector search.
     """
-    # Search for similar listings using ChromaDB's built-in similarity scores
     query_text = self._create_listing_embedding_text(new_listing)
     search_results = self.search_documents(collection_name='listings', query=query_text, k=k)
 
-    # Filter by threshold and extract listing IDs
     matching_ids = []
     similarity_scores = {}
     for _doc_text, metadata, similarity in search_results:
@@ -200,7 +189,6 @@ class ListingsService(DatabaseRepository, VectorRepository):
           matching_ids.append(listing_id)
           similarity_scores[listing_id] = similarity
 
-    # Load only the matching listings from database
     if not matching_ids:
       return []
 
@@ -222,12 +210,9 @@ class ListingsService(DatabaseRepository, VectorRepository):
       tuple(matching_ids),
     )
 
-    # Convert rows to Listing objects
     similar = []
     for row in rows:
-      listing = Listing(
-        **{**dict(row), 'resume_ids': row['resume_ids'].split(',') if row['resume_ids'] else []}
-      )
+      listing = Listing(**{**dict(row), 'resume_ids': _parse_resume_ids(row['resume_ids'])})
       score = similarity_scores.get(str(listing.id), 0.0)
       similar.append((listing, score))
 
@@ -250,16 +235,13 @@ class ListingsService(DatabaseRepository, VectorRepository):
     Returns:
       List of (similar_listing, similarity_score) tuples above threshold
     """
-    # Load all existing listings for fuzzy matching
     existing_listings = self.load_listings()
 
     similar = []
     for existing_listing in existing_listings:
-      # Calculate fuzzy similarity for title and company
       title_sim = fuzzy_text_similarity(new_listing.title, existing_listing.title)
       company_sim = fuzzy_text_similarity(new_listing.company, existing_listing.company)
 
-      # Check if both exceed thresholds
       if title_sim >= title_threshold and company_sim >= company_threshold:
         combined_score = (title_sim + company_sim) / 2
         similar.append((existing_listing, combined_score))
@@ -276,9 +258,6 @@ class ListingsService(DatabaseRepository, VectorRepository):
     """
     Find similar listings using BOTH semantic and heuristic methods.
 
-    Always performs both semantic (embedding-based) and heuristic (fuzzy matching)
-    similarity search, taking the best match from either method.
-
     Args:
       new_listings: New listings to check for similarities
       semantic_threshold: Minimum cosine similarity for semantic (0-1, default 0.90)
@@ -286,8 +265,7 @@ class ListingsService(DatabaseRepository, VectorRepository):
       heuristic_company_threshold: Minimum company similarity (0-1, default 0.90)
 
     Returns:
-      List of (new_listing, similar_listing) tuples for listings that have a match
-      above the thresholds. Listings without matches are not included.
+      List of (new_listing, similar_listing) tuples for listings with matches.
     """
     similar_pairs = []
 
@@ -295,7 +273,6 @@ class ListingsService(DatabaseRepository, VectorRepository):
       best_match = None
       best_score = 0.0
 
-      # Check semantic similarity
       semantic_matches = self._find_semantic_duplicates(
         new_listing, similarity_threshold=semantic_threshold
       )
@@ -305,7 +282,6 @@ class ListingsService(DatabaseRepository, VectorRepository):
           best_match = match
           best_score = score
 
-      # Check heuristic matching
       heuristic_matches = self._find_heuristic_duplicates(
         new_listing,
         title_threshold=heuristic_title_threshold,
@@ -317,7 +293,6 @@ class ListingsService(DatabaseRepository, VectorRepository):
           best_match = match
           best_score = score
 
-      # Even with semantically similar listings, different company = different listing
       if best_match and new_listing.company != best_match.company:
         best_match = None
 

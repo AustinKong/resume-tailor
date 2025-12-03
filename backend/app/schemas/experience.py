@@ -1,11 +1,9 @@
 from enum import Enum
-from typing import Annotated
 from uuid import UUID, uuid4
 
-from pydantic import BaseModel, ConfigDict, Field, StringConstraints
-from pydantic.alias_generators import to_camel
+from pydantic import Field
 
-YearMonth = Annotated[str, StringConstraints(pattern=r'^\d{4}-\d{2}$')]
+from app.schemas.types import CamelModel, YearMonth
 
 
 class ExperienceType(Enum):
@@ -16,7 +14,7 @@ class ExperienceType(Enum):
   CONTRACT = 'Contract'
 
 
-class Experience(BaseModel):
+class Experience(CamelModel):
   id: UUID = Field(default_factory=uuid4)
   title: str
   organization: str
@@ -30,13 +28,8 @@ class Experience(BaseModel):
     description='List of bullet points describing the experience',
   )
 
-  model_config = ConfigDict(
-    alias_generator=to_camel,
-    populate_by_name=True,
-  )
 
-
-class LLMResponseExperience(BaseModel):
+class LLMResponseExperience(CamelModel):
   bullets: list[str] = Field(
     default_factory=list,
     description='List of bullet points describing the experience',

@@ -1,12 +1,11 @@
-from typing import Annotated, Self
+from typing import Self
 
-from pydantic import BaseModel, ConfigDict, EmailStr, Field, StringConstraints
-from pydantic.alias_generators import to_camel
+from pydantic import EmailStr, Field
 
-YearMonth = Annotated[str, StringConstraints(pattern=r'^\d{4}-\d{2}$')]
+from app.schemas.types import CamelModel, YearMonth
 
 
-class Education(BaseModel):
+class Education(CamelModel):
   institution: str
   program: str
   location: str | None = None
@@ -17,13 +16,8 @@ class Education(BaseModel):
     description='Key courses, GPA, thesis, or other relevant details',
   )
 
-  model_config = ConfigDict(
-    alias_generator=to_camel,
-    populate_by_name=True,
-  )
 
-
-class Profile(BaseModel):
+class Profile(CamelModel):
   full_name: str
   email: EmailStr | None = None
   phone: str | None = None
@@ -43,11 +37,6 @@ class Profile(BaseModel):
   awards: list[str] = Field(
     default_factory=list,
     description='List of awards and honors',
-  )
-
-  model_config = ConfigDict(
-    alias_generator=to_camel,
-    populate_by_name=True,
   )
 
   @classmethod

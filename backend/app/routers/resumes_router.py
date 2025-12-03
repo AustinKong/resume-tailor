@@ -22,8 +22,8 @@ from app.services import (
 )
 
 router = APIRouter(
-  prefix='/resume',
-  tags=['Resume'],
+  prefix='/resumes',
+  tags=['Resumes'],
 )
 
 OPTIMIZATION_PROMPT = """
@@ -49,8 +49,10 @@ Original Bullets:
     in Chinese".
 
 2. **EVIDENCE-BASED REWRITING:** Every claim you write must be logically supported by the Source.
-   - *Source:* "Built web apps." -> *Rewrite:* "Architected scalable web solutions." (OK - Rephrasing)
-   - *Source:* "Built web apps." -> *Rewrite:* "Built web apps using Java." (FAIL - Inventing Java)
+   - *Source:* "Built web apps." -> *Rewrite:* "Architected scalable web solutions."
+     (OK - Rephrasing)
+   - *Source:* "Built web apps." -> *Rewrite:* "Built web apps using Java."
+     (FAIL - Inventing Java)
 
 3. **OMISSION IS BETTER THAN LYING:** If the Candidate's experience does not match a specific 
     Requirement in the Listing, IGNORE that requirement. Do not force a match.
@@ -129,7 +131,8 @@ async def generate_resume_content(resume_id: str):
     exp.bullets = resp.bullets
     customised_experiences.append(exp)
 
-  # Map pruned experiences to DetailedItem objects and sort by end_date (desc), then start_date (desc)
+  # Map pruned experiences to DetailedItem objects
+  # Sort by end_date (desc), then start_date (desc)
   def sort_key(exp: Experience):
     # If end_date is None, treat as ongoing (sort first)
     end = exp.end_date or '9999-12'
