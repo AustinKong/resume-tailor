@@ -30,7 +30,57 @@ class ListingsService(DatabaseRepository, VectorRepository):
     self.title_similarity_threshold = 0.85
     self.company_similarity_threshold = 0.90
 
-  def load_listings(self) -> list[Listing]:
+  def get(self, listing_id: str) -> Listing:
+    row = self.fetch_one(
+      """
+      SELECT 
+        l.id, l.url, l.title, l.company, l.location, l.description, l.posted_date,
+        l.skills, l.requirements,
+        COALESCE(
+          GROUP_CONCAT(r.id),
+          ''
+        ) as resume_ids
+      FROM listings l
+      LEFT JOIN resumes r ON l.id = r.listing_id
+      WHERE l.id = ?
+      GROUP BY l.id
+      """,
+      (listing_id,),
+    )
+
+    if not row:
+      raise NotFoundError(f'Listing {listing_id} not found')
+
+    return Listing(**{**dict(row), 'resume_ids': _parse_resume_ids(row['resume_ids'])})
+
+  def get_by_urls(self, urls: list[HttpUrl]) -> list[Listing]:
+    if not urls:
+      return []
+
+    url_strings = [str(url) for url in urls]
+    placeholders = ','.join('?' * len(url_strings))
+    rows = self.fetch_all(
+      f"""
+      SELECT 
+        l.id, l.url, l.title, l.company, l.location, l.description, l.posted_date,
+        l.skills, l.requirements,
+        COALESCE(
+          GROUP_CONCAT(r.id),
+          ''
+        ) as resume_ids
+      FROM listings l
+      LEFT JOIN resumes r ON l.id = r.listing_id
+      WHERE l.url IN ({placeholders})
+      GROUP BY l.id
+      """,
+      tuple(url_strings),
+    )
+
+    return [
+      Listing(**{**dict(row), 'resume_ids': _parse_resume_ids(row['resume_ids'])}) for row in rows
+    ]
+
+  def list_all(self) -> list[Listing]:
     rows = self.fetch_all(
       """
       SELECT 
@@ -51,7 +101,60 @@ class ListingsService(DatabaseRepository, VectorRepository):
       Listing(**{**dict(row), 'resume_ids': _parse_resume_ids(row['resume_ids'])}) for row in rows
     ]
 
-  def save_listings(self, listings: list[Listing]) -> list[Listing]:
+  def find_similar(
+    self,
+    new_listings: list[Listing],
+    semantic_threshold: float = 0.90,
+    heuristic_title_threshold: float = 0.85,
+    heuristic_company_threshold: float = 0.90,
+  ) -> list[tuple[Listing, Listing]]:
+    """
+    Find similar listings using BOTH semantic and heuristic methods.
+
+    Args:
+      new_listings: New listings to check for similarities
+      semantic_threshold: Minimum cosine similarity for semantic (0-1, default 0.90)
+      heuristic_title_threshold: Minimum title similarity for heuristic (0-1, default 0.85)
+      heuristic_company_threshold: Minimum company similarity (0-1, default 0.90)
+
+    Returns:
+      List of (new_listing, similar_listing) tuples for listings with matches.
+    """
+    similar_pairs = []
+
+    for new_listing in new_listings:
+      best_match = None
+      best_score = 0.0
+
+      semantic_matches = self._find_semantic_duplicates(
+        new_listing, similarity_threshold=semantic_threshold
+      )
+      if semantic_matches:
+        match, score = semantic_matches[0]
+        if score > best_score:
+          best_match = match
+          best_score = score
+
+      heuristic_matches = self._find_heuristic_duplicates(
+        new_listing,
+        title_threshold=heuristic_title_threshold,
+        company_threshold=heuristic_company_threshold,
+      )
+      if heuristic_matches:
+        match, score = heuristic_matches[0]
+        if score > best_score:
+          best_match = match
+          best_score = score
+
+      if best_match and new_listing.company != best_match.company:
+        best_match = None
+
+      if best_match:
+        similar_pairs.append((new_listing, best_match))
+
+    return similar_pairs
+
+  def create(self, listings: list[Listing]) -> list[Listing]:
     if not listings:
       return []
 
@@ -93,56 +196,6 @@ class ListingsService(DatabaseRepository, VectorRepository):
     self.add_documents(collection_name='listings', documents=documents, metadatas=metadatas)
 
     return listings
-
-  def get_listings_by_urls(self, urls: list[HttpUrl]) -> list[Listing]:
-    if not urls:
-      return []
-
-    url_strings = [str(url) for url in urls]
-    placeholders = ','.join('?' * len(url_strings))
-    rows = self.fetch_all(
-      f"""
-      SELECT 
-        l.id, l.url, l.title, l.company, l.location, l.description, l.posted_date,
-        l.skills, l.requirements,
-        COALESCE(
-          GROUP_CONCAT(r.id),
-          ''
-        ) as resume_ids
-      FROM listings l
-      LEFT JOIN resumes r ON l.id = r.listing_id
-      WHERE l.url IN ({placeholders})
-      GROUP BY l.id
-      """,
-      tuple(url_strings),
-    )
-
-    return [
-      Listing(**{**dict(row), 'resume_ids': _parse_resume_ids(row['resume_ids'])}) for row in rows
-    ]
-
-  def get_listing_by_id(self, listing_id: str) -> Listing:
-    row = self.fetch_one(
-      """
-      SELECT 
-        l.id, l.url, l.title, l.company, l.location, l.description, l.posted_date,
-        l.skills, l.requirements,
-        COALESCE(
-          GROUP_CONCAT(r.id),
-          ''
-        ) as resume_ids
-      FROM listings l
-      LEFT JOIN resumes r ON l.id = r.listing_id
-      WHERE l.id = ?
-      GROUP BY l.id
-      """,
-      (listing_id,),
-    )
-
-    if not row:
-      raise NotFoundError(f'Listing {listing_id} not found')
-
-    return Listing(**{**dict(row), 'resume_ids': _parse_resume_ids(row['resume_ids'])})
 
   def _create_listing_embedding_text(self, listing: Listing) -> str:
     parts = [
@@ -235,7 +288,7 @@ class ListingsService(DatabaseRepository, VectorRepository):
     Returns:
       List of (similar_listing, similarity_score) tuples above threshold
     """
-    existing_listings = self.load_listings()
+    existing_listings = self.list_all()
 
     similar = []
     for existing_listing in existing_listings:
@@ -247,56 +300,3 @@ class ListingsService(DatabaseRepository, VectorRepository):
         similar.append((existing_listing, combined_score))
 
     return sorted(similar, key=lambda x: x[1], reverse=True)
-
-  def find_similar_listings(
-    self,
-    new_listings: list[Listing],
-    semantic_threshold: float = 0.90,
-    heuristic_title_threshold: float = 0.85,
-    heuristic_company_threshold: float = 0.90,
-  ) -> list[tuple[Listing, Listing]]:
-    """
-    Find similar listings using BOTH semantic and heuristic methods.
-
-    Args:
-      new_listings: New listings to check for similarities
-      semantic_threshold: Minimum cosine similarity for semantic (0-1, default 0.90)
-      heuristic_title_threshold: Minimum title similarity for heuristic (0-1, default 0.85)
-      heuristic_company_threshold: Minimum company similarity (0-1, default 0.90)
-
-    Returns:
-      List of (new_listing, similar_listing) tuples for listings with matches.
-    """
-    similar_pairs = []
-
-    for new_listing in new_listings:
-      best_match = None
-      best_score = 0.0
-
-      semantic_matches = self._find_semantic_duplicates(
-        new_listing, similarity_threshold=semantic_threshold
-      )
-      if semantic_matches:
-        match, score = semantic_matches[0]
-        if score > best_score:
-          best_match = match
-          best_score = score
-
-      heuristic_matches = self._find_heuristic_duplicates(
-        new_listing,
-        title_threshold=heuristic_title_threshold,
-        company_threshold=heuristic_company_threshold,
-      )
-      if heuristic_matches:
-        match, score = heuristic_matches[0]
-        if score > best_score:
-          best_match = match
-          best_score = score
-
-      if best_match and new_listing.company != best_match.company:
-        best_match = None
-
-      if best_match:
-        similar_pairs.append((new_listing, best_match))
-
-    return similar_pairs

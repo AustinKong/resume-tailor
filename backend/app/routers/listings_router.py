@@ -17,7 +17,7 @@ router = APIRouter(
 
 @router.get('', response_model=list[Listing])
 async def get_listings():
-  listings = listings_service.load_listings()
+  listings = listings_service.list_all()
   return listings
 
 
@@ -31,7 +31,7 @@ async def scrape_listings(urls: list[HttpUrl]):
   unique_urls = list(dict.fromkeys(normalized_urls))
 
   # 2. Check which URLs already exist in database and mark as duplicates
-  existing_listings = listings_service.get_listings_by_urls(unique_urls)
+  existing_listings = listings_service.get_by_urls(unique_urls)
   existing_listings_map = {listing.url: listing for listing in existing_listings}
 
   duplicates = [
@@ -61,7 +61,7 @@ async def scrape_listings(urls: list[HttpUrl]):
   ]
 
   # 4. Find similar/duplicate listings among newly scraped and mark as duplicates
-  similar_duplicate_pairs = listings_service.find_similar_listings(scraped_listings)
+  similar_duplicate_pairs = listings_service.find_similar(scraped_listings)
 
   duplicates.extend(
     [
@@ -78,5 +78,5 @@ async def scrape_listings(urls: list[HttpUrl]):
 
 @router.post('')
 async def save_listings(listings: list[Listing]):
-  listings = listings_service.save_listings(listings)
+  listings = listings_service.create(listings)
   return listings

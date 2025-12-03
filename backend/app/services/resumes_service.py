@@ -9,7 +9,19 @@ class ResumesService(DatabaseRepository):
   def __init__(self, **kwargs):
     super().__init__(**kwargs)
 
-  def create_resume(self, resume: Resume) -> Resume:
+  def get(self, resume_id: UUID) -> Resume:
+    row = self.fetch_one('SELECT * FROM resumes WHERE id = ?', (str(resume_id),))
+    if not row:
+      raise NotFoundError(f'Resume {resume_id} not found')
+
+    return Resume(
+      id=row['id'],
+      listing_id=row['listing_id'],
+      template=row['template'],
+      data=ResumeData.model_validate_json(row['data']),
+    )
+
+  def create(self, resume: Resume) -> Resume:
     listing = self.fetch_one('SELECT id FROM listings WHERE id = ?', (str(resume.listing_id),))
     if not listing:
       raise NotFoundError(f'Listing {resume.listing_id} not found')
@@ -26,7 +38,7 @@ class ResumesService(DatabaseRepository):
 
     return resume
 
-  def update_resume(self, resume: Resume) -> Resume:
+  def update(self, resume: Resume) -> Resume:
     row = self.fetch_one('SELECT * FROM resumes WHERE id = ?', (str(resume.id),))
     if not row:
       raise NotFoundError(f'Resume {resume.id} not found')
@@ -43,19 +55,7 @@ class ResumesService(DatabaseRepository):
 
     return resume
 
-  def get_resume_by_id(self, resume_id: UUID) -> Resume:
-    row = self.fetch_one('SELECT * FROM resumes WHERE id = ?', (str(resume_id),))
-    if not row:
-      raise NotFoundError(f'Resume {resume_id} not found')
-
-    return Resume(
-      id=row['id'],
-      listing_id=row['listing_id'],
-      template=row['template'],
-      data=ResumeData.model_validate_json(row['data']),
-    )
-
-  def delete_resume(self, resume_id: UUID) -> None:
+  def delete(self, resume_id: UUID) -> None:
     row = self.fetch_one('SELECT id FROM resumes WHERE id = ?', (str(resume_id),))
     if not row:
       raise NotFoundError(f'Resume {resume_id} not found')

@@ -32,13 +32,13 @@ router = APIRouter(
 
 @router.get('/{resume_id}')
 async def get_resume(resume_id: UUID) -> Resume:
-  return resume_service.get_resume_by_id(resume_id)
+  return resume_service.get(resume_id)
 
 
 @router.get('/{resume_id}/html')
 async def get_html(resume_id: UUID):
-  resume = resume_service.get_resume_by_id(resume_id)
-  profile = profile_service.load_profile()
+  resume = resume_service.get(resume_id)
+  profile = profile_service.get()
   html = template_service.render(resume.template, profile, resume)
 
   return {'html': html}
@@ -55,15 +55,15 @@ async def create_resume(listing_id: UUID):
     template='template-1.html',
     data=empty_data,
   )
-  resume_service.create_resume(resume)
+  resume_service.create(resume)
   return resume
 
 
 @router.post('/{resume_id}/generate')
 async def generate_resume_content(resume_id: UUID):
-  resume = resume_service.get_resume_by_id(resume_id)
-  listing = listings_service.get_listing_by_id(str(resume.listing_id))
-  relevant_experiences: list[Experience] = experience_service.search_relevant_experiences(listing)
+  resume = resume_service.get(resume_id)
+  listing = listings_service.get(str(resume.listing_id))
+  relevant_experiences: list[Experience] = experience_service.find_relevant(listing)
 
   responses = await asyncio.gather(
     *[
@@ -123,29 +123,29 @@ async def generate_resume_content(resume_id: UUID):
   # TODO: Add a projects section
 
   resume.data = generated_data
-  updated_resume = resume_service.update_resume(resume)
+  updated_resume = resume_service.update(resume)
   return updated_resume
 
 
 @router.put('/{resume_id}')
 async def update_resume(resume_id: UUID, data: ResumeData) -> Resume:
-  resume = resume_service.get_resume_by_id(resume_id)
+  resume = resume_service.get(resume_id)
   resume.data = data
-  updated_resume = resume_service.update_resume(resume)
+  updated_resume = resume_service.update(resume)
   return updated_resume
 
 
 @router.delete('/{resume_id}')
 async def delete_resume(resume_id: UUID):
   """Delete a resume by ID."""
-  resume_service.delete_resume(resume_id)
+  resume_service.delete(resume_id)
   return {'message': 'Resume deleted successfully'}
 
 
 @router.get('/{resume_id}/export')
 async def export_resume(resume_id: UUID) -> Response:
-  resume = resume_service.get_resume_by_id(resume_id)
-  profile = profile_service.load_profile()
+  resume = resume_service.get(resume_id)
+  profile = profile_service.get()
   try:
     pdf_bytes = template_service.render_pdf(resume.template, profile, resume)
   except Exception as e:

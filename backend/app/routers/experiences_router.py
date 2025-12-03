@@ -13,29 +13,29 @@ router = APIRouter(
 
 @router.get('', response_model=list[Experience])
 async def get_experiences():
-  experiences = experience_service.load_experiences()
+  experiences = experience_service.list_all()
   return experiences
 
 
 @router.get('/{id}', response_model=Experience)
 async def get_experience(id: UUID):
-  experience = experience_service.load_experience(id)
+  experience = experience_service.get(id)
   return experience
 
 
 @router.post('', response_model=Experience)
 async def create_experience(experience: Experience):
-  experience_service.save_experience(experience)
+  experience_service.create(experience)
   return experience
 
 
 @router.put('', response_model=Experience)
 async def update_experience(experience: Experience):
-  updated_experience = experience_service.update_experience(experience)
+  updated_experience = experience_service.update(experience)
   return updated_experience
 
 
 @router.delete('/{id}', response_model=None)
 async def delete_experience(id: UUID):
-  experience_service.delete_experience(id)
+  experience_service.delete(id)
   return None
