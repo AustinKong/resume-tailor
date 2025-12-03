@@ -13,7 +13,6 @@ class LLMService:
     self.temperature = 0.3
 
     self._client = None
-    self._cache = {}
 
   @property
   def client(self):

@@ -1,9 +1,9 @@
-from typing import Annotated, Self
+from typing import Self
 
-from pydantic import BaseModel, ConfigDict, EmailStr, Field, StringConstraints
+from pydantic import BaseModel, ConfigDict, EmailStr, Field
 from pydantic.alias_generators import to_camel
 
-YearMonth = Annotated[str, StringConstraints(pattern=r'^\d{4}-\d{2}$')]
+from app.schemas.types import YearMonth
 
 
 class Education(BaseModel):

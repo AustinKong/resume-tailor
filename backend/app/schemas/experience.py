@@ -1,11 +1,10 @@
 from enum import Enum
-from typing import Annotated
 from uuid import UUID, uuid4
 
-from pydantic import BaseModel, ConfigDict, Field, StringConstraints
+from pydantic import BaseModel, ConfigDict, Field
 from pydantic.alias_generators import to_camel
 
-YearMonth = Annotated[str, StringConstraints(pattern=r'^\d{4}-\d{2}$')]
+from app.schemas.types import YearMonth
 
 
 class ExperienceType(Enum):
