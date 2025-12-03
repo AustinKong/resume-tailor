@@ -4,9 +4,8 @@ from uuid import UUID
 from chromadb.api.types import Metadata
 from pydantic import HttpUrl
 
-from app.repositories.database_repository import DatabaseRepository
-from app.repositories.vector_repository import VectorRepository
-from app.schemas.listing import Listing
+from app.repositories import DatabaseRepository, VectorRepository
+from app.schemas import Listing
 from app.utils.deduplication import fuzzy_text_similarity
 from app.utils.errors import NotFoundError
 

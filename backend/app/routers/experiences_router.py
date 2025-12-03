@@ -2,7 +2,7 @@ from uuid import UUID
 
 from fastapi import APIRouter
 
-from app.schemas.experience import Experience
+from app.schemas import Experience
 from app.services import experience_service
 
 router = APIRouter(

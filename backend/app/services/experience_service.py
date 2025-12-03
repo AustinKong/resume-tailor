@@ -1,10 +1,8 @@
 from collections import defaultdict
 from uuid import UUID
 
-from app.repositories.database_repository import DatabaseRepository
-from app.repositories.vector_repository import VectorRepository
-from app.schemas.experience import Experience
-from app.schemas.listing import Listing
+from app.repositories import DatabaseRepository, VectorRepository
+from app.schemas import Experience, Listing
 from app.utils.errors import NotFoundError, ServiceError
 
 

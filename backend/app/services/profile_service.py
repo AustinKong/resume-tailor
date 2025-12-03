@@ -1,5 +1,5 @@
-from app.repositories.json_repository import JSONRepository
-from app.schemas.profile import Profile
+from app.repositories import JSONRepository
+from app.schemas import Profile
 
 
 class ProfileService(JSONRepository):

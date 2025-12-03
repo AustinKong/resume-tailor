@@ -1,7 +1,7 @@
 from uuid import UUID
 
-from app.repositories.database_repository import DatabaseRepository
-from app.schemas.resume import Resume, ResumeData
+from app.repositories import DatabaseRepository
+from app.schemas import Resume, ResumeData
 from app.utils.errors import NotFoundError
 
 

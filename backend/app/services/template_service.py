@@ -4,8 +4,7 @@ from pathlib import Path
 from jinja2 import Environment, FileSystemLoader, TemplateNotFound
 from weasyprint import HTML
 
-from app.schemas.profile import Profile
-from app.schemas.resume import Resume
+from app.schemas import Profile, Resume
 
 
 class TemplateService:
