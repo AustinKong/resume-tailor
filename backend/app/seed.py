@@ -1,19 +1,16 @@
-#!/usr/bin/env python3
-"""
-Script to create the necessary database tables for the resume-tailor backend.
-"""
-
 import os
 import sqlite3
 
-DB_PATH = os.getenv('DB_PATH', 'data/db.sqlite3')
+from app.config import settings
+
+settings.bootstrap()
+settings._config = settings.load()
 
 
 def create_tables():
-  """Create all necessary tables in the SQLite database."""
-  os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
+  os.makedirs(os.path.dirname(settings.paths.db_path), exist_ok=True)
 
-  with sqlite3.connect(DB_PATH) as db:
+  with sqlite3.connect(settings.paths.db_path) as db:
     db.execute("""
             CREATE TABLE IF NOT EXISTS experiences (
                 id TEXT PRIMARY KEY,
@@ -61,7 +58,7 @@ def create_tables():
 
     db.commit()
 
-  print(f'Database tables created successfully at {DB_PATH}')
+  print(f'Database tables created successfully at {settings.paths.db_path}')
 
 
 if __name__ == '__main__':

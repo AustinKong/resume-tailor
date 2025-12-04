@@ -3,6 +3,7 @@ import json
 from chromadb.api.types import Metadata
 from pydantic import HttpUrl
 
+from app.config import settings
 from app.repositories import DatabaseRepository, VectorRepository
 from app.schemas import Listing
 from app.utils.deduplication import fuzzy_text_similarity
@@ -12,9 +13,6 @@ from app.utils.errors import NotFoundError
 class ListingsService(DatabaseRepository, VectorRepository):
   def __init__(self, **kwargs):
     super().__init__(**kwargs)
-    self.semantic_similarity_threshold = 0.90
-    self.title_similarity_threshold = 0.85
-    self.company_similarity_threshold = 0.90
 
   def get(self, listing_id: str) -> Listing:
     row = self.fetch_one(
@@ -86,18 +84,12 @@ class ListingsService(DatabaseRepository, VectorRepository):
   def find_similar(
     self,
     new_listings: list[Listing],
-    semantic_threshold: float = 0.90,
-    heuristic_title_threshold: float = 0.85,
-    heuristic_company_threshold: float = 0.90,
   ) -> list[tuple[Listing, Listing]]:
     """
     Find similar listings using BOTH semantic and heuristic methods.
 
     Args:
       new_listings: New listings to check for similarities
-      semantic_threshold: Minimum cosine similarity for semantic (0-1, default 0.90)
-      heuristic_title_threshold: Minimum title similarity for heuristic (0-1, default 0.85)
-      heuristic_company_threshold: Minimum company similarity (0-1, default 0.90)
 
     Returns:
       List of (new_listing, similar_listing) tuples for listings with matches.
@@ -108,20 +100,14 @@ class ListingsService(DatabaseRepository, VectorRepository):
       best_match = None
       best_score = 0.0
 
-      semantic_matches = self._find_semantic_duplicates(
-        new_listing, similarity_threshold=semantic_threshold
-      )
+      semantic_matches = self._find_semantic_duplicates(new_listing)
       if semantic_matches:
         match, score = semantic_matches[0]
         if score > best_score:
           best_match = match
           best_score = score
 
-      heuristic_matches = self._find_heuristic_duplicates(
-        new_listing,
-        title_threshold=heuristic_title_threshold,
-        company_threshold=heuristic_company_threshold,
-      )
+      heuristic_matches = self._find_heuristic_duplicates(new_listing)
       if heuristic_matches:
         match, score = heuristic_matches[0]
         if score > best_score:
@@ -198,27 +184,28 @@ class ListingsService(DatabaseRepository, VectorRepository):
   def _find_semantic_duplicates(
     self,
     new_listing: Listing,
-    similarity_threshold: float = 0.90,
-    k: int = 5,
   ) -> list[tuple[Listing, float]]:
     """
     Find semantically similar listings using vector similarity.
+    Similarity threshold is obtained from settings at runtime.
 
     Args:
       new_listing: The listing to check
-      similarity_threshold: Minimum cosine similarity (0-1, default 0.90)
-      k: Number of similar results to retrieve
 
     Returns:
       List of (similar_listing, similarity_score) tuples above threshold
     """
     query_text = self._create_listing_embedding_text(new_listing)
-    search_results = self.search_documents(collection_name='listings', query=query_text, k=k)
+    search_results = self.search_documents(
+      collection_name='listings',
+      query=query_text,
+      k=settings.listings.search_k,
+    )
 
     matching_ids = []
     similarity_scores = {}
     for _doc_text, metadata, similarity in search_results:
-      if similarity >= similarity_threshold:
+      if similarity >= settings.listings.semantic_threshold:
         listing_id = metadata.get('listing_id')
         if listing_id:
           matching_ids.append(listing_id)
@@ -256,16 +243,13 @@ class ListingsService(DatabaseRepository, VectorRepository):
   def _find_heuristic_duplicates(
     self,
     new_listing: Listing,
-    title_threshold: float = 0.85,
-    company_threshold: float = 0.90,
   ) -> list[tuple[Listing, float]]:
     """
     Find duplicates using fuzzy string matching on company and title.
+    Thresholds are obtained from settings at runtime.
 
     Args:
       new_listing: The listing to check
-      title_threshold: Minimum title similarity (0-1, default 0.85)
-      company_threshold: Minimum company similarity (0-1, default 0.90)
 
     Returns:
       List of (similar_listing, similarity_score) tuples above threshold
@@ -277,7 +261,10 @@ class ListingsService(DatabaseRepository, VectorRepository):
       title_sim = fuzzy_text_similarity(new_listing.title, existing_listing.title)
       company_sim = fuzzy_text_similarity(new_listing.company, existing_listing.company)
 
-      if title_sim >= title_threshold and company_sim >= company_threshold:
+      if (
+        title_sim >= settings.listings.title_threshold
+        and company_sim >= settings.listings.company_threshold
+      ):
         combined_score = (title_sim + company_sim) / 2
         similar.append((existing_listing, combined_score))
 

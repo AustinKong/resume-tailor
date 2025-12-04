@@ -1,4 +1,3 @@
-import os
 from typing import Any, cast
 from uuid import uuid4
 
@@ -6,16 +5,13 @@ import chromadb
 from chromadb.api.types import Metadata
 from chromadb.utils.embedding_functions import OpenAIEmbeddingFunction
 
+from app.config import settings
 from app.utils.errors import ServiceError
 
 
 class VectorRepository:
   def __init__(self, **kwargs):
     super().__init__(**kwargs)
-
-    self.openai_api_key = os.getenv('OPENAI_API_KEY')
-    self.vector_path = os.getenv('VECTOR_PATH', 'data/vecs')
-    self.embedding_model = 'text-embedding-3-large'
 
     self._chroma_client = None
     self._embedding_function = None
@@ -25,7 +21,7 @@ class VectorRepository:
   def chroma_client(self):
     if self._chroma_client is None:
       try:
-        self._chroma_client = chromadb.PersistentClient(path=self.vector_path)
+        self._chroma_client = chromadb.PersistentClient(path=settings.paths.vector_path)
       except Exception as e:
         raise ServiceError(f'Failed to initialize ChromaDB client: {str(e)}') from e
     return self._chroma_client
@@ -35,8 +31,8 @@ class VectorRepository:
     if self._embedding_function is None:
       try:
         self._embedding_function = OpenAIEmbeddingFunction(
-          api_key=self.openai_api_key,
-          model_name=self.embedding_model,
+          api_key=settings.model.openai_api_key,
+          model_name=settings.model.embedding,
         )
       except Exception as e:
         raise ServiceError(f'Failed to initialize OpenAI embedding function: {str(e)}') from e

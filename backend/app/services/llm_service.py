@@ -3,20 +3,19 @@ from typing import TypeVar
 from openai import AsyncOpenAI
 from pydantic import BaseModel
 
+from app.config import settings
+
 T = TypeVar('T', bound=BaseModel)
 
 
 class LLMService:
   def __init__(self):
-    self.model = 'gpt-4o-mini'
-    self.temperature = 0.3
-
     self._client = None
 
   @property
   def client(self):
     if self._client is None:
-      self._client = AsyncOpenAI()
+      self._client = AsyncOpenAI(api_key=settings.model.openai_api_key)
     return self._client
 
   async def call_structured(
@@ -35,9 +34,9 @@ class LLMService:
       Parsed Pydantic model instance.
     """
     response = await self.client.responses.parse(
-      model=self.model,
+      model=settings.model.llm,
       input=input,
-      temperature=self.temperature,
+      temperature=settings.model.temperature,
       text_format=response_model,
     )
 
@@ -61,8 +60,8 @@ class LLMService:
       Text response from the model.
     """
     response = await self.client.responses.create(
-      model=self.model,
+      model=settings.model.llm,
       input=input,
-      temperature=self.temperature,
+      temperature=settings.model.temperature,
     )
     return response.output_text

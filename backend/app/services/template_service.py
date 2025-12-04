@@ -1,23 +1,32 @@
-import os
 from pathlib import Path
 
 from jinja2 import Environment, FileSystemLoader, TemplateNotFound
 from weasyprint import HTML
 
+from app.config import settings
 from app.schemas import Profile, Resume
 
 
 class TemplateService:
   def __init__(self):
-    self.templates_dir = Path(os.getenv('TEMPLATES_DIR', 'data/templates'))
-    self.templates_dir.mkdir(parents=True, exist_ok=True)
+    self._env = None
 
-    self.env = Environment(
-      loader=FileSystemLoader(str(self.templates_dir)),
-      autoescape=True,
-      trim_blocks=True,
-      lstrip_blocks=True,
-    )
+  @property
+  def templates_dir(self) -> Path:
+    path = Path(settings.paths.templates_dir)
+    path.mkdir(parents=True, exist_ok=True)
+    return path
+
+  @property
+  def env(self) -> Environment:
+    if self._env is None:
+      self._env = Environment(
+        loader=FileSystemLoader(str(self.templates_dir)),
+        autoescape=True,
+        trim_blocks=True,
+        lstrip_blocks=True,
+      )
+    return self._env
 
   def render(self, template_name: str, profile: Profile, resume: Resume) -> str:
     context = {
@@ -29,7 +38,7 @@ class TemplateService:
       template = self.env.get_template(template_name)
       return template.render(**context)
     except TemplateNotFound as e:
-      raise TemplateNotFound(f"Template '{template_name}' not found in {self.templates_dir}") from e
+      raise TemplateNotFound(f"Template '{template_name}' not found") from e
 
   def render_pdf(self, template_name: str, profile: 'Profile', resume: 'Resume') -> bytes:
     html = self.render(template_name, profile, resume)

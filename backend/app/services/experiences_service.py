@@ -1,6 +1,7 @@
 from collections import defaultdict
 from uuid import UUID
 
+from app.config import settings
 from app.repositories import DatabaseRepository, VectorRepository
 from app.schemas import Experience, Listing
 from app.utils.errors import NotFoundError, ServiceError
@@ -72,8 +73,6 @@ class ExperiencesService(DatabaseRepository, VectorRepository):
   def find_relevant(
     self,
     listing: Listing,
-    top_k_experiences: int = 3,
-    max_bullets_per_experience: int = 4,
   ) -> list[Experience]:
     if not listing.requirements:
       return []
@@ -109,7 +108,7 @@ class ExperiencesService(DatabaseRepository, VectorRepository):
       experience_scores[exp_id] = total_score
 
     sorted_experiences = sorted(experience_scores.items(), key=lambda x: x[1], reverse=True)[
-      :top_k_experiences
+      : settings.experiences.top_k
     ]
 
     result = []
@@ -122,7 +121,7 @@ class ExperiencesService(DatabaseRepository, VectorRepository):
       matched_bullet_data = experience_hits[exp_id]
       sorted_bullets = sorted(
         matched_bullet_data.items(), key=lambda x: x[1]['score'], reverse=True
-      )[:max_bullets_per_experience]
+      )[: settings.experiences.max_bullets]
       pruned_bullets = [experience.bullets[bullet_index] for bullet_index, _ in sorted_bullets]
       exp_dict = experience.model_dump()
       exp_dict.pop('bullets', None)

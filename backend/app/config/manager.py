@@ -7,9 +7,18 @@ from typing import Any
 
 import yaml
 from dotenv import load_dotenv
+from pydantic import BaseModel
 from pydantic.utils import deep_update
 
-from app.config.schemas import AppConfig, EnvSettings
+from app.config.schemas import (
+  AppConfig,
+  ExperiencesPrefs,
+  ListingsPrefs,
+  ModelPrefs,
+  PathsPrefs,
+  ResumePrefs,
+  ScrapingPrefs,
+)
 from app.utils.errors import ServiceError
 from app.utils.structure import assign_path, flatten_structure
 
@@ -25,7 +34,37 @@ class ConfigManager:
     self.env_example_path = Path('config/.env.example')
     self.env_path = Path('config/.env')
 
-    self.config: AppConfig | None = None
+    self._config: AppConfig | None = None
+
+  @property
+  def config(self) -> AppConfig:
+    if not self._config:
+      raise ServiceError('Configuration not loaded')
+    return self._config
+
+  @property
+  def paths(self) -> PathsPrefs:
+    return self.config.paths
+
+  @property
+  def model(self) -> ModelPrefs:
+    return self.config.model
+
+  @property
+  def resume(self) -> ResumePrefs:
+    return self.config.resume
+
+  @property
+  def listings(self) -> ListingsPrefs:
+    return self.config.listings
+
+  @property
+  def experiences(self) -> ExperiencesPrefs:
+    return self.config.experiences
+
+  @property
+  def scraping(self) -> ScrapingPrefs:
+    return self.config.scraping
 
   def bootstrap(self) -> None:
     try:
@@ -60,19 +99,16 @@ class ConfigManager:
       ]
       merged_config = functools.reduce(deep_update, config_sources)
 
-      # Inject secrets from .env
+      # Inject secrets from .env based on exposure metadata
       load_dotenv(self.env_path, override=True)
 
-      if 'env' not in merged_config:
-        merged_config['env'] = {}
-
-      required_secrets = EnvSettings.model_fields.keys()
-
-      for field_name in required_secrets:
+      secret_paths = self._get_secret_paths(AppConfig)
+      for section, field_name in secret_paths:
         env_val = os.getenv(field_name.upper())
-
         if env_val is not None:
-          merged_config['env'][field_name] = env_val
+          if section not in merged_config:
+            merged_config[section] = {}
+          merged_config[section][field_name] = env_val
 
       return AppConfig(**merged_config)
     except ServiceError:
@@ -80,10 +116,19 @@ class ConfigManager:
     except Exception as e:
       raise ServiceError(f'Failed to load configuration: {str(e)}') from e
 
-  def model_dump(self) -> dict[str, Any]:
-    if not self.config:
-      raise ServiceError('Configuration not loaded')
+  def _get_secret_paths(self, model: type[BaseModel]) -> list[tuple[str, str]]:
+    """Get all secret field paths as (section, field_name) tuples."""
+    secrets = []
+    for section_name, section_field in model.model_fields.items():
+      annotation = section_field.annotation
+      if annotation is not None and hasattr(annotation, 'model_fields'):
+        for field_name, field in annotation.model_fields.items():
+          extra = field.json_schema_extra or {}
+          if extra.get('exposure') == 'secret':
+            secrets.append((section_name, field_name))
+    return secrets
 
+  def model_dump(self) -> dict[str, Any]:
     return self.config.model_dump(mode='json')
 
   def save(self, new_partial_config: dict) -> None:
@@ -104,6 +149,8 @@ class ConfigManager:
             if exp_type == 'secret':
               env_var_name = k.upper()
               secret_updates[env_var_name] = str(v)
+              # Also track the path for validation
+              assign_path(yaml_updates, current_path, v)
             else:
               assign_path(yaml_updates, current_path, v)
 
@@ -114,16 +161,28 @@ class ConfigManager:
 
       for path, value in flatten_structure(yaml_updates).items():
         assign_path(config_obj, path, value)
-      for k, v in secret_updates.items():
-        setattr(config_obj.env, k.lower(), v)
 
       AppConfig.model_validate(config_obj.model_dump())
 
-      if yaml_updates:
-        self._write_yaml(self.user_overrides_path, yaml_updates)
+      # Write non-secret values to YAML (excluding secrets)
+      yaml_only_updates = {}
+      for k, v in new_partial_config.items():
+        if isinstance(v, dict):
+          yaml_only_updates[k] = {
+            field: val
+            for field, val in v.items()
+            if exposure_map.get((k, field), 'normal') != 'secret'
+          }
+          if not yaml_only_updates[k]:
+            del yaml_only_updates[k]
+        elif exposure_map.get((k,), 'normal') != 'secret':
+          yaml_only_updates[k] = v
+
+      if yaml_only_updates:
+        self._write_yaml(self.user_overrides_path, yaml_only_updates)
       if secret_updates:
         self._write_env(secret_updates, self.env_path)
-      self.config = self.load()
+      self._config = self.load()
     except ServiceError:
       raise
     except Exception as e:
@@ -194,4 +253,4 @@ class ConfigManager:
     return mapping
 
 
-config_manager = ConfigManager()
+settings = ConfigManager()

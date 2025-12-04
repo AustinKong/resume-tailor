@@ -1,11 +1,10 @@
 import traceback
-from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from app.config.manager import config_manager
+from app.config import settings
 from app.routers import (
   config_router,
   experiences_router,
@@ -19,16 +18,11 @@ from app.utils.errors import (
   ServiceError,
 )
 
-
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-  config_manager.bootstrap()
-  config_manager.config = config_manager.load()
-
-  yield
+settings.bootstrap()
+settings._config = settings.load()
 
 
-app = FastAPI(lifespan=lifespan)
+app = FastAPI()
 app.add_middleware(
   CORSMiddleware,
   allow_origins=['http://localhost:5173'],

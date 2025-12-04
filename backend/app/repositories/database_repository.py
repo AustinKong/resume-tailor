@@ -1,7 +1,7 @@
-import os
 import sqlite3
 from contextlib import contextmanager
 
+from app.config import settings
 from app.utils.errors import ServiceError
 
 
@@ -9,11 +9,9 @@ class DatabaseRepository:
   def __init__(self, **kwargs):
     super().__init__(**kwargs)
 
-    self.db_path = os.getenv('DB_PATH', 'data/db.sqlite3')
-
   @contextmanager
   def _db_connection(self):
-    conn = sqlite3.connect(self.db_path)
+    conn = sqlite3.connect(settings.paths.db_path)
     conn.row_factory = sqlite3.Row
     try:
       yield conn

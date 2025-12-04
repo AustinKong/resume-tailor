@@ -4,18 +4,18 @@ from bs4 import BeautifulSoup
 from playwright.async_api import async_playwright
 from pydantic import HttpUrl
 
+from app.config import settings
 from app.utils.errors import ServiceError
 
 
 class ScrapingService:
   def __init__(self):
-    self.aggressive = True
-    self.headless = True
+    pass
 
   async def _scrape_page(self, url: HttpUrl) -> str:
     try:
       async with async_playwright() as p:
-        browser = await p.chromium.launch(headless=self.headless)
+        browser = await p.chromium.launch(headless=settings.scraping.headless)
         page = await browser.new_page()
 
         await page.goto(str(url), wait_until='load')
@@ -38,7 +38,7 @@ class ScrapingService:
 
     text = ' '.join(soup.stripped_strings)
     text = re.sub(r'\s+', ' ', text)
-    return text[:10000]
+    return text[: settings.scraping.max_length]
 
   def _clean_html_aggressive(self, html: str) -> str:
     """
@@ -104,12 +104,12 @@ class ScrapingService:
         seen.add(normalized)
         filtered_sentences.append(sentence.strip())
 
-    return ' '.join(filtered_sentences)[:10000]
+    return ' '.join(filtered_sentences)[: settings.scraping.max_length]
 
   async def fetch_and_clean(self, url: HttpUrl) -> str:
     raw_html = await self._scrape_page(url)
 
-    if self.aggressive:
+    if settings.scraping.aggressive:
       cleaned_text = self._clean_html_aggressive(raw_html)
     else:
       cleaned_text = self._clean_html(raw_html)

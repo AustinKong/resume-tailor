@@ -4,6 +4,7 @@ from typing import TypeVar
 
 from pydantic import BaseModel
 
+from app.config import settings
 from app.utils.errors import NotFoundError, ServiceError
 
 T = TypeVar('T', bound=BaseModel)
@@ -12,7 +13,6 @@ T = TypeVar('T', bound=BaseModel)
 class JSONRepository:
   def __init__(self, **kwargs):
     super().__init__(**kwargs)
-    self.data_dir = os.getenv('DATA_DIR', 'data')
 
   def read_json(self, filename: str, model: type[T]) -> T:
     """
@@ -30,7 +30,7 @@ class JSONRepository:
       ServiceError: If file reading or parsing fails.
     """
     try:
-      filepath = os.path.join(self.data_dir, filename)
+      filepath = os.path.join(settings.paths.data_dir, filename)
       with open(filepath) as f:
         data = json.load(f)
         return model(**data)
@@ -53,7 +53,7 @@ class JSONRepository:
       ServiceError: If file writing fails.
     """
     try:
-      filepath = os.path.join(self.data_dir, filename)
+      filepath = os.path.join(settings.paths.data_dir, filename)
       os.makedirs(os.path.dirname(filepath), exist_ok=True)
       with open(filepath, 'w') as f:
         json.dump(data.model_dump(), f, indent=2)

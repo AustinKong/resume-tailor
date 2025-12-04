@@ -17,6 +17,29 @@ def ConfigField(
   )
 
 
+class PathsPrefs(BaseModel):
+  db_path: str = ConfigField(
+    default='data/db.sqlite3',
+    description='Path to SQLite database file',
+    exposure='advanced',
+  )
+  vector_path: str = ConfigField(
+    default='data/vecs',
+    description='Path to vector database directory',
+    exposure='advanced',
+  )
+  data_dir: str = ConfigField(
+    default='data',
+    description='Path to data directory for JSON files',
+    exposure='advanced',
+  )
+  templates_dir: str = ConfigField(
+    default='data/templates',
+    description='Path to resume templates directory',
+    exposure='advanced',
+  )
+
+
 class ModelPrefs(BaseModel):
   llm: str = ConfigField(
     default='gpt-4o-mini',
@@ -34,6 +57,11 @@ class ModelPrefs(BaseModel):
     le=2.0,
     description='LLM temperature for generation',
     exposure='advanced',
+  )
+  openai_api_key: str = ConfigField(
+    default='',
+    description='OpenAI API key',
+    exposure='secret',
   )
 
 
@@ -71,7 +99,7 @@ class ListingsPrefs(BaseModel):
     default=5,
     gt=0,
     description='Number of results to return in semantic search',
-    exposure='normal',
+    exposure='advanced',
   )
 
 
@@ -109,14 +137,11 @@ class ScrapingPrefs(BaseModel):
   )
 
 
-class EnvSettings(BaseModel):
-  openai_api_key: str = ConfigField(
-    description='OpenAI API key',
-    exposure='secret',
-  )
-
-
 class AppConfig(BaseModel):
+  paths: PathsPrefs = Field(
+    default_factory=PathsPrefs,
+    description='File system paths configuration',
+  )
   model: ModelPrefs = Field(
     default_factory=ModelPrefs,
     description='LLM and embedding model settings',
@@ -136,8 +161,4 @@ class AppConfig(BaseModel):
   scraping: ScrapingPrefs = Field(
     default_factory=ScrapingPrefs,
     description='Web scraping configuration',
-  )
-  env: EnvSettings = Field(
-    default_factory=EnvSettings,
-    description='Environment settings and secrets',
   )

@@ -4,6 +4,7 @@ from uuid import UUID, uuid4
 from fastapi import APIRouter
 from fastapi.responses import Response
 
+from app.config import settings
 from app.prompts import OPTIMIZATION_PROMPT
 from app.schemas import (
   DetailedItem,
@@ -52,7 +53,7 @@ async def create_resume(listing_id: UUID):
   resume = Resume(
     id=uuid4(),
     listing_id=listing_id,
-    template='template-1.html',
+    template=settings.resume.default_template,
     data=empty_data,
   )
   resume_service.create(resume)
