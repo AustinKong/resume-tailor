@@ -1,0 +1,11 @@
+# Resume Tailor - User Configuration
+# Add your custom configuration values here.
+# These will override values from config.default.yaml.
+# Example:
+#
+# model:
+#   llm: "gpt-4-turbo"
+#   temperature: 0.5
+#
+# listings:
+#   semantic_threshold: 0.85

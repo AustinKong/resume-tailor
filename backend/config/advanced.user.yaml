@@ -1,0 +1,10 @@
+# Resume Tailor - Advanced User Configuration
+# For advanced/power users only.
+# These settings have the highest priority and will override all other configs.
+# Example:
+#
+# model:
+#   max_tokens: 2048
+#
+# scraping:
+#   headless: false

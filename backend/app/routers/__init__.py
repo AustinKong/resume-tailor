@@ -1,3 +1,4 @@
+from app.routers.config_router import router as config_router
 from app.routers.experiences_router import router as experiences_router
 from app.routers.listings_router import router as listings_router
 from app.routers.profile_router import router as profile_router
@@ -8,4 +9,5 @@ __all__ = [
   'listings_router',
   'profile_router',
   'resumes_router',
+  'config_router',
 ]

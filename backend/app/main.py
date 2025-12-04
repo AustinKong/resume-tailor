@@ -1,25 +1,34 @@
 import traceback
+from contextlib import asynccontextmanager
 
-from dotenv import load_dotenv
 from fastapi import FastAPI, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-load_dotenv()
-
-from app.routers import (  # noqa: E402
+from app.config.manager import config_manager
+from app.routers import (
+  config_router,
   experiences_router,
   listings_router,
   profile_router,
   resumes_router,
 )
-from app.utils.errors import (  # noqa: E402
+from app.utils.errors import (
   ApplicationError,
   NotFoundError,
   ServiceError,
 )
 
-app = FastAPI()
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+  config_manager.bootstrap()
+  config_manager.config = config_manager.load()
+
+  yield
+
+
+app = FastAPI(lifespan=lifespan)
 app.add_middleware(
   CORSMiddleware,
   allow_origins=['http://localhost:5173'],
@@ -31,6 +40,7 @@ app.include_router(profile_router)
 app.include_router(experiences_router)
 app.include_router(listings_router)
 app.include_router(resumes_router)
+app.include_router(config_router)
 
 
 @app.exception_handler(NotFoundError)
