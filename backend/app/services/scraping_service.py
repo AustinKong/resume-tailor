@@ -9,13 +9,13 @@ from app.utils.errors import ServiceError
 
 class ScrapingService:
   def __init__(self):
-    self.scraping_aggressive_clean = True
-    self.scraping_headless = True
+    self.aggressive = True
+    self.headless = True
 
   async def _scrape_page(self, url: HttpUrl) -> str:
     try:
       async with async_playwright() as p:
-        browser = await p.chromium.launch(headless=self.scraping_headless)
+        browser = await p.chromium.launch(headless=self.headless)
         page = await browser.new_page()
 
         await page.goto(str(url), wait_until='load')
@@ -109,7 +109,7 @@ class ScrapingService:
   async def fetch_and_clean(self, url: HttpUrl) -> str:
     raw_html = await self._scrape_page(url)
 
-    if self.scraping_aggressive_clean:
+    if self.aggressive:
       cleaned_text = self._clean_html_aggressive(raw_html)
     else:
       cleaned_text = self._clean_html(raw_html)

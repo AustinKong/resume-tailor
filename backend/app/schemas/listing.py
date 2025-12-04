@@ -4,7 +4,7 @@ from uuid import UUID, uuid4
 
 from pydantic import BeforeValidator, Field, HttpUrl
 
-from app.schemas.types import CamelModel, parse_json_list
+from app.schemas.types import CamelModel, parse_json_list_as
 
 
 class LLMResponseListing(CamelModel):
@@ -16,7 +16,7 @@ class LLMResponseListing(CamelModel):
 
   skills: Annotated[
     list[str],
-    BeforeValidator(parse_json_list),
+    BeforeValidator(parse_json_list_as(str)),
     Field(
       default_factory=list,
       description=(
@@ -28,7 +28,7 @@ class LLMResponseListing(CamelModel):
 
   requirements: Annotated[
     list[str],
-    BeforeValidator(parse_json_list),
+    BeforeValidator(parse_json_list_as(str)),
     Field(
       default_factory=list,
       description=(
@@ -42,10 +42,14 @@ class LLMResponseListing(CamelModel):
 class Listing(LLMResponseListing):
   id: UUID = Field(default_factory=uuid4)
   url: HttpUrl
-  resume_ids: list[UUID] = Field(
-    default_factory=list,
-    description='List of resume IDs associated with this listing (populated via JOIN)',
-  )
+  resume_ids: Annotated[
+    list[UUID],
+    BeforeValidator(parse_json_list_as(UUID)),
+    Field(
+      default_factory=list,
+      description='List of resume IDs associated with this listing (populated via JOIN)',
+    ),
+  ]
 
 
 class DuplicateListing(CamelModel):

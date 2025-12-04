@@ -10,7 +10,6 @@ from app.schemas import Profile, Resume
 class TemplateService:
   def __init__(self):
     self.templates_dir = Path(os.getenv('TEMPLATES_DIR', 'data/templates'))
-
     self.templates_dir.mkdir(parents=True, exist_ok=True)
 
     self.env = Environment(

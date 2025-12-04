@@ -1,5 +1,4 @@
 import json
-from uuid import UUID
 
 from chromadb.api.types import Metadata
 from pydantic import HttpUrl
@@ -8,19 +7,6 @@ from app.repositories import DatabaseRepository, VectorRepository
 from app.schemas import Listing
 from app.utils.deduplication import fuzzy_text_similarity
 from app.utils.errors import NotFoundError
-
-
-def _parse_resume_ids(resume_ids_str: str) -> list[UUID]:
-  """Convert comma-separated resume ID string to list of UUIDs."""
-  if not resume_ids_str:
-    return []
-  result = []
-  for id_str in resume_ids_str.split(','):
-    try:
-      result.append(UUID(id_str.strip()))
-    except ValueError:
-      continue
-  return result
 
 
 class ListingsService(DatabaseRepository, VectorRepository):
@@ -37,8 +23,8 @@ class ListingsService(DatabaseRepository, VectorRepository):
         l.id, l.url, l.title, l.company, l.location, l.description, l.posted_date,
         l.skills, l.requirements,
         COALESCE(
-          GROUP_CONCAT(r.id),
-          ''
+          json_group_array(r.id),
+          json_array()
         ) as resume_ids
       FROM listings l
       LEFT JOIN resumes r ON l.id = r.listing_id
@@ -51,7 +37,7 @@ class ListingsService(DatabaseRepository, VectorRepository):
     if not row:
       raise NotFoundError(f'Listing {listing_id} not found')
 
-    return Listing(**{**dict(row), 'resume_ids': _parse_resume_ids(row['resume_ids'])})
+    return Listing(**dict(row))
 
   def get_by_urls(self, urls: list[HttpUrl]) -> list[Listing]:
     if not urls:
@@ -65,8 +51,8 @@ class ListingsService(DatabaseRepository, VectorRepository):
         l.id, l.url, l.title, l.company, l.location, l.description, l.posted_date,
         l.skills, l.requirements,
         COALESCE(
-          GROUP_CONCAT(r.id),
-          ''
+          json_group_array(r.id),
+          json_array()
         ) as resume_ids
       FROM listings l
       LEFT JOIN resumes r ON l.id = r.listing_id
@@ -76,9 +62,7 @@ class ListingsService(DatabaseRepository, VectorRepository):
       tuple(url_strings),
     )
 
-    return [
-      Listing(**{**dict(row), 'resume_ids': _parse_resume_ids(row['resume_ids'])}) for row in rows
-    ]
+    return [Listing(**dict(row)) for row in rows]
 
   def list_all(self) -> list[Listing]:
     rows = self.fetch_all(
@@ -87,8 +71,8 @@ class ListingsService(DatabaseRepository, VectorRepository):
         l.id, l.url, l.title, l.company, l.location, l.description, l.posted_date,
         l.skills, l.requirements,
         COALESCE(
-          GROUP_CONCAT(r.id),
-          ''
+          json_group_array(r.id),
+          json_array()
         ) as resume_ids
       FROM listings l
       LEFT JOIN resumes r ON l.id = r.listing_id
@@ -97,9 +81,7 @@ class ListingsService(DatabaseRepository, VectorRepository):
       """
     )
 
-    return [
-      Listing(**{**dict(row), 'resume_ids': _parse_resume_ids(row['resume_ids'])}) for row in rows
-    ]
+    return [Listing(**dict(row)) for row in rows]
 
   def find_similar(
     self,
@@ -252,8 +234,8 @@ class ListingsService(DatabaseRepository, VectorRepository):
         l.id, l.url, l.title, l.company, l.location, l.description, l.posted_date,
         l.skills, l.requirements,
         COALESCE(
-          GROUP_CONCAT(r.id),
-          ''
+          json_group_array(r.id),
+          json_array()
         ) as resume_ids
       FROM listings l
       LEFT JOIN resumes r ON l.id = r.listing_id
@@ -265,7 +247,7 @@ class ListingsService(DatabaseRepository, VectorRepository):
 
     similar = []
     for row in rows:
-      listing = Listing(**{**dict(row), 'resume_ids': _parse_resume_ids(row['resume_ids'])})
+      listing = Listing(**dict(row))
       score = similarity_scores.get(str(listing.id), 0.0)
       similar.append((listing, score))
 

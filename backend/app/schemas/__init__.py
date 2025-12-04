@@ -20,13 +20,12 @@ from app.schemas.resume import (
   SectionContent,
   SimpleSectionContent,
 )
-from app.schemas.types import CamelModel, YearMonth, parse_json_list
+from app.schemas.types import CamelModel, YearMonth
 
 __all__ = [
   # Base types
   'CamelModel',
   'YearMonth',
-  'parse_json_list',
   # Experience
   'Experience',
   'ExperienceType',
