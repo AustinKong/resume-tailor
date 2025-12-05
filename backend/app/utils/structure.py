@@ -1,3 +1,29 @@
+def deep_merge(base: dict, updates: dict) -> dict:
+  """
+  Recursively merge updates into base dict, returning a new dict.
+
+  Args:
+    base: The base dictionary to merge into.
+    updates: The dictionary with updates to apply.
+
+  Returns:
+    A new dictionary with updates merged into base.
+
+  Example:
+    >>> base = {'a': {'b': 1, 'c': 2}}
+    >>> updates = {'a': {'c': 3, 'd': 4}}
+    >>> deep_merge(base, updates)
+    {'a': {'b': 1, 'c': 3, 'd': 4}}
+  """
+  result = base.copy()
+  for key, value in updates.items():
+    if isinstance(value, dict) and isinstance(result.get(key), dict):
+      result[key] = deep_merge(result[key], value)
+    else:
+      result[key] = value
+  return result
+
+
 def assign_path(obj, path, value):
   """
   Assign value to a nested path in a dict or Pydantic model.

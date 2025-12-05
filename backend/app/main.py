@@ -4,7 +4,6 @@ from fastapi import FastAPI, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from app.config import settings
 from app.routers import (
   config_router,
   experiences_router,
@@ -17,10 +16,6 @@ from app.utils.errors import (
   NotFoundError,
   ServiceError,
 )
-
-settings.bootstrap()
-settings._config = settings.load()
-
 
 app = FastAPI()
 app.add_middleware(

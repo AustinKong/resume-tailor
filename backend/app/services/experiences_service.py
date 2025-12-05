@@ -11,17 +11,17 @@ class ExperiencesService(DatabaseRepository, VectorRepository):
   def __init__(self):
     super().__init__()
 
-  def get(self, id: UUID) -> Experience:
+  def get(self, experience_id: UUID) -> Experience:
     row = self.fetch_one(
       """
       SELECT id, title, organization, type, location, start_date, end_date
       FROM experiences
       WHERE id = ?
       """,
-      (str(id),),
+      (str(experience_id),),
     )
     if not row:
-      raise NotFoundError(f'Experience with id {id} not found')
+      raise NotFoundError(f'Experience with id {experience_id} not found')
 
     bullet_rows = self.fetch_all(
       """
@@ -30,7 +30,7 @@ class ExperiencesService(DatabaseRepository, VectorRepository):
       WHERE experience_id = ?
       ORDER BY id ASC
       """,
-      (str(id),),
+      (str(experience_id),),
     )
     bullets = [r['text'] for r in bullet_rows]
 
@@ -77,6 +77,7 @@ class ExperiencesService(DatabaseRepository, VectorRepository):
     if not listing.requirements:
       return []
 
+    # Query vectors by requirement
     requirement_queries = []
     for requirement in listing.requirements:
       query_text = f'Role: {listing.title}\nAchievement: {requirement}'
@@ -87,6 +88,7 @@ class ExperiencesService(DatabaseRepository, VectorRepository):
       results = self.search_documents('experience_bullets', query_text, k=5)
       all_search_results.extend(results)
 
+    # Calculate aggregated scores per bullet
     experience_hits = defaultdict(lambda: defaultdict(lambda: {'score': 0.0, 'text': ''}))
 
     for _doc_text, metadata, similarity_score in all_search_results:
@@ -102,6 +104,7 @@ class ExperiencesService(DatabaseRepository, VectorRepository):
     if not experience_hits:
       return []
 
+    # Aggregate scores per experience
     experience_scores = {}
     for exp_id, bullets in experience_hits.items():
       total_score = sum(float(bullet_data['score']) for bullet_data in bullets.values())
@@ -112,21 +115,22 @@ class ExperiencesService(DatabaseRepository, VectorRepository):
     ]
 
     result = []
-    added_ids = set()
+    seen = set()
     for exp_id, _total_score in sorted_experiences:
-      if exp_id in added_ids:
+      if exp_id in seen:
         continue
-      added_ids.add(exp_id)
+      seen.add(exp_id)
+
       experience = self.get(UUID(exp_id))
       matched_bullet_data = experience_hits[exp_id]
       sorted_bullets = sorted(
         matched_bullet_data.items(), key=lambda x: x[1]['score'], reverse=True
       )[: settings.experiences.max_bullets]
+      # The actual bullet texts
       pruned_bullets = [experience.bullets[bullet_index] for bullet_index, _ in sorted_bullets]
-      exp_dict = experience.model_dump()
-      exp_dict.pop('bullets', None)
-      pruned_experience = Experience(**exp_dict, bullets=pruned_bullets)
-      result.append(pruned_experience)
+
+      experience.bullets = pruned_bullets
+      result.append(experience)
 
     return result
 

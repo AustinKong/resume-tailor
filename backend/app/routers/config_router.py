@@ -16,7 +16,7 @@ class SettingsResponse(BaseModel):
 
 @router.get('', response_model=SettingsResponse)
 def get_settings():
-  values = settings.model_dump()
+  values = settings.config.model_dump(mode='json')
   schema = AppConfig.model_json_schema()
 
   return {'values': values, 'json_schema': schema}

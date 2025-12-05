@@ -151,15 +151,7 @@ class ListingsService(DatabaseRepository, VectorRepository):
     )
 
     documents = [self._create_listing_embedding_text(listing) for listing in listings]
-    metadatas: list[Metadata] = [
-      {
-        'listing_id': str(listing.id),
-        'url': str(listing.url),
-        'title': listing.title,
-        'company': listing.company,
-      }
-      for listing in listings
-    ]
+    metadatas: list[Metadata] = [{'listing_id': str(listing.id)} for listing in listings]
 
     self.add_documents(collection_name='listings', documents=documents, metadatas=metadatas)
 
@@ -187,7 +179,6 @@ class ListingsService(DatabaseRepository, VectorRepository):
   ) -> list[tuple[Listing, float]]:
     """
     Find semantically similar listings using vector similarity.
-    Similarity threshold is obtained from settings at runtime.
 
     Args:
       new_listing: The listing to check
@@ -246,7 +237,6 @@ class ListingsService(DatabaseRepository, VectorRepository):
   ) -> list[tuple[Listing, float]]:
     """
     Find duplicates using fuzzy string matching on company and title.
-    Thresholds are obtained from settings at runtime.
 
     Args:
       new_listing: The listing to check

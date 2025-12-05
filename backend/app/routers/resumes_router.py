@@ -47,7 +47,6 @@ async def get_html(resume_id: UUID):
 
 @router.post('/')
 async def create_resume(listing_id: UUID):
-  # TODO: Add an empty constructor to ResumeData
   empty_data = ResumeData(sections=[])
 
   resume = Resume(
