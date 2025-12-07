@@ -13,6 +13,7 @@ import {
 } from '@chakra-ui/react';
 import { useRef, useState } from 'react';
 
+import CompanyLogo from '@/components/custom/CompanyLogo';
 import type { Listing } from '@/types/listing';
 import type { ISODate } from '@/utils/date';
 
@@ -33,10 +34,11 @@ const STATUS_CONFIG: Record<ApplicationStatus, { label: string; colorPalette: st
 const DUMMY_LISTINGS: ListingWithStatus[] = [
   {
     id: '1',
-    url: 'https://example.com/jobs/1',
+    url: 'https://careers.google.com/jobs/1',
     title: 'Senior Frontend Engineer',
-    company: 'TechCorp Inc.',
-    location: 'San Francisco, CA',
+    company: 'Google LLC',
+    domain: 'google.com',
+    location: 'Mountain View, CA',
     description:
       'We are looking for a Senior Frontend Engineer to join our team and help build the next generation of our product. You will work closely with designers and backend engineers to deliver exceptional user experiences.',
     postedDate: '2024-12-01' as ISODate,
@@ -52,12 +54,13 @@ const DUMMY_LISTINGS: ListingWithStatus[] = [
   },
   {
     id: '2',
-    url: 'https://example.com/jobs/2',
+    url: 'https://jobs.netflix.com/jobs/2',
     title: 'Full Stack Developer',
-    company: 'StartupXYZ',
+    company: 'Netflix Inc.',
+    domain: 'netflix.com',
     location: 'Remote',
     description:
-      'Join our fast-growing startup as a Full Stack Developer. You will be responsible for building features end-to-end and contributing to our product roadmap.',
+      'Join our fast-growing team as a Full Stack Developer. You will be responsible for building features end-to-end and contributing to our product roadmap.',
     postedDate: '2024-11-28' as ISODate,
     skills: ['Python', 'Django', 'React', 'PostgreSQL', 'AWS'],
     requirements: [
@@ -70,10 +73,11 @@ const DUMMY_LISTINGS: ListingWithStatus[] = [
   },
   {
     id: '3',
-    url: 'https://example.com/jobs/3',
+    url: 'https://jobs.microsoft.com/jobs/3',
     title: 'Backend Engineer',
-    company: 'DataFlow Systems',
-    location: 'New York, NY',
+    company: 'Microsoft Corporation',
+    domain: 'microsoft.com',
+    location: 'Redmond, WA',
     description:
       'We need a Backend Engineer to help scale our data processing infrastructure. You will design and implement high-performance APIs and services.',
     postedDate: '2024-11-25' as ISODate,
@@ -89,9 +93,10 @@ const DUMMY_LISTINGS: ListingWithStatus[] = [
   },
   {
     id: '4',
-    url: 'https://example.com/jobs/4',
+    url: 'https://jobs.amazon.com/jobs/4',
     title: 'DevOps Engineer',
-    company: 'CloudNative Co.',
+    company: 'Amazon Web Services',
+    domain: 'aws.amazon.com',
     location: 'Seattle, WA',
     description:
       'Looking for a DevOps Engineer to improve our CI/CD pipelines and infrastructure automation. You will work on making our deployments faster and more reliable.',
@@ -107,10 +112,11 @@ const DUMMY_LISTINGS: ListingWithStatus[] = [
   },
   {
     id: '5',
-    url: 'https://example.com/jobs/5',
+    url: 'https://careers.nvidia.com/jobs/5',
     title: 'Machine Learning Engineer',
-    company: 'AI Solutions Ltd.',
-    location: 'Boston, MA',
+    company: 'NVIDIA Corporation',
+    domain: 'nvidia.com',
+    location: 'Santa Clara, CA',
     description:
       'Join our ML team to develop and deploy machine learning models at scale. You will work on cutting-edge NLP and computer vision projects.',
     postedDate: '2024-11-15' as ISODate,
@@ -126,10 +132,11 @@ const DUMMY_LISTINGS: ListingWithStatus[] = [
   },
   {
     id: '6',
-    url: 'https://example.com/jobs/6',
+    url: 'https://careers.salesforce.com/jobs/6',
     title: 'Product Manager',
-    company: 'InnovateTech Corp',
-    location: 'San Jose, CA',
+    company: 'Salesforce Inc.',
+    domain: 'salesforce.com',
+    location: 'San Francisco, CA',
     description:
       'Lead product strategy and development for our flagship platform. You will work with engineering, design, and marketing to deliver world-class products.',
     postedDate: '2024-11-10' as ISODate,
@@ -145,9 +152,10 @@ const DUMMY_LISTINGS: ListingWithStatus[] = [
   },
   {
     id: '7',
-    url: 'https://example.com/jobs/7',
+    url: 'https://jobs.ibm.com/jobs/7',
     title: 'QA Engineer',
-    company: 'QualityFirst Inc.',
+    company: 'IBM Corporation',
+    domain: 'ibm.com',
     location: 'Austin, TX',
     description:
       'Ensure product quality through comprehensive testing and automation. You will design and implement test strategies for our core products.',
@@ -163,10 +171,11 @@ const DUMMY_LISTINGS: ListingWithStatus[] = [
   },
   {
     id: '8',
-    url: 'https://example.com/jobs/8',
+    url: 'https://careers.adobe.com/jobs/8',
     title: 'UX/UI Designer',
-    company: 'DesignHub Studios',
-    location: 'New York, NY',
+    company: 'Adobe Inc.',
+    domain: 'adobe.com',
+    location: 'San Jose, CA',
     description:
       'Create beautiful and intuitive user experiences for mobile and web applications. You will collaborate with product and engineering teams.',
     postedDate: '2024-11-05' as ISODate,
@@ -181,10 +190,11 @@ const DUMMY_LISTINGS: ListingWithStatus[] = [
   },
   {
     id: '9',
-    url: 'https://example.com/jobs/9',
+    url: 'https://careers.oracle.com/jobs/9',
     title: 'Database Administrator',
-    company: 'DataSecure Ltd.',
-    location: 'Chicago, IL',
+    company: 'Oracle Corporation',
+    domain: 'oracle.com',
+    location: 'Redwood City, CA',
     description:
       'Manage and optimize our database infrastructure. You will ensure data security, performance, and availability for enterprise clients.',
     postedDate: '2024-11-02' as ISODate,
@@ -199,10 +209,11 @@ const DUMMY_LISTINGS: ListingWithStatus[] = [
   },
   {
     id: '10',
-    url: 'https://example.com/jobs/10',
+    url: 'https://careers.paloaltonetworks.com/jobs/10',
     title: 'Security Engineer',
-    company: 'CyberShield Inc.',
-    location: 'San Francisco, CA',
+    company: 'Palo Alto Networks',
+    domain: 'paloaltonetworks.com',
+    location: 'Santa Clara, CA',
     description:
       'Protect our systems and data from cyber threats. You will implement security best practices and conduct vulnerability assessments.',
     postedDate: '2024-10-30' as ISODate,
@@ -217,9 +228,10 @@ const DUMMY_LISTINGS: ListingWithStatus[] = [
   },
   {
     id: '11',
-    url: 'https://example.com/jobs/11',
+    url: 'https://careers.linkedin.com/jobs/11',
     title: 'Data Scientist',
-    company: 'AnalyticsHub Co.',
+    company: 'LinkedIn Corporation',
+    domain: 'linkedin.com',
     location: 'Remote',
     description:
       'Build predictive models and data pipelines for business intelligence. You will work with large datasets and modern ML tools.',
@@ -235,9 +247,10 @@ const DUMMY_LISTINGS: ListingWithStatus[] = [
   },
   {
     id: '12',
-    url: 'https://example.com/jobs/12',
+    url: 'https://careers.deloitte.com/jobs/12',
     title: 'Solutions Architect',
-    company: 'EnterpriseFlow Inc.',
+    company: 'Deloitte LLP',
+    domain: 'deloitte.com',
     location: 'Boston, MA',
     description:
       'Design and implement enterprise solutions for our clients. You will work closely with sales and technical teams.',
@@ -253,10 +266,11 @@ const DUMMY_LISTINGS: ListingWithStatus[] = [
   },
   {
     id: '13',
-    url: 'https://example.com/jobs/13',
+    url: 'https://careers.apple.com/jobs/13',
     title: 'Mobile Developer (iOS)',
-    company: 'MobileFirst App Labs',
-    location: 'Palo Alto, CA',
+    company: 'Apple Inc.',
+    domain: 'apple.com',
+    location: 'Cupertino, CA',
     description:
       'Develop native iOS applications. You will work in a fast-paced environment with modern development tools and practices.',
     postedDate: '2024-10-22' as ISODate,
@@ -271,9 +285,10 @@ const DUMMY_LISTINGS: ListingWithStatus[] = [
   },
   {
     id: '14',
-    url: 'https://example.com/jobs/14',
+    url: 'https://careers.twilio.com/jobs/14',
     title: 'Technical Writer',
-    company: 'DocuLead Solutions',
+    company: 'Twilio Inc.',
+    domain: 'twilio.com',
     location: 'Portland, OR',
     description:
       'Create technical documentation and API guides. You will translate complex technical concepts into clear, user-friendly content.',
@@ -289,10 +304,11 @@ const DUMMY_LISTINGS: ListingWithStatus[] = [
   },
   {
     id: '15',
-    url: 'https://example.com/jobs/15',
+    url: 'https://careers.spotify.com/jobs/15',
     title: 'Site Reliability Engineer',
-    company: 'RobustOps Corp',
-    location: 'Mountain View, CA',
+    company: 'Spotify AB',
+    domain: 'spotify.com',
+    location: 'New York, NY',
     description:
       'Ensure reliability and performance of our production systems. You will automate operational tasks and improve system resilience.',
     postedDate: '2024-10-18' as ISODate,
@@ -353,7 +369,8 @@ export default function SavedListingsPage() {
                 _hover={{ bg: 'bg.muted' }}
                 transition="background 0.15s ease"
               >
-                <Table.Cell fontWeight="semibold" minW="150px">
+                <Table.Cell minW="150px">
+                  <CompanyLogo domain={listing.domain} companyName={listing.company} mr="2" />
                   {listing.company}
                 </Table.Cell>
                 <Table.Cell minW="250px">{listing.title}</Table.Cell>

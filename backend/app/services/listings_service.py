@@ -18,7 +18,7 @@ class ListingsService(DatabaseRepository, VectorRepository):
     row = self.fetch_one(
       """
       SELECT 
-        l.id, l.url, l.title, l.company, l.location, l.description, l.posted_date,
+        l.id, l.url, l.title, l.company, l.domain, l.location, l.description, l.posted_date,
         l.skills, l.requirements,
         COALESCE(
           json_group_array(r.id),
@@ -46,7 +46,7 @@ class ListingsService(DatabaseRepository, VectorRepository):
     rows = self.fetch_all(
       f"""
       SELECT 
-        l.id, l.url, l.title, l.company, l.location, l.description, l.posted_date,
+        l.id, l.url, l.title, l.company, l.domain, l.location, l.description, l.posted_date,
         l.skills, l.requirements,
         COALESCE(
           json_group_array(r.id),
@@ -66,7 +66,7 @@ class ListingsService(DatabaseRepository, VectorRepository):
     rows = self.fetch_all(
       """
       SELECT 
-        l.id, l.url, l.title, l.company, l.location, l.description, l.posted_date,
+        l.id, l.url, l.title, l.company, l.domain, l.location, l.description, l.posted_date,
         l.skills, l.requirements,
         COALESCE(
           json_group_array(r.id),
@@ -129,10 +129,10 @@ class ListingsService(DatabaseRepository, VectorRepository):
     self.execute_many(
       """
       INSERT INTO listings (
-        id, url, title, company, location, description, posted_date, skills,
+        id, url, title, company, domain, location, description, posted_date, skills,
         requirements
       )
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       """,
       [
         (
@@ -140,6 +140,7 @@ class ListingsService(DatabaseRepository, VectorRepository):
           str(listing.url),
           listing.title,
           listing.company,
+          listing.domain,
           listing.location,
           listing.description,
           listing.posted_date.isoformat() if listing.posted_date else None,
@@ -209,7 +210,7 @@ class ListingsService(DatabaseRepository, VectorRepository):
     rows = self.fetch_all(
       f"""
       SELECT 
-        l.id, l.url, l.title, l.company, l.location, l.description, l.posted_date,
+        l.id, l.url, l.title, l.company, l.domain, l.location, l.description, l.posted_date,
         l.skills, l.requirements,
         COALESCE(
           json_group_array(r.id),

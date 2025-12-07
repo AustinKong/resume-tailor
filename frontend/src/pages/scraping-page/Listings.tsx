@@ -301,6 +301,12 @@ function ListingDetails({ listing, duplicateOf }: { listing: Listing; duplicateO
           {listing.url}
         </Link>
       )}
+      {/* Predicted domain */}
+      {listing.domain && (
+        <Text fontSize="sm">
+          Domain: <Link href={`https://${listing.domain}`} target="_blank">{listing.domain}</Link>
+        </Text>
+      )}
     </VStack>
   );
 }

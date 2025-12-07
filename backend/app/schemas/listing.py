@@ -10,6 +10,7 @@ from app.schemas.types import CamelModel, parse_json_list_as
 class LLMResponseListing(CamelModel):
   title: str
   company: str
+  domain: str
   location: str | None = None
   description: str
   posted_date: date | None = None

@@ -35,6 +35,7 @@ def create_tables():
         url TEXT NOT NULL UNIQUE,
         title TEXT NOT NULL,
         company TEXT NOT NULL,
+        domain TEXT NOT NULL,
         location TEXT,
         description TEXT NOT NULL,
         posted_date TEXT,

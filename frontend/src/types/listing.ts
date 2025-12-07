@@ -5,6 +5,7 @@ export type Listing = {
   url: string;
   title: string;
   company: string;
+  domain: string;
   location?: string;
   description: string;
   postedDate?: ISODate;

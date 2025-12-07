@@ -40,6 +40,11 @@ structured data from the job listing below to power a semantic search engine.
 6. **company**: Extract the company name.
    - Ensure it is the hiring company, not the recruitment agency (if applicable).
 
+7. **domain**: Based on the company name and context,
+   predict the company's official website domain (e.g., 'stripe.com', 'linear.app').
+   If you are unsure, make your best guess based on the company name.
+   Do not include 'https://' or 'www'.
+
 ### INPUT JOB LISTING
 {content}
 """
