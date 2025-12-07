@@ -1,6 +1,6 @@
 import { Route, Routes } from 'react-router';
 
-import DashboardLayout from '@/components/layouts/DashboardLayout';
+import DashboardLayout from '@/components/layouts/dashboard';
 import { Toaster } from '@/components/ui/toaster';
 import ProfilePage from '@/pages/profile-page';
 import ResumeGenerationPage from '@/pages/resume-generation-page';
