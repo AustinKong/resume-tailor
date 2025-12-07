@@ -1,3 +1,4 @@
+from app.services.applications_service import ApplicationsService
 from app.services.experiences_service import ExperiencesService
 from app.services.listings_service import ListingsService
 from app.services.llm_service import LLMService
@@ -6,6 +7,7 @@ from app.services.resumes_service import ResumesService
 from app.services.scraping_service import ScrapingService
 from app.services.template_service import TemplateService
 
+applications_service = ApplicationsService()
 experience_service = ExperiencesService()
 listings_service = ListingsService()
 llm_service = LLMService()
@@ -15,6 +17,7 @@ scraping_service = ScrapingService()
 template_service = TemplateService()
 
 __all__ = [
+  'applications_service',
   'experience_service',
   'listings_service',
   'llm_service',

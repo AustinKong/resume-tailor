@@ -1,3 +1,4 @@
+from app.schemas.application import Application
 from app.schemas.experience import (
   Experience,
   ExperienceType,
@@ -20,6 +21,7 @@ from app.schemas.resume import (
   SectionContent,
   SimpleSectionContent,
 )
+from app.schemas.status_event import StatusEnum, StatusEvent
 from app.schemas.types import CamelModel, YearMonth
 
 __all__ = [
@@ -47,4 +49,9 @@ __all__ = [
   'Section',
   'SectionContent',
   'SimpleSectionContent',
+  # Application
+  'Application',
+  # StatusEvent
+  'StatusEnum',
+  'StatusEvent',
 ]

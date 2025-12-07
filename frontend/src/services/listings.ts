@@ -1,15 +1,4 @@
-import { type Listing, type ScrapeResult } from '@/types/listing';
-
-export async function getListings() {
-  const response = await fetch('/api/listings');
-
-  if (!response.ok) {
-    throw new Error('Failed to fetch listings');
-  }
-
-  const json = await response.json();
-  return json as Listing[];
-}
+import type { Listing, ScrapeResult } from '@/types/listing';
 
 export async function scrapeListings(urls: string[]) {
   const response = await fetch('/api/listings/scrape', {

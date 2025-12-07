@@ -5,6 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from app.routers import (
+  applications_router,
   config_router,
   experiences_router,
   listings_router,
@@ -25,11 +26,12 @@ app.add_middleware(
   allow_methods=['*'],
   allow_headers=['*'],
 )
-app.include_router(profile_router)
+app.include_router(applications_router)
+app.include_router(config_router)
 app.include_router(experiences_router)
 app.include_router(listings_router)
+app.include_router(profile_router)
 app.include_router(resumes_router)
-app.include_router(config_router)
 
 
 @app.exception_handler(NotFoundError)
@@ -40,10 +42,12 @@ async def not_found_exception_handler(request, exc):
   )
 
 
+# TODO: Why is there both ServiceError and ApplicationError?
+# TODO: Also, where is ValidationError handled?
 @app.exception_handler(ServiceError)
 async def service_error_exception_handler(request, exc):
   return JSONResponse(
-    status_code=status.HTTP_400_BAD_REQUEST,
+    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
     content={'detail': str(exc)},
   )
 

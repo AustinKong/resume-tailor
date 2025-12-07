@@ -54,6 +54,26 @@ def create_tables():
       )
     """)
 
+    db.execute("""
+      CREATE TABLE IF NOT EXISTS applications (
+        id TEXT PRIMARY KEY,
+        listing_id TEXT NOT NULL UNIQUE,
+        FOREIGN KEY (listing_id) REFERENCES listings (id) ON DELETE CASCADE
+      )
+    """)
+
+    db.execute("""
+      CREATE TABLE IF NOT EXISTS status_events (
+        id TEXT PRIMARY KEY,
+        application_id TEXT NOT NULL,
+        status TEXT NOT NULL,
+        stage INTEGER NOT NULL,
+        date TEXT NOT NULL,
+        notes TEXT,
+        FOREIGN KEY (application_id) REFERENCES applications (id) ON DELETE CASCADE
+      )
+    """)
+
     db.commit()
 
   print(f'Database tables created successfully at {settings.paths.db_path}')

@@ -40,6 +40,7 @@ class LLMResponseListing(CamelModel):
   ]
 
 
+# TODO: Remove resume_ids from here, tie resume 1:1 to application instead
 class Listing(LLMResponseListing):
   id: UUID = Field(default_factory=uuid4)
   url: HttpUrl

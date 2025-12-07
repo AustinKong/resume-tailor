@@ -4,8 +4,8 @@ from fastapi import APIRouter
 from pydantic import HttpUrl
 
 from app.prompts import LISTING_EXTRACTION_PROMPT
-from app.schemas import DuplicateListing, Listing, LLMResponseListing, ScrapeResult
-from app.services import listings_service, llm_service, scraping_service
+from app.schemas import Application, DuplicateListing, Listing, LLMResponseListing, ScrapeResult
+from app.services import applications_service, listings_service, llm_service, scraping_service
 from app.utils.errors import ValidationError
 from app.utils.url import normalize_url
 
@@ -13,12 +13,6 @@ router = APIRouter(
   prefix='/listings',
   tags=['Listings'],
 )
-
-
-@router.get('', response_model=list[Listing])
-async def get_listings():
-  listings = listings_service.list_all()
-  return listings
 
 
 @router.post('/scrape', response_model=ScrapeResult)
@@ -78,5 +72,11 @@ async def scrape_listings(urls: list[HttpUrl]):
 
 @router.post('')
 async def save_listings(listings: list[Listing]):
-  listings = listings_service.create(listings)
-  return listings
+  saved_listings = []
+  for listing in listings:
+    saved_listing = listings_service.create(listing)
+    application = Application(listing=listing)
+    applications_service.create(application)
+    saved_listings.append(saved_listing)
+
+  return saved_listings

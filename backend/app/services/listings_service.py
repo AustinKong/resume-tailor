@@ -122,11 +122,8 @@ class ListingsService(DatabaseRepository, VectorRepository):
 
     return similar_pairs
 
-  def create(self, listings: list[Listing]) -> list[Listing]:
-    if not listings:
-      return []
-
-    self.execute_many(
+  def create(self, listing: Listing) -> Listing:
+    self.execute(
       """
       INSERT INTO listings (
         id, url, title, company, domain, location, description, posted_date, skills,
@@ -134,29 +131,26 @@ class ListingsService(DatabaseRepository, VectorRepository):
       )
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       """,
-      [
-        (
-          str(listing.id),
-          str(listing.url),
-          listing.title,
-          listing.company,
-          listing.domain,
-          listing.location,
-          listing.description,
-          listing.posted_date.isoformat() if listing.posted_date else None,
-          json.dumps(listing.skills),
-          json.dumps(listing.requirements),
-        )
-        for listing in listings
-      ],
+      (
+        str(listing.id),
+        str(listing.url),
+        listing.title,
+        listing.company,
+        listing.domain,
+        listing.location,
+        listing.description,
+        listing.posted_date.isoformat() if listing.posted_date else None,
+        json.dumps(listing.skills),
+        json.dumps(listing.requirements),
+      ),
     )
 
-    documents = [self._create_listing_embedding_text(listing) for listing in listings]
-    metadatas: list[Metadata] = [{'listing_id': str(listing.id)} for listing in listings]
+    documents = [self._create_listing_embedding_text(listing)]
+    metadatas: list[Metadata] = [{'listing_id': str(listing.id)}]
 
     self.add_documents(collection_name='listings', documents=documents, metadatas=metadatas)
 
-    return listings
+    return listing
 
   def _create_listing_embedding_text(self, listing: Listing) -> str:
     parts = [
