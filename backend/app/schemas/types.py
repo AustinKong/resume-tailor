@@ -1,6 +1,6 @@
 import json
 from collections.abc import Callable
-from typing import Annotated, Any, TypeVar
+from typing import Annotated, Any, Generic, TypeVar
 
 from pydantic import BaseModel, ConfigDict, StringConstraints
 from pydantic.alias_generators import to_camel
@@ -17,6 +17,16 @@ class CamelModel(BaseModel):
     alias_generator=to_camel,
     populate_by_name=True,
   )
+
+
+class Page(BaseModel, Generic[T]):
+  """A paginated response model."""
+
+  items: list[T]
+  total: int
+  page: int
+  size: int
+  pages: int
 
 
 def parse_json_list_as(converter: Callable[[str], T]) -> Callable[[Any], list[T]]:

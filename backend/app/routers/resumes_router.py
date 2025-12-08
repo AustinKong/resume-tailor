@@ -47,25 +47,28 @@ async def get_html(resume_id: UUID):
 
 @router.post('/')
 async def create_resume(application_id: UUID):
-  empty_data = ResumeData(sections=[])
+  # Validate application exists
+  application = applications_service.get(application_id)
 
   resume = Resume(
     id=uuid4(),
-    application_id=application_id,
     template=settings.resume.default_template,
-    data=empty_data,
+    data=ResumeData(sections=[]),
   )
   resume_service.create(resume)
+
+  application.resume_id = resume.id
+  applications_service.update(application)
+
   return resume
 
 
 @router.post('/{resume_id}/generate')
 async def generate_resume_content(resume_id: UUID):
   resume = resume_service.get(resume_id)
-  application = applications_service.get(resume.application_id)
+  application = applications_service.get_by_resume_id(resume_id)
   listing = application.listing
   relevant_experiences: list[Experience] = experience_service.find_relevant(listing)
-
   responses = await asyncio.gather(
     *[
       llm_service.call_structured(

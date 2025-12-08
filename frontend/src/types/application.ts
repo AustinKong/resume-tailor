@@ -1,4 +1,4 @@
-import type { ISODate } from '@/utils/date';
+import type { ISODatetime } from '@/utils/date';
 
 import type { Listing } from './listing';
 
@@ -14,6 +14,6 @@ export type StatusEvent = {
   applicationId: string;
   status: 'SAVED' | 'APPLIED' | 'INTERVIEW' | 'ACCEPTED' | 'REJECTED' | 'GHOSTED';
   stage: number;
-  date: ISODate;
+  createdAt: ISODatetime;
   notes?: string;
 };

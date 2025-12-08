@@ -79,7 +79,7 @@ export default function ScrapingPage() {
   };
 
   return (
-    <VStack w="full" h="full" px="16" py="8" align="stretch" gap="6">
+    <VStack w="full" h="full" px="16" py="8" align="stretch" gap="6" overflowY="scroll">
       <Heading size="2xl">Scrape Job Listings</Heading>
 
       {/* Input section */}

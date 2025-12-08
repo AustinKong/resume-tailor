@@ -31,3 +31,5 @@ venv
 data/
 .env
 backend/config/
+
+*.local.py

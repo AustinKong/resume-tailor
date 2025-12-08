@@ -39,6 +39,8 @@ async def scrape_listings(urls: list[HttpUrl]):
     *[scraping_service.fetch_and_clean(url) for url in urls_to_scrape]
   )
 
+  # TODO: Add cannot scrape handling. Use LLM to return an error state if the scraped content
+  # does not look like a job listing.
   llm_listings: list[LLMResponseListing] = await asyncio.gather(
     *[
       llm_service.call_structured(

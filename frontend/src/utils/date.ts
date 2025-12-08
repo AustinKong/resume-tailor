@@ -4,10 +4,14 @@
 // Full date: YYYY-MM-DD
 export type ISODate = string & { readonly __brand: 'ISODate' };
 
+// Full datetime: YYYY-MM-DDTHH:MM:SS.sssZ or similar ISO format
+export type ISODatetime = string & { readonly __brand: 'ISODatetime' };
+
 // Year and month only: YYYY-MM
 export type ISOYearMonth = string & { readonly __brand: 'ISOYearMonth' };
 
 const DATE_RE = /^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/;
+const DATETIME_RE = /^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])T\d{2}:\d{2}:\d{2}(\.\d+)?Z$/;
 const YEAR_MONTH_RE = /^\d{4}-(0[1-9]|1[0-2])$/;
 const pad = (n: number) => String(n).padStart(2, '0');
 
@@ -18,7 +22,7 @@ function dateFromParts(year: number, month: number, day: number): ISODate {
 }
 
 function dateFromNativeDate(d: Date): ISODate {
-  return dateFromParts(d.getFullYear(), d.getMonth() + 1, d.getDate());
+  return dateFromParts(d.getUTCFullYear(), d.getUTCMonth() + 1, d.getUTCDate());
 }
 
 function dateToday(): ISODate {
@@ -44,6 +48,34 @@ export const ISODate = {
   parse: parseISODate,
 };
 
+// === ISODatetime utilities ===
+
+function datetimeFromNativeDate(d: Date): ISODatetime {
+  return d.toISOString() as ISODatetime;
+}
+
+function datetimeNow(): ISODatetime {
+  return datetimeFromNativeDate(new Date());
+}
+
+function isISODatetime(value: string): value is ISODatetime {
+  return DATETIME_RE.test(value);
+}
+
+function parseISODatetime(value: string): ISODatetime {
+  if (!DATETIME_RE.test(value)) {
+    throw new Error(`Invalid ISODatetime: ${value}`);
+  }
+  return value as ISODatetime;
+}
+
+export const ISODatetime = {
+  fromNativeDate: datetimeFromNativeDate,
+  now: datetimeNow,
+  is: isISODatetime,
+  parse: parseISODatetime,
+};
+
 // === ISOYearMonth utilities ===
 
 function yearMonthFromParts(year: number, month: number): ISOYearMonth {
@@ -51,7 +83,7 @@ function yearMonthFromParts(year: number, month: number): ISOYearMonth {
 }
 
 function yearMonthFromDate(d: Date): ISOYearMonth {
-  return yearMonthFromParts(d.getFullYear(), d.getMonth() + 1);
+  return yearMonthFromParts(d.getUTCFullYear(), d.getUTCMonth() + 1);
 }
 
 function yearMonthToday(): ISOYearMonth {

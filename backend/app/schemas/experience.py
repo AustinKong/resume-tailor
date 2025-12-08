@@ -3,7 +3,8 @@ from uuid import UUID, uuid4
 
 from pydantic import Field
 
-from app.schemas.types import CamelModel, YearMonth
+from app.schemas.dates import ISOYearMonth
+from app.schemas.types import CamelModel
 
 
 class ExperienceType(Enum):
@@ -20,8 +21,8 @@ class Experience(CamelModel):
   organization: str
   type: ExperienceType
   location: str | None = None
-  start_date: YearMonth
-  end_date: YearMonth | None = None
+  start_date: ISOYearMonth
+  end_date: ISOYearMonth | None = None
 
   bullets: list[str] = Field(
     default_factory=list,

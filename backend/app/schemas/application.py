@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import datetime
 from uuid import UUID, uuid4
 
 from pydantic import Field
@@ -9,7 +9,7 @@ from app.schemas.types import CamelModel
 
 
 def default_status_events():
-  return [StatusEvent(status=StatusEnum.SAVED, stage=0, date=date.today())]
+  return [StatusEvent(status=StatusEnum.SAVED, stage=0, created_at=datetime.now())]
 
 
 class Application(CamelModel):

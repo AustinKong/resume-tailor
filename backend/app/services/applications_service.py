@@ -1,8 +1,9 @@
 import json
+from typing import Literal
 from uuid import UUID
 
 from app.repositories import DatabaseRepository
-from app.schemas import Application, Listing, StatusEvent
+from app.schemas import Application, Listing, Page, StatusEnum, StatusEvent
 from app.utils.errors import NotFoundError, ValidationError
 
 
@@ -10,9 +11,110 @@ class ApplicationsService(DatabaseRepository):
   def __init__(self, **kwargs):
     super().__init__(**kwargs)
 
-  def list_all(self) -> list[Application]:
-    rows = self.fetch_all("""
-      SELECT
+  # def list_all(self) -> list[Application]:
+  #   rows = self.fetch_all("""
+  #     SELECT
+  #       a.id as application_id,
+  #       a.resume_id,
+  #       l.id as listing_id, l.url, l.title, l.company, l.domain,
+  #       l.location, l.description, l.posted_date, l.skills, l.requirements,
+  #       COALESCE(
+  #         json_group_array(
+  #           json_object(
+  #             'id', se.id,
+  #             'applicationId', se.application_id,
+  #             'status', se.status,
+  #             'stage', se.stage,
+  #             'createdAt', se.created_at,
+  #             'notes', se.notes
+  #           )
+  #         ),
+  #         json_array()
+  #       ) as status_events_json
+  #     FROM applications a
+  #     JOIN listings l ON a.listing_id = l.id
+  #     LEFT JOIN status_events se ON a.id = se.application_id
+  #     GROUP BY a.id, l.id
+  #   """)
+
+  #   applications = []
+  #   for row in rows:
+  #     row_dict = dict(row)
+  #     status_events_json = row_dict.pop('status_events_json')
+  #     application_id = row_dict.pop('application_id')
+  #     resume_id = row_dict.pop('resume_id')
+
+  #     status_events = [
+  #       StatusEvent(**event) for event in json.loads(status_events_json) if event.get('id')
+  #     ]
+  #     applications.append(
+  #       Application(
+  #         id=application_id,
+  #         listing=Listing(**row_dict),
+  #         resume_id=resume_id,
+  #         status_events=status_events,
+  #       )
+  #     )
+
+  #   return applications
+
+  def list_all(
+    self,
+    page,
+    size,
+    search: str | None = None,
+    status: StatusEnum | None = None,
+    sort_by: Literal['title', 'company', 'date', 'last_updated', 'status'] = 'date',
+    sort_dir: Literal['asc', 'desc'] = 'desc',
+  ) -> Page[Application]:
+    offset = (page - 1) * size
+
+    conditions = []
+    params = []
+
+    if search:
+      conditions.append('(l.title LIKE ? OR l.company LIKE ? OR l.domain LIKE ?)')
+      search_term = f'%{search}%'
+      params.extend([search_term, search_term, search_term])
+
+    if status:
+      conditions.append('cs.status = ?')
+      params.append(status.value)
+
+    where_clause = f'WHERE {" AND ".join(conditions)}' if conditions else ''
+
+    sort_map = {
+      'title': 'l.title',
+      'company': 'l.company',
+      'date': 'l.posted_date',
+      'last_updated': 'cs.created_at',
+      'status': 'cs.status',
+    }
+    sql_sort_col = sort_map.get(sort_by, 'cs.created_at')
+    sql_sort_dir = 'ASC' if sort_dir == 'asc' else 'DESC'
+
+    query = f"""
+      WITH latest_events AS (
+        SELECT 
+          application_id, 
+          status, 
+          created_at,
+          ROW_NUMBER() OVER (
+            PARTITION BY application_id 
+            ORDER BY created_at DESC, id DESC
+          ) as rn
+        FROM status_events
+      ),
+      paginated_apps AS (
+        SELECT a.id
+        FROM applications a
+        JOIN listings l ON a.listing_id = l.id
+        JOIN latest_events cs ON a.id = cs.application_id AND cs.rn = 1
+        {where_clause}
+        ORDER BY {sql_sort_col} {sql_sort_dir}
+        LIMIT ? OFFSET ?
+      )
+      SELECT 
         a.id as application_id,
         a.resume_id,
         l.id as listing_id, l.url, l.title, l.company, l.domain,
@@ -21,41 +123,70 @@ class ApplicationsService(DatabaseRepository):
           json_group_array(
             json_object(
               'id', se.id,
-              'applicationId', se.application_id,
               'status', se.status,
               'stage', se.stage,
-              'date', se.date,
+              'created_at', se.created_at,
               'notes', se.notes
             )
-          ),
+          ) FILTER (WHERE se.id IS NOT NULL), 
           json_array()
         ) as status_events_json
-      FROM applications a
+      FROM paginated_apps pa
+      JOIN applications a ON pa.id = a.id
       JOIN listings l ON a.listing_id = l.id
-      LEFT JOIN status_events se ON a.id = se.application_id
+      JOIN status_events se ON a.id = se.application_id
       GROUP BY a.id, l.id
-    """)
+      ORDER BY {sql_sort_col} {sql_sort_dir}
+    """
+
+    rows = self.fetch_all(query, tuple(params + [size, offset]))
 
     applications = []
     for row in rows:
       row_dict = dict(row)
+
       status_events_json = row_dict.pop('status_events_json')
       application_id = row_dict.pop('application_id')
       resume_id = row_dict.pop('resume_id')
+      listing_id = row_dict.pop('listing_id')
 
-      status_events = [
-        StatusEvent(**event) for event in json.loads(status_events_json) if event.get('id')
-      ]
+      events_data = json.loads(status_events_json)
+      status_events = [StatusEvent(**event) for event in events_data]
+
+      row_dict['id'] = listing_id
+
       applications.append(
         Application(
           id=application_id,
-          listing=Listing(**row_dict),
           resume_id=resume_id,
+          listing=Listing(**row_dict),
           status_events=status_events,
         )
       )
 
-    return applications
+    count_query = f"""
+      WITH latest_events AS (
+        SELECT 
+          application_id, status, created_at,
+          ROW_NUMBER() OVER (PARTITION BY application_id ORDER BY created_at DESC, id DESC) as rn
+        FROM status_events
+      )
+      SELECT COUNT(*)
+      FROM applications a
+      JOIN listings l ON a.listing_id = l.id
+      JOIN latest_events cs ON a.id = cs.application_id AND cs.rn = 1
+      {where_clause}
+    """
+    total_count = self.fetch_one(count_query, tuple(params))
+    total_count = total_count[0] if total_count else 0
+
+    return Page(
+      items=applications,
+      total=total_count,
+      page=page,
+      size=size,
+      pages=(total_count + size - 1) // size,
+    )
 
   def get(self, application_id: UUID) -> Application:
     row = self.fetch_one(
@@ -69,10 +200,9 @@ class ApplicationsService(DatabaseRepository):
           json_group_array(
             json_object(
               'id', se.id,
-              'applicationId', se.application_id,
               'status', se.status,
               'stage', se.stage,
-              'date', se.date,
+              'created_at', se.created_at,
               'notes', se.notes
             )
           ),
@@ -89,6 +219,55 @@ class ApplicationsService(DatabaseRepository):
 
     if not row:
       raise NotFoundError(f'Application {application_id} not found')
+
+    row_dict = dict(row)
+    status_events_json = row_dict.pop('status_events_json')
+    application_id = row_dict.pop('application_id')
+    resume_id = row_dict.pop('resume_id')
+
+    status_events = [
+      StatusEvent(**event) for event in json.loads(status_events_json) if event.get('id')
+    ]
+
+    return Application(
+      id=application_id,
+      listing=Listing(**row_dict),
+      resume_id=resume_id,
+      status_events=status_events,
+    )
+
+  def get_by_resume_id(self, resume_id: UUID) -> Application:
+    row = self.fetch_one(
+      """
+      SELECT
+        a.id as application_id,
+        a.resume_id,
+        l.id as listing_id, l.url, l.title, l.company, l.domain,
+        l.location, l.description, l.posted_date, l.skills, l.requirements,
+        COALESCE(
+          json_group_array(
+            json_object(
+              'id', se.id,
+              'applicationId', se.application_id,
+              'status', se.status,
+              'stage', se.stage,
+              'created_at', se.created_at,
+              'notes', se.notes
+            )
+          ),
+          json_array()
+        ) as status_events_json
+      FROM applications a
+      JOIN listings l ON a.listing_id = l.id
+      LEFT JOIN status_events se ON a.id = se.application_id
+      WHERE a.resume_id = ?
+      GROUP BY a.id, l.id
+    """,
+      (str(resume_id),),
+    )
+
+    if not row:
+      raise NotFoundError(f'No application found for resume {resume_id}')
 
     row_dict = dict(row)
     status_events_json = row_dict.pop('status_events_json')
@@ -123,14 +302,14 @@ class ApplicationsService(DatabaseRepository):
     operations.extend(
       [
         (
-          'INSERT INTO status_events (id, application_id, status, stage, date, notes) '
+          'INSERT INTO status_events (id, application_id, status, stage, created_at, notes) '
           'VALUES (?, ?, ?, ?, ?, ?)',
           (
             str(status_event.id),
             str(application.id),
             status_event.status.value,
             status_event.stage,
-            status_event.date.isoformat(),
+            status_event.created_at,
             status_event.notes,
           ),
         )
@@ -143,25 +322,24 @@ class ApplicationsService(DatabaseRepository):
 
   def update(self, application: Application) -> Application:
     operations: list[tuple[str, tuple]] = [
-      # Right now, there is nothing in Application to update other than status events
-      # (
-      #   'UPDATE applications SET listing_id = ? WHERE id = ?',
-      #   (str(application.listing.id), str(application.id))
-      # ),
-      ('DELETE FROM status_events WHERE application_id = ?', (str(application.id),))
+      (
+        'UPDATE applications SET resume_id = ? WHERE id = ?',
+        (str(application.resume_id) if application.resume_id else None, str(application.id)),
+      ),
+      ('DELETE FROM status_events WHERE application_id = ?', (str(application.id),)),
     ]
 
     operations.extend(
       [
         (
-          'INSERT INTO status_events (id, application_id, status, stage, date, notes) '
+          'INSERT INTO status_events (id, application_id, status, stage, created_at, notes) '
           'VALUES (?, ?, ?, ?, ?, ?)',
           (
             str(status_event.id),
             str(application.id),
             status_event.status.value,
             status_event.stage,
-            status_event.date.isoformat(),
+            status_event.created_at,
             status_event.notes,
           ),
         )

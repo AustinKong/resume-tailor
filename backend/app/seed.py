@@ -47,10 +47,8 @@ def create_tables():
     db.execute("""
       CREATE TABLE IF NOT EXISTS resumes (
         id TEXT PRIMARY KEY,
-        application_id TEXT NOT NULL,
         template TEXT NOT NULL,
-        data JSON NOT NULL,
-        FOREIGN KEY (application_id) REFERENCES applications (id) ON DELETE CASCADE
+        data JSON NOT NULL
       )
     """)
 
@@ -70,7 +68,7 @@ def create_tables():
         application_id TEXT NOT NULL,
         status TEXT NOT NULL,
         stage INTEGER NOT NULL,
-        date TEXT NOT NULL,
+        created_at TEXT NOT NULL,
         notes TEXT,
         FOREIGN KEY (application_id) REFERENCES applications (id) ON DELETE CASCADE
       )

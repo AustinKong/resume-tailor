@@ -2,15 +2,16 @@ from typing import Self
 
 from pydantic import EmailStr, Field
 
-from app.schemas.types import CamelModel, YearMonth
+from app.schemas.dates import ISOYearMonth
+from app.schemas.types import CamelModel
 
 
 class Education(CamelModel):
   institution: str
   program: str
   location: str | None = None
-  start_date: YearMonth
-  end_date: YearMonth | None = None
+  start_date: ISOYearMonth
+  end_date: ISOYearMonth | None = None
   bullets: list[str] = Field(
     default_factory=list,
     description='Key courses, GPA, thesis, or other relevant details',

@@ -2,6 +2,7 @@ import { Route, Routes } from 'react-router';
 
 import DashboardLayout from '@/components/layouts/dashboard';
 import { Toaster } from '@/components/ui/toaster';
+import ApplicationsPage from '@/pages/applications-page';
 import ProfilePage from '@/pages/profile-page';
 import ResumeGenerationPage from '@/pages/resume-generation-page';
 import SavedListingsPage from '@/pages/saved-listings-page';
@@ -16,6 +17,7 @@ function App() {
           <Route path="scraping" element={<ScrapingPage />} />
           <Route path="saved" element={<SavedListingsPage />} />
           <Route path="resume-generation" element={<ResumeGenerationPage />} />
+          <Route path="applications" element={<ApplicationsPage />} />
         </Route>
       </Routes>
       <Toaster />

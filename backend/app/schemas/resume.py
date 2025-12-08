@@ -40,6 +40,5 @@ class ResumeData(BaseModel):
 
 class Resume(BaseModel):
   id: UUID = Field(default_factory=uuid4)
-  application_id: UUID
   template: str
   data: ResumeData

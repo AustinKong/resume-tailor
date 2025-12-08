@@ -37,7 +37,6 @@ export interface ResumeData {
 
 export interface Resume {
   id: string;
-  applicationId: string;
   template: string;
   data: ResumeData;
 }

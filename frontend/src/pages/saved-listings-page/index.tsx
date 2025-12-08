@@ -37,7 +37,7 @@ function getCurrentStatus(application: Application): ApplicationStatus {
 
   // Get the most recent status event
   const latestEvent = application.statusEvents.reduce((latest, current) =>
-    new Date(current.date) > new Date(latest.date) ? current : latest
+    new Date(current.createdAt) > new Date(latest.createdAt) ? current : latest
   );
 
   // Map backend status to frontend status

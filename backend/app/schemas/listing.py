@@ -1,9 +1,9 @@
-from datetime import date
 from typing import Annotated
 from uuid import UUID, uuid4
 
 from pydantic import BeforeValidator, Field, HttpUrl
 
+from app.schemas.dates import ISODate
 from app.schemas.types import CamelModel, parse_json_list_as
 
 
@@ -13,7 +13,7 @@ class LLMResponseListing(CamelModel):
   domain: str
   location: str | None = None
   description: str
-  posted_date: date | None = None
+  posted_date: ISODate | None = None
 
   skills: Annotated[
     list[str],
