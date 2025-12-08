@@ -5,6 +5,7 @@ import type { Listing } from './listing';
 export type Application = {
   id: string;
   listing: Listing;
+  resumeId?: string;
   statusEvents: StatusEvent[];
 };
 

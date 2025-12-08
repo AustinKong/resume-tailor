@@ -16,8 +16,8 @@ from app.schemas import (
   Section,
 )
 from app.services import (
+  applications_service,
   experience_service,
-  listings_service,
   llm_service,
   profile_service,
   resume_service,
@@ -46,12 +46,12 @@ async def get_html(resume_id: UUID):
 
 
 @router.post('/')
-async def create_resume(listing_id: UUID):
+async def create_resume(application_id: UUID):
   empty_data = ResumeData(sections=[])
 
   resume = Resume(
     id=uuid4(),
-    listing_id=listing_id,
+    application_id=application_id,
     template=settings.resume.default_template,
     data=empty_data,
   )
@@ -62,7 +62,8 @@ async def create_resume(listing_id: UUID):
 @router.post('/{resume_id}/generate')
 async def generate_resume_content(resume_id: UUID):
   resume = resume_service.get(resume_id)
-  listing = listings_service.get(str(resume.listing_id))
+  application = applications_service.get(resume.application_id)
+  listing = application.listing
   relevant_experiences: list[Experience] = experience_service.find_relevant(listing)
 
   responses = await asyncio.gather(

@@ -40,18 +40,9 @@ class LLMResponseListing(CamelModel):
   ]
 
 
-# TODO: Remove resume_ids from here, tie resume 1:1 to application instead
 class Listing(LLMResponseListing):
   id: UUID = Field(default_factory=uuid4)
   url: HttpUrl
-  resume_ids: Annotated[
-    list[UUID],
-    BeforeValidator(parse_json_list_as(UUID)),
-    Field(
-      default_factory=list,
-      description='List of resume IDs associated with this listing (populated via JOIN)',
-    ),
-  ]
 
 
 class DuplicateListing(CamelModel):

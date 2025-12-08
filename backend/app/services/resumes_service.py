@@ -16,21 +16,23 @@ class ResumesService(DatabaseRepository):
 
     return Resume(
       id=row['id'],
-      listing_id=row['listing_id'],
+      application_id=row['application_id'],
       template=row['template'],
       data=ResumeData.model_validate_json(row['data']),
     )
 
   def create(self, resume: Resume) -> Resume:
-    listing = self.fetch_one('SELECT id FROM listings WHERE id = ?', (str(resume.listing_id),))
-    if not listing:
-      raise NotFoundError(f'Listing {resume.listing_id} not found')
+    application = self.fetch_one(
+      'SELECT id FROM applications WHERE id = ?', (str(resume.application_id),)
+    )
+    if not application:
+      raise NotFoundError(f'Application {resume.application_id} not found')
 
     self.execute(
-      'INSERT INTO resumes (id, listing_id, template, data) VALUES (?, ?, ?, ?)',
+      'INSERT INTO resumes (id, application_id, template, data) VALUES (?, ?, ?, ?)',
       (
         str(resume.id),
-        str(resume.listing_id),
+        str(resume.application_id),
         resume.template,
         resume.data.model_dump_json(),
       ),
@@ -44,9 +46,9 @@ class ResumesService(DatabaseRepository):
       raise NotFoundError(f'Resume {resume.id} not found')
 
     self.execute(
-      'UPDATE resumes SET listing_id = ?, template = ?, data = ? WHERE id = ?',
+      'UPDATE resumes SET application_id = ?, template = ?, data = ? WHERE id = ?',
       (
-        str(resume.listing_id),
+        str(resume.application_id),
         resume.template,
         resume.data.model_dump_json(),
         str(resume.id),

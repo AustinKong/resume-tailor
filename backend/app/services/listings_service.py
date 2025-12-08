@@ -7,35 +7,11 @@ from app.config import settings
 from app.repositories import DatabaseRepository, VectorRepository
 from app.schemas import Listing
 from app.utils.deduplication import fuzzy_text_similarity
-from app.utils.errors import NotFoundError
 
 
 class ListingsService(DatabaseRepository, VectorRepository):
   def __init__(self, **kwargs):
     super().__init__(**kwargs)
-
-  def get(self, listing_id: str) -> Listing:
-    row = self.fetch_one(
-      """
-      SELECT 
-        l.id, l.url, l.title, l.company, l.domain, l.location, l.description, l.posted_date,
-        l.skills, l.requirements,
-        COALESCE(
-          json_group_array(r.id),
-          json_array()
-        ) as resume_ids
-      FROM listings l
-      LEFT JOIN resumes r ON l.id = r.listing_id
-      WHERE l.id = ?
-      GROUP BY l.id
-      """,
-      (listing_id,),
-    )
-
-    if not row:
-      raise NotFoundError(f'Listing {listing_id} not found')
-
-    return Listing(**dict(row))
 
   def get_by_urls(self, urls: list[HttpUrl]) -> list[Listing]:
     if not urls:
@@ -47,15 +23,9 @@ class ListingsService(DatabaseRepository, VectorRepository):
       f"""
       SELECT 
         l.id, l.url, l.title, l.company, l.domain, l.location, l.description, l.posted_date,
-        l.skills, l.requirements,
-        COALESCE(
-          json_group_array(r.id),
-          json_array()
-        ) as resume_ids
+        l.skills, l.requirements
       FROM listings l
-      LEFT JOIN resumes r ON l.id = r.listing_id
       WHERE l.url IN ({placeholders})
-      GROUP BY l.id
       """,
       tuple(url_strings),
     )
@@ -67,14 +37,8 @@ class ListingsService(DatabaseRepository, VectorRepository):
       """
       SELECT 
         l.id, l.url, l.title, l.company, l.domain, l.location, l.description, l.posted_date,
-        l.skills, l.requirements,
-        COALESCE(
-          json_group_array(r.id),
-          json_array()
-        ) as resume_ids
+        l.skills, l.requirements
       FROM listings l
-      LEFT JOIN resumes r ON l.id = r.listing_id
-      GROUP BY l.id
       ORDER BY l.posted_date DESC
       """
     )
@@ -205,15 +169,9 @@ class ListingsService(DatabaseRepository, VectorRepository):
       f"""
       SELECT 
         l.id, l.url, l.title, l.company, l.domain, l.location, l.description, l.posted_date,
-        l.skills, l.requirements,
-        COALESCE(
-          json_group_array(r.id),
-          json_array()
-        ) as resume_ids
+        l.skills, l.requirements
       FROM listings l
-      LEFT JOIN resumes r ON l.id = r.listing_id
       WHERE l.id IN ({placeholders})
-      GROUP BY l.id
       """,
       tuple(matching_ids),
     )

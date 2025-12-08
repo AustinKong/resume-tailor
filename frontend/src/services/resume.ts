@@ -21,8 +21,8 @@ export async function getResumeHtml(resumeId: string): Promise<string> {
   return data.html;
 }
 
-export async function createShellResume(listingId: string): Promise<Resume> {
-  const response = await fetch(`/api/resume/?listing_id=${listingId}`, {
+export async function createShellResume(applicationId: string): Promise<Resume> {
+  const response = await fetch(`/api/resume/?application_id=${applicationId}`, {
     method: 'POST',
   });
 

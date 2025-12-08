@@ -47,10 +47,10 @@ def create_tables():
     db.execute("""
       CREATE TABLE IF NOT EXISTS resumes (
         id TEXT PRIMARY KEY,
-        listing_id TEXT NOT NULL,
+        application_id TEXT NOT NULL,
         template TEXT NOT NULL,
         data JSON NOT NULL,
-        FOREIGN KEY (listing_id) REFERENCES listings (id) ON DELETE CASCADE
+        FOREIGN KEY (application_id) REFERENCES applications (id) ON DELETE CASCADE
       )
     """)
 
@@ -58,7 +58,9 @@ def create_tables():
       CREATE TABLE IF NOT EXISTS applications (
         id TEXT PRIMARY KEY,
         listing_id TEXT NOT NULL UNIQUE,
-        FOREIGN KEY (listing_id) REFERENCES listings (id) ON DELETE CASCADE
+        resume_id TEXT,
+        FOREIGN KEY (listing_id) REFERENCES listings (id) ON DELETE CASCADE,
+        FOREIGN KEY (resume_id) REFERENCES resumes (id) ON DELETE SET NULL
       )
     """)
 

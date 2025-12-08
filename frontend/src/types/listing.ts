@@ -11,7 +11,6 @@ export type Listing = {
   postedDate?: ISODate;
   skills: string[];
   requirements: string[];
-  resumeIds: string[];
 };
 
 export type ScrapeResult = {

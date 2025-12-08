@@ -15,4 +15,5 @@ def default_status_events():
 class Application(CamelModel):
   id: UUID = Field(default_factory=uuid4)
   listing: Listing
+  resume_id: UUID | None = None
   status_events: list[StatusEvent] = Field(default_factory=default_status_events)
