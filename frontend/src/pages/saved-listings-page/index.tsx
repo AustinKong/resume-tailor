@@ -31,17 +31,9 @@ const STATUS_CONFIG: Record<ApplicationStatus, { label: string; colorPalette: st
   rejected: { label: 'Rejected', colorPalette: 'red' },
 };
 
-// Helper function to get current status from status events
-function getCurrentStatus(application: Application): ApplicationStatus {
-  if (application.statusEvents.length === 0) return 'saved';
-
-  // Get the most recent status event
-  const latestEvent = application.statusEvents.reduce((latest, current) =>
-    new Date(current.createdAt) > new Date(latest.createdAt) ? current : latest
-  );
-
-  // Map backend status to frontend status
-  switch (latestEvent.status) {
+// Helper function to map backend status to frontend status
+function mapStatus(backendStatus: Application['currentStatus']): ApplicationStatus {
+  switch (backendStatus) {
     case 'SAVED':
       return 'saved';
     case 'APPLIED':
@@ -65,15 +57,17 @@ export default function SavedListingsPage() {
   const containerRef = useRef<HTMLDivElement>(null);
 
   // Fetch applications from API
-  const { data: applications = [], isLoading } = useQuery({
-    queryKey: ['applications'],
-    queryFn: getApplications,
-  });
+  const { data: page = { items: [], total: 0, page: 1, size: 10, pages: 0 }, isLoading } = useQuery(
+    {
+      queryKey: ['applications'],
+      queryFn: () => getApplications(),
+    }
+  );
 
   // Convert applications to the format expected by the UI
-  const listings: ApplicationWithStatus[] = applications.map((app) => ({
+  const listings: ApplicationWithStatus[] = page.items.map((app) => ({
     ...app,
-    status: getCurrentStatus(app),
+    status: mapStatus(app.currentStatus),
   }));
 
   if (isLoading) {

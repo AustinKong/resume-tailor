@@ -10,10 +10,14 @@ from app.schemas.types import CamelModel
 class StatusEnum(Enum):
   SAVED = 'SAVED'
   APPLIED = 'APPLIED'
+  SCREENING = 'SCREENING'
   INTERVIEW = 'INTERVIEW'
+  OFFER_RECEIVED = 'OFFER_RECEIVED'
   ACCEPTED = 'ACCEPTED'
   REJECTED = 'REJECTED'
   GHOSTED = 'GHOSTED'
+  WITHDRAWN = 'WITHDRAWN'
+  RESCINDED = 'RESCINDED'
 
 
 class StatusEvent(CamelModel):

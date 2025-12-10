@@ -63,9 +63,9 @@ class ApplicationsService(DatabaseRepository):
     page,
     size,
     search: str | None = None,
-    status: StatusEnum | None = None,
-    sort_by: Literal['title', 'company', 'date', 'last_updated', 'status'] = 'date',
-    sort_dir: Literal['asc', 'desc'] = 'desc',
+    status: list[StatusEnum] | None = None,
+    sort_by: Literal['title', 'company', 'posted_at', 'updated_at'] | None = None,
+    sort_dir: Literal['asc', 'desc'] | None = None,
   ) -> Page[Application]:
     offset = (page - 1) * size
 
@@ -78,20 +78,26 @@ class ApplicationsService(DatabaseRepository):
       params.extend([search_term, search_term, search_term])
 
     if status:
-      conditions.append('cs.status = ?')
-      params.append(status.value)
+      placeholders = ', '.join('?' for _ in status)
+      conditions.append(f'cs.status IN ({placeholders})')
+      params.extend([s.value for s in status])
 
     where_clause = f'WHERE {" AND ".join(conditions)}' if conditions else ''
 
     sort_map = {
       'title': 'l.title',
       'company': 'l.company',
-      'date': 'l.posted_date',
-      'last_updated': 'cs.created_at',
-      'status': 'cs.status',
+      'posted_at': 'l.posted_date',
+      'updated_at': 'cs.created_at',
     }
-    sql_sort_col = sort_map.get(sort_by, 'cs.created_at')
-    sql_sort_dir = 'ASC' if sort_dir == 'asc' else 'DESC'
+
+    if sort_by:
+      sql_sort_col = sort_map.get(sort_by, 'l.posted_date')
+      sql_sort_dir = 'ASC' if sort_dir == 'asc' else 'DESC'
+      order_by = f'{sql_sort_col} {sql_sort_dir}'
+    else:
+      # Order by id if no sorting is specified
+      order_by = 'a.id ASC'
 
     query = f"""
       WITH latest_events AS (
@@ -106,12 +112,14 @@ class ApplicationsService(DatabaseRepository):
         FROM status_events
       ),
       paginated_apps AS (
-        SELECT a.id
+        SELECT 
+          a.id,
+          ROW_NUMBER() OVER (ORDER BY {order_by}) as sort_rank
         FROM applications a
         JOIN listings l ON a.listing_id = l.id
         JOIN latest_events cs ON a.id = cs.application_id AND cs.rn = 1
         {where_clause}
-        ORDER BY {sql_sort_col} {sql_sort_dir}
+        ORDER BY sort_rank ASC
         LIMIT ? OFFSET ?
       )
       SELECT 
@@ -136,7 +144,7 @@ class ApplicationsService(DatabaseRepository):
       JOIN listings l ON a.listing_id = l.id
       JOIN status_events se ON a.id = se.application_id
       GROUP BY a.id, l.id
-      ORDER BY {sql_sort_col} {sql_sort_dir}
+      ORDER BY pa.sort_rank ASC
     """
 
     rows = self.fetch_all(query, tuple(params + [size, offset]))

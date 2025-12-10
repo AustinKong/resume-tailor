@@ -2,17 +2,32 @@ import type { ISODatetime } from '@/utils/date';
 
 import type { Listing } from './listing';
 
+export type StatusEnum =
+  | 'SAVED'
+  | 'APPLIED'
+  | 'SCREENING'
+  | 'INTERVIEW'
+  | 'OFFER_RECEIVED'
+  | 'ACCEPTED'
+  | 'REJECTED'
+  | 'GHOSTED'
+  | 'WITHDRAWN'
+  | 'RESCINDED';
+
 export type Application = {
   id: string;
   listing: Listing;
   resumeId?: string;
   statusEvents: StatusEvent[];
+  currentStatus: StatusEnum;
+  currentStage: number;
+  timeline: StatusEvent[];
 };
 
 export type StatusEvent = {
   id: string;
   applicationId: string;
-  status: 'SAVED' | 'APPLIED' | 'INTERVIEW' | 'ACCEPTED' | 'REJECTED' | 'GHOSTED';
+  status: StatusEnum;
   stage: number;
   createdAt: ISODatetime;
   notes?: string;
