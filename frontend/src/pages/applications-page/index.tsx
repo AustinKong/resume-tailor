@@ -435,6 +435,7 @@ function ApplicationsTable({
         isOpen={isDrawerOpen}
         onClose={onDrawerClose}
         selectedApplication={selectedApplication}
+        onApplicationUpdate={setSelectedApplication}
       />
     </Flex>
   );

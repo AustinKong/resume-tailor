@@ -141,7 +141,6 @@ async def update_resume(resume_id: UUID, data: ResumeData) -> Resume:
 
 @router.delete('/{resume_id}')
 async def delete_resume(resume_id: UUID):
-  """Delete a resume by ID."""
   resume_service.delete(resume_id)
   return {'message': 'Resume deleted successfully'}
 

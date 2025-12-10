@@ -1,4 +1,4 @@
-import type { Application, StatusEnum } from '@/types/application';
+import type { Application, StatusEnum, StatusEvent } from '@/types/application';
 import type { Page } from '@/types/common';
 
 export async function getApplications(
@@ -29,4 +29,24 @@ export async function getApplications(
 
   const json = await response.json();
   return json as Page<Application>;
+}
+
+export async function addStatusEvent(
+  applicationId: string,
+  statusEvent: Omit<StatusEvent, 'applicationId'>
+): Promise<Application> {
+  const response = await fetch(`/api/applications/${applicationId}/status-event`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(statusEvent),
+  });
+
+  if (!response.ok) {
+    throw new Error('Failed to add status event');
+  }
+
+  const json = await response.json();
+  return json as Application;
 }

@@ -11,53 +11,6 @@ class ApplicationsService(DatabaseRepository):
   def __init__(self, **kwargs):
     super().__init__(**kwargs)
 
-  # def list_all(self) -> list[Application]:
-  #   rows = self.fetch_all("""
-  #     SELECT
-  #       a.id as application_id,
-  #       a.resume_id,
-  #       l.id as listing_id, l.url, l.title, l.company, l.domain,
-  #       l.location, l.description, l.posted_date, l.skills, l.requirements,
-  #       COALESCE(
-  #         json_group_array(
-  #           json_object(
-  #             'id', se.id,
-  #             'applicationId', se.application_id,
-  #             'status', se.status,
-  #             'stage', se.stage,
-  #             'createdAt', se.created_at,
-  #             'notes', se.notes
-  #           )
-  #         ),
-  #         json_array()
-  #       ) as status_events_json
-  #     FROM applications a
-  #     JOIN listings l ON a.listing_id = l.id
-  #     LEFT JOIN status_events se ON a.id = se.application_id
-  #     GROUP BY a.id, l.id
-  #   """)
-
-  #   applications = []
-  #   for row in rows:
-  #     row_dict = dict(row)
-  #     status_events_json = row_dict.pop('status_events_json')
-  #     application_id = row_dict.pop('application_id')
-  #     resume_id = row_dict.pop('resume_id')
-
-  #     status_events = [
-  #       StatusEvent(**event) for event in json.loads(status_events_json) if event.get('id')
-  #     ]
-  #     applications.append(
-  #       Application(
-  #         id=application_id,
-  #         listing=Listing(**row_dict),
-  #         resume_id=resume_id,
-  #         status_events=status_events,
-  #       )
-  #     )
-
-  #   return applications
-
   def list_all(
     self,
     page,
@@ -316,7 +269,9 @@ class ApplicationsService(DatabaseRepository):
             str(status_event.id),
             str(application.id),
             status_event.status.value,
-            status_event.stage,
+            status_event.stage
+            if status_event.status in [StatusEnum.SCREENING, StatusEnum.INTERVIEW]
+            else 0,
             status_event.created_at,
             status_event.notes,
           ),
@@ -329,12 +284,23 @@ class ApplicationsService(DatabaseRepository):
     return application
 
   def update(self, application: Application) -> Application:
+    existing_event_ids = self.fetch_all(
+      'SELECT id FROM status_events WHERE application_id = ?', (str(application.id),)
+    )
+    existing_ids = {row['id'] for row in existing_event_ids}
+
     operations: list[tuple[str, tuple]] = [
       (
         'UPDATE applications SET resume_id = ? WHERE id = ?',
         (str(application.resume_id) if application.resume_id else None, str(application.id)),
       ),
-      ('DELETE FROM status_events WHERE application_id = ?', (str(application.id),)),
+    ]
+
+    # Status_events can only be added, not modified or deleted
+    new_status_events = [
+      status_event
+      for status_event in application.status_events
+      if str(status_event.id) not in existing_ids
     ]
 
     operations.extend(
@@ -346,12 +312,14 @@ class ApplicationsService(DatabaseRepository):
             str(status_event.id),
             str(application.id),
             status_event.status.value,
-            status_event.stage,
+            status_event.stage
+            if status_event.status in [StatusEnum.SCREENING, StatusEnum.INTERVIEW]
+            else 0,
             status_event.created_at,
             status_event.notes,
           ),
         )
-        for status_event in application.status_events
+        for status_event in new_status_events
       ]
     )
 
