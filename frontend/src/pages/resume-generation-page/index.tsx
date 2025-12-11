@@ -2,7 +2,7 @@ import { Button, DownloadTrigger, HStack, Splitter, VStack } from '@chakra-ui/re
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useRef, useState } from 'react';
 import { LuDownload } from 'react-icons/lu';
-import { useSearchParams } from 'react-router';
+import { useParams } from 'react-router';
 
 import { useDebouncedMutation } from '@/hooks/utils/useDebouncedMutation';
 import {
@@ -18,8 +18,7 @@ import Editor from './Editor';
 import Preview from './Preview';
 
 export default function ResumeGenerationPage() {
-  const [searchParams] = useSearchParams();
-  const resumeId = searchParams.get('resumeId');
+  const { resumeId } = useParams();
   const queryClient = useQueryClient();
 
   const [resumeData, setResumeData] = useState('');

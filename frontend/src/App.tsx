@@ -5,7 +5,6 @@ import { Toaster } from '@/components/ui/toaster';
 import ApplicationsPage from '@/pages/applications-page';
 import ProfilePage from '@/pages/profile-page';
 import ResumeGenerationPage from '@/pages/resume-generation-page';
-import SavedListingsPage from '@/pages/saved-listings-page';
 import ScrapingPage from '@/pages/scraping-page';
 
 function App() {
@@ -15,8 +14,7 @@ function App() {
         <Route element={<DashboardLayout />}>
           <Route path="profile" element={<ProfilePage />} />
           <Route path="scraping" element={<ScrapingPage />} />
-          <Route path="saved" element={<SavedListingsPage />} />
-          <Route path="resume-generation" element={<ResumeGenerationPage />} />
+          <Route path="resumes/:resumeId" element={<ResumeGenerationPage />} />
           <Route path="applications" element={<ApplicationsPage />} />
         </Route>
       </Routes>

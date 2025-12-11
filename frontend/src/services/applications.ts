@@ -33,7 +33,7 @@ export async function getApplications(
 
 export async function addStatusEvent(
   applicationId: string,
-  statusEvent: Omit<StatusEvent, 'applicationId'>
+  statusEvent: Omit<StatusEvent, 'applicationId' | 'id' | 'createdAt'>
 ): Promise<Application> {
   const response = await fetch(`/api/applications/${applicationId}/status-event`, {
     method: 'POST',

@@ -1,7 +1,7 @@
 import type { Resume, ResumeData } from '@/types/resume';
 
 export async function getResume(resumeId: string): Promise<Resume> {
-  const response = await fetch(`/api/resume/${resumeId}`);
+  const response = await fetch(`/api/resumes/${resumeId}`);
 
   if (!response.ok) {
     throw new Error('Failed to get resume');
@@ -11,7 +11,7 @@ export async function getResume(resumeId: string): Promise<Resume> {
 }
 
 export async function getResumeHtml(resumeId: string): Promise<string> {
-  const response = await fetch(`/api/resume/${resumeId}/html`);
+  const response = await fetch(`/api/resumes/${resumeId}/html`);
 
   if (!response.ok) {
     throw new Error('Failed to get resume HTML');
@@ -22,7 +22,7 @@ export async function getResumeHtml(resumeId: string): Promise<string> {
 }
 
 export async function createShellResume(applicationId: string): Promise<Resume> {
-  const response = await fetch(`/api/resume/?application_id=${applicationId}`, {
+  const response = await fetch(`/api/resumes/?application_id=${applicationId}`, {
     method: 'POST',
   });
 
@@ -34,7 +34,7 @@ export async function createShellResume(applicationId: string): Promise<Resume> 
 }
 
 export async function generateResumeContent(resumeId: string): Promise<Resume> {
-  const response = await fetch(`/api/resume/${resumeId}/generate`, {
+  const response = await fetch(`/api/resumes/${resumeId}/generate`, {
     method: 'POST',
   });
 
@@ -46,7 +46,7 @@ export async function generateResumeContent(resumeId: string): Promise<Resume> {
 }
 
 export async function updateResume(resumeId: string, data: ResumeData): Promise<Resume> {
-  const response = await fetch(`/api/resume/${resumeId}`, {
+  const response = await fetch(`/api/resumes/${resumeId}`, {
     method: 'PUT',
     headers: {
       'Content-Type': 'application/json',
@@ -62,7 +62,7 @@ export async function updateResume(resumeId: string, data: ResumeData): Promise<
 }
 
 export async function deleteResume(resumeId: string): Promise<void> {
-  const response = await fetch(`/api/resume/${resumeId}`, {
+  const response = await fetch(`/api/resumes/${resumeId}`, {
     method: 'DELETE',
   });
 
@@ -74,7 +74,7 @@ export async function deleteResume(resumeId: string): Promise<void> {
 export async function exportResumePdf(resumeId: string, latestData: ResumeData): Promise<Blob> {
   await updateResume(resumeId, latestData);
 
-  const response = await fetch(`/api/resume/${resumeId}/export`);
+  const response = await fetch(`/api/resumes/${resumeId}/export`);
 
   if (!response.ok) {
     throw new Error('Failed to export resume as PDF');

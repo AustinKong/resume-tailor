@@ -34,12 +34,13 @@ import {
   PiX,
   PiXCircle,
 } from 'react-icons/pi';
+import { useNavigate } from 'react-router';
 import { Link } from 'react-router';
 
 import CompanyLogo from '@/components/custom/CompanyLogo';
 import { addStatusEvent } from '@/services/applications';
+import { createShellResume } from '@/services/resume';
 import type { Application, StatusEnum } from '@/types/application';
-import type { ISODatetime } from '@/utils/date';
 
 interface ApplicationDrawerProps {
   isOpen: boolean;
@@ -71,21 +72,20 @@ export default function ApplicationDrawer({
   selectedApplication,
   onApplicationUpdate,
 }: ApplicationDrawerProps) {
+  console.log(selectedApplication?.timeline);
   const [selectedStatus, setSelectedStatus] = useState<string[]>([]);
   const [notes, setNotes] = useState<string>('');
   const [stage, setStage] = useState<string>('1');
+  const [isGenerating, setIsGenerating] = useState(false);
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
 
   const handleUpdate = async () => {
     if (!selectedApplication || !selectedStatus.length) return;
 
     const statusEvent = {
-      // FIXME: Weird how uuid generation is done client side
-      id: crypto.randomUUID(),
       status: selectedStatus[0] as StatusEnum,
       stage: parseInt(stage) || 0,
-      // FIXME: Same for client side date generation
-      createdAt: new Date().toISOString() as ISODatetime,
       notes: notes || undefined,
     };
 
@@ -101,7 +101,22 @@ export default function ApplicationDrawer({
       setStage('1');
     } catch (error) {
       console.error('Failed to update application:', error);
-      // TODO: Show error message
+    }
+  };
+
+  const handleGenerateResume = async () => {
+    if (!selectedApplication) return;
+    setIsGenerating(true);
+    try {
+      const resume = await createShellResume(selectedApplication.id);
+      // Invalidate applications to update resumeId
+      await queryClient.invalidateQueries({ queryKey: ['applications'] });
+      // Navigate to the new resume
+      navigate(`/resumes/${resume.id}`);
+    } catch (error) {
+      console.error('Failed to generate resume:', error);
+    } finally {
+      setIsGenerating(false);
     }
   };
 
@@ -218,40 +233,38 @@ export default function ApplicationDrawer({
             <HStack w="full" alignItems="stretch">
               {/* TODO: Update status */}
               <Timeline.Root size="sm" variant="solid" flex="0.8" ml="1">
-                {selectedApplication.statusEvents
-                  .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
-                  .map((event) => {
-                    const IconComponent = getStatusIcon(event.status);
+                {selectedApplication.timeline.map((event) => {
+                  const IconComponent = getStatusIcon(event.status);
 
-                    return (
-                      <Timeline.Item key={event.id}>
-                        <Timeline.Connector>
-                          <Timeline.Separator />
-                          <Timeline.Indicator>
-                            <IconComponent />
-                          </Timeline.Indicator>
-                        </Timeline.Connector>
-                        <Timeline.Content gap="0">
-                          <Timeline.Title>
-                            {event.status.replace('_', ' ')}
-                            {event.stage > 0 && ` ${event.stage}`}
-                          </Timeline.Title>
-                          <Timeline.Description>
-                            {new Date(event.createdAt).toLocaleDateString('en-US', {
-                              year: 'numeric',
-                              month: 'short',
-                              day: 'numeric',
-                            })}
-                          </Timeline.Description>
-                          {event.notes && (
-                            <Text textStyle="sm" color="fg.muted" mt={1}>
-                              {event.notes}
-                            </Text>
-                          )}
-                        </Timeline.Content>
-                      </Timeline.Item>
-                    );
-                  })}
+                  return (
+                    <Timeline.Item key={event.id}>
+                      <Timeline.Connector>
+                        <Timeline.Separator />
+                        <Timeline.Indicator>
+                          <IconComponent />
+                        </Timeline.Indicator>
+                      </Timeline.Connector>
+                      <Timeline.Content gap="0">
+                        <Timeline.Title>
+                          {event.status.replace('_', ' ')}
+                          {event.stage > 0 && ` ${event.stage}`}
+                        </Timeline.Title>
+                        <Timeline.Description>
+                          {new Date(event.createdAt).toLocaleDateString('en-US', {
+                            year: 'numeric',
+                            month: 'short',
+                            day: 'numeric',
+                          })}
+                        </Timeline.Description>
+                        {event.notes && (
+                          <Text textStyle="sm" color="fg.muted" mt={1}>
+                            {event.notes}
+                          </Text>
+                        )}
+                      </Timeline.Content>
+                    </Timeline.Item>
+                  );
+                })}
               </Timeline.Root>
               <VStack flex="1" align="stretch" justify="flex-start">
                 <Group attached>
@@ -318,12 +331,18 @@ export default function ApplicationDrawer({
                 </Button>
               </VStack>
             </HStack>
-            <Button asChild mt="4">
-              <Link to={`resumes/${selectedApplication.resumeId}`}>
-                <PiFile /> Resume
-              </Link>
-            </Button>
-            <Button asChild>
+            {selectedApplication.resumeId ? (
+              <Button asChild mt="4">
+                <Link to={`resumes/${selectedApplication.resumeId}`}>
+                  <PiFile /> Resume
+                </Link>
+              </Button>
+            ) : (
+              <Button mt="4" onClick={handleGenerateResume} loading={isGenerating}>
+                <PiFile /> Generate Resume
+              </Button>
+            )}
+            <Button asChild disabled>
               <Link to={`/404`}>
                 <PiFile /> Cover Letter
               </Link>

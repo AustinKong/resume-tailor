@@ -1,3 +1,4 @@
+from datetime import UTC, datetime
 from enum import Enum
 from uuid import UUID, uuid4
 
@@ -24,5 +25,5 @@ class StatusEvent(CamelModel):
   id: UUID = Field(default_factory=uuid4)
   status: StatusEnum
   stage: int
-  created_at: ISODatetime
+  created_at: ISODatetime = Field(default_factory=lambda: datetime.now(UTC))
   notes: str | None = None
