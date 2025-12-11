@@ -1,10 +1,21 @@
 import { Button, Field, Input, VStack } from '@chakra-ui/react';
+import { useState } from 'react';
 
 import BulletInput from '@/components/custom/BulletInput';
-import { useProfile } from '@/hooks/useProfile';
+import { useProfileMutations, useProfileQuery } from '@/hooks/profile';
+import type { Profile } from '@/types/profile';
 
-export default function PersonalInformation() {
-  const { profile, setProfileField, saveProfile } = useProfile();
+interface PersonalInformationProps {
+  initialData: Profile;
+}
+
+function PersonalInformationForm({ initialData }: PersonalInformationProps) {
+  const [formData, setFormData] = useState<Profile>(initialData);
+  const { updateProfile } = useProfileMutations();
+
+  const setFormField = (updates: Partial<Profile>) => {
+    setFormData((prev) => ({ ...prev, ...updates }));
+  };
 
   return (
     <VStack maxW="3xl" gap="4" alignItems="start">
@@ -14,8 +25,8 @@ export default function PersonalInformation() {
           <Field.RequiredIndicator />
         </Field.Label>
         <Input
-          value={profile.fullName ?? ''}
-          onChange={(e) => setProfileField({ fullName: e.target.value })}
+          value={formData.fullName ?? ''}
+          onChange={(e) => setFormField({ fullName: e.target.value })}
           required
         />
         <Field.HelperText>Your full legal name.</Field.HelperText>
@@ -27,8 +38,8 @@ export default function PersonalInformation() {
         </Field.Label>
         <Input
           type="email"
-          value={profile.email ?? ''}
-          onChange={(e) => setProfileField({ email: e.target.value })}
+          value={formData.email ?? ''}
+          onChange={(e) => setFormField({ email: e.target.value })}
           required
         />
         <Field.HelperText>Your primary email address.</Field.HelperText>
@@ -37,16 +48,16 @@ export default function PersonalInformation() {
         <Field.Label>Phone Number</Field.Label>
         <Input
           type="tel"
-          value={profile.phone ?? ''}
-          onChange={(e) => setProfileField({ phone: e.target.value })}
+          value={formData.phone ?? ''}
+          onChange={(e) => setFormField({ phone: e.target.value })}
         />
         <Field.HelperText>Your primary phone number.</Field.HelperText>
       </Field.Root>
       <Field.Root>
         <Field.Label>Location</Field.Label>
         <Input
-          value={profile.location ?? ''}
-          onChange={(e) => setProfileField({ location: e.target.value })}
+          value={formData.location ?? ''}
+          onChange={(e) => setFormField({ location: e.target.value })}
         />
         <Field.HelperText>Your location.</Field.HelperText>
       </Field.Root>
@@ -54,22 +65,32 @@ export default function PersonalInformation() {
         <Field.Label>Website</Field.Label>
         <Input
           type="url"
-          value={profile.website ?? ''}
-          onChange={(e) => setProfileField({ website: e.target.value })}
+          value={formData.website ?? ''}
+          onChange={(e) => setFormField({ website: e.target.value })}
         />
         <Field.HelperText>Your personal or professional website.</Field.HelperText>
       </Field.Root>
       <BulletInput
         label="Certifications"
-        bullets={profile.certifications}
-        onBulletsChange={(certifications) => setProfileField({ certifications })}
+        bullets={formData.certifications}
+        onBulletsChange={(certifications) => setFormField({ certifications })}
       />
       <BulletInput
         label="Awards"
-        bullets={profile.awards}
-        onBulletsChange={(awards) => setProfileField({ awards })}
+        bullets={formData.awards}
+        onBulletsChange={(awards) => setFormField({ awards })}
       />
-      <Button onClick={() => saveProfile()}>Save Changes</Button>
+      <Button onClick={() => updateProfile(formData)}>Save Changes</Button>
     </VStack>
   );
+}
+
+export default function PersonalInformation() {
+  const { profile, isLoading } = useProfileQuery();
+
+  if (isLoading || !profile) {
+    return <div>Loading...</div>;
+  }
+
+  return <PersonalInformationForm key={profile ? 'loaded' : 'loading'} initialData={profile} />;
 }

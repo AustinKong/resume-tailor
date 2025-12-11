@@ -9,27 +9,33 @@ import {
   Timeline,
   VStack,
 } from '@chakra-ui/react';
+import { useState } from 'react';
 import { PiAcorn, PiArrowSquareOut } from 'react-icons/pi';
 
 import BulletInput from '@/components/custom/BulletInput';
 import FloatingLabelInput from '@/components/custom/FloatingLabelInput';
-import { useProfile } from '@/hooks/useProfile';
-import { type Education, emptyEducation } from '@/types/profile';
+import { useProfileMutations, useProfileQuery } from '@/hooks/profile';
+import { type Education, emptyEducation, type Profile } from '@/types/profile';
 import { ISOYearMonth } from '@/utils/date';
 
-export default function Education() {
-  const { profile, isGetLoading, setProfileField, saveProfile } = useProfile();
+interface EducationFormProps {
+  initialData: Profile;
+}
 
-  const educations = profile.education || [];
+function EducationForm({ initialData }: EducationFormProps) {
+  const [formData, setFormData] = useState<Profile>(initialData);
+  const { updateProfile } = useProfileMutations();
 
-  if (isGetLoading) {
-    return <Text>Loading...</Text>;
-  }
+  const setFormField = (updates: Partial<Profile>) => {
+    setFormData((prev) => ({ ...prev, ...updates }));
+  };
+
+  const educations = formData.education || [];
 
   return (
     <HStack w="full" px="16" h="full">
       <Timeline.Root w="3xl" size="xl" variant="subtle">
-        {educations.map((education, index) => (
+        {educations.map((education: Education, index: number) => (
           <Timeline.Item key={index}>
             <Timeline.Connector>
               <Timeline.Separator />
@@ -41,7 +47,7 @@ export default function Education() {
               <Entry
                 education={education}
                 updateEducation={(updates) => {
-                  setProfileField({
+                  setFormField({
                     education: [
                       ...educations.slice(0, index),
                       { ...education, ...updates },
@@ -57,14 +63,14 @@ export default function Education() {
           variant="outline"
           w="full"
           onClick={() =>
-            setProfileField({
+            setFormField({
               education: [...educations, emptyEducation],
             })
           }
         >
           Add Education
         </Button>
-        <Button variant="solid" w="full" mt="8" onClick={() => saveProfile()}>
+        <Button variant="solid" w="full" mt="8" onClick={() => updateProfile(formData)}>
           Save Changes
         </Button>
       </Timeline.Root>
@@ -88,6 +94,16 @@ export default function Education() {
       </VStack>
     </HStack>
   );
+}
+
+export default function Education() {
+  const { profile, isLoading } = useProfileQuery();
+
+  if (isLoading || !profile) {
+    return <Text>Loading...</Text>;
+  }
+
+  return <EducationForm key={profile ? 'loaded' : 'loading'} initialData={profile} />;
 }
 
 function Entry({

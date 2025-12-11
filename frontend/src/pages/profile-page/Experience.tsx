@@ -1,9 +1,10 @@
 import { Button, Checkbox, Field, Heading, HStack, Link, Text, VStack } from '@chakra-ui/react';
+import { useState } from 'react';
 import { PiArrowSquareOut } from 'react-icons/pi';
 
 import BulletInput from '@/components/custom/BulletInput';
 import FloatingLabelInput from '@/components/custom/FloatingLabelInput';
-import { useExperiences } from '@/hooks/useExperiences';
+import { useExperienceMutations, useExperiencesQuery } from '@/hooks/experiences';
 import { emptyExperience, type Experience, type ExperienceType } from '@/types/experience';
 import { ISOYearMonth } from '@/utils/date';
 
@@ -15,15 +16,20 @@ const EXPERIENCE_TYPES: ExperienceType[] = [
   'Contract',
 ];
 
-export default function Experience() {
-  const { experiences, isGetLoading, saveExperience, setExperiences } = useExperiences();
+interface ExperienceFormProps {
+  initialData: Experience[];
+}
 
-  if (isGetLoading) {
-    return <Text>Loading...</Text>;
-  }
+function ExperienceForm({ initialData }: ExperienceFormProps) {
+  const [formData, setFormData] = useState<Experience[]>(initialData);
+  const { updateExperiences } = useExperienceMutations();
+
+  const setExperiences = (updater: Experience[] | ((prev: Experience[]) => Experience[])) => {
+    setFormData(typeof updater === 'function' ? updater : updater);
+  };
 
   // Group experiences by type
-  const grouped = experiences.reduce(
+  const grouped = formData.reduce(
     (acc, exp) => {
       if (!acc[exp.type]) acc[exp.type] = [];
       acc[exp.type].push(exp);
@@ -65,7 +71,7 @@ export default function Experience() {
             </Button>
           </VStack>
         ))}
-        <Button variant="solid" w="full" mt="8" onClick={() => saveExperience()}>
+        <Button variant="solid" w="full" mt="8" onClick={() => updateExperiences(formData)}>
           Save Changes
         </Button>
       </VStack>
@@ -89,6 +95,16 @@ export default function Experience() {
       </VStack>
     </HStack>
   );
+}
+
+export default function Experience() {
+  const { experiences, isLoading } = useExperiencesQuery();
+
+  if (isLoading || !experiences) {
+    return <Text>Loading...</Text>;
+  }
+
+  return <ExperienceForm key={experiences.length} initialData={experiences} />;
 }
 
 function Entry({

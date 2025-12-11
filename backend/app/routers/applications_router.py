@@ -26,6 +26,12 @@ async def get_applications(
   return applications
 
 
+@router.get('/{id}', response_model=Application)
+async def get_application(id: UUID):
+  application = applications_service.get(id)
+  return application
+
+
 @router.post('/{id}/status-event', response_model=Application)
 async def add_status_event(id: UUID, status_event: StatusEvent):
   application = applications_service.get(id)

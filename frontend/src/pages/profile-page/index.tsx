@@ -10,6 +10,10 @@ const TABS = [
   { label: 'Experience', value: 'experience', page: <Experience /> },
 ];
 
+// TODO: The forms are pretty shit right now. either:
+// A) Continue using key resetting: https://react.dev/learn/preserving-and-resetting-state
+// B) Use RHF + Controllers to manage form state instead
+// Either way, the entire profile page needs to be redone
 export default function ProfilePage() {
   return (
     <Tabs.Root defaultValue="personal" w="full">

@@ -1,3 +1,4 @@
+import type { ListCollection } from '@chakra-ui/react';
 import {
   Box,
   Button,
@@ -18,97 +19,210 @@ import {
   Timeline,
   VStack,
 } from '@chakra-ui/react';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { useQueryClient } from '@tanstack/react-query';
+import React from 'react';
 import { useState } from 'react';
-import {
-  PiArrowLeft,
-  PiBookmarkSimple,
-  PiCheck,
-  PiCheckCircle,
-  PiEye,
-  PiFile,
-  PiGhost,
-  PiHandHeart,
-  PiMicrophone,
-  PiPaperPlaneTilt,
-  PiX,
-  PiXCircle,
-} from 'react-icons/pi';
+import { Controller, useForm } from 'react-hook-form';
+import { PiCheck, PiFile } from 'react-icons/pi';
 import { useNavigate } from 'react-router';
 import { Link } from 'react-router';
+import { z } from 'zod';
 
 import CompanyLogo from '@/components/custom/CompanyLogo';
-import { addStatusEvent } from '@/services/applications';
+import { STATUS_DEFINITIONS, STATUS_OPTIONS } from '@/constants/statuses';
+import { useApplicationMutations, useApplicationQuery } from '@/hooks/applications';
 import { createShellResume } from '@/services/resume';
-import type { Application, StatusEnum } from '@/types/application';
+import type { StatusEnum } from '@/types/application';
 
-interface ApplicationDrawerProps {
-  isOpen: boolean;
-  onClose: () => void;
-  selectedApplication: Application | null;
-  onApplicationUpdate?: (application: Application) => void;
-}
+const timelineSchema = z.object({
+  status: z.array(z.string()).min(1, 'Status is required'),
+  stage: z.number().min(0),
+  notes: z.string().optional(),
+});
 
-function getStatusIcon(status: StatusEnum) {
-  const iconMap = {
-    SAVED: PiBookmarkSimple,
-    APPLIED: PiPaperPlaneTilt,
-    SCREENING: PiEye,
-    INTERVIEW: PiMicrophone,
-    OFFER_RECEIVED: PiHandHeart,
-    ACCEPTED: PiCheckCircle,
-    REJECTED: PiXCircle,
-    GHOSTED: PiGhost,
-    WITHDRAWN: PiArrowLeft,
-    RESCINDED: PiX,
+type TimelineFormValues = z.infer<typeof timelineSchema>;
+
+// TODO: Instead of selectedApplication being an object, make it an ID + useMemo instead so the onApplicationUpdate doesn't need to be passed into here
+function TimelineEditor({
+  selectedApplicationId,
+  statuses,
+}: {
+  selectedApplicationId: string | null;
+  statuses: ListCollection<{ value: StatusEnum; label: string; icon: React.ComponentType }>;
+}) {
+  const { application: selectedApplication } = useApplicationQuery(selectedApplicationId);
+  const { updateApplicationStatus, isUpdateLoading } = useApplicationMutations();
+
+  const { handleSubmit, reset, watch, control, register, setValue } = useForm<TimelineFormValues>({
+    resolver: zodResolver(timelineSchema),
+    defaultValues: {
+      status: [],
+      stage: 1,
+      notes: '',
+    },
+  });
+
+  const onSubmit = async (data: TimelineFormValues) => {
+    if (!selectedApplication) return;
+
+    const statusEvent = {
+      status: data.status[0] as StatusEnum,
+      stage: data.stage,
+      notes: data.notes,
+    };
+
+    await updateApplicationStatus({
+      applicationId: selectedApplication.id,
+      statusEvent,
+    });
+
+    reset({ status: [], stage: 1, notes: '' });
   };
-  return iconMap[status];
+
+  const currentStatus = watch('status')?.[0];
+  const isStageable = currentStatus === 'SCREENING' || currentStatus === 'INTERVIEW';
+  const minStage = isStageable ? 1 : 0;
+  const maxStage = isStageable ? { SCREENING: 19, INTERVIEW: 39 }[currentStatus] : 0;
+
+  return (
+    <HStack w="full" alignItems="stretch">
+      <Timeline.Root size="sm" variant="solid" flex="0.8" ml="1">
+        {selectedApplication?.timeline.map((event) => {
+          const IconComponent = STATUS_DEFINITIONS[event.status].icon;
+
+          return (
+            <Timeline.Item key={event.id}>
+              <Timeline.Connector>
+                <Timeline.Separator />
+                <Timeline.Indicator>
+                  <IconComponent />
+                </Timeline.Indicator>
+              </Timeline.Connector>
+              <Timeline.Content gap="0">
+                <Timeline.Title>
+                  {event.status.replace('_', ' ')}
+                  {event.stage > 0 && ` ${event.stage}`}
+                </Timeline.Title>
+                <Timeline.Description>
+                  {new Date(event.createdAt).toLocaleDateString('en-US', {
+                    year: 'numeric',
+                    month: 'short',
+                    day: 'numeric',
+                  })}
+                </Timeline.Description>
+                {event.notes && (
+                  <Text textStyle="sm" color="fg.muted" mt={1}>
+                    {event.notes}
+                  </Text>
+                )}
+              </Timeline.Content>
+            </Timeline.Item>
+          );
+        })}
+      </Timeline.Root>
+
+      <VStack
+        flex="1"
+        align="stretch"
+        justify="flex-start"
+        as="form"
+        onSubmit={handleSubmit(onSubmit)}
+      >
+        <Group attached>
+          <Controller
+            control={control}
+            name="status"
+            render={({ field }) => (
+              <Select.Root
+                name={field.name}
+                value={field.value}
+                onValueChange={({ value }) => {
+                  field.onChange(value);
+                  setValue('stage', 1);
+                }}
+                onInteractOutside={() => field.onBlur()}
+                collection={statuses}
+              >
+                <Select.HiddenSelect />
+                <Select.Control>
+                  <Select.Trigger>
+                    <Select.ValueText placeholder="Update status" />
+                  </Select.Trigger>
+                  <Select.IndicatorGroup>
+                    <Select.Indicator />
+                  </Select.IndicatorGroup>
+                </Select.Control>
+                <Portal>
+                  <Select.Positioner>
+                    <Select.Content>
+                      {statuses.items.map((status) => (
+                        <Select.Item item={status} key={status.value}>
+                          {status.label}
+                          <Select.ItemIndicator />
+                        </Select.Item>
+                      ))}
+                    </Select.Content>
+                  </Select.Positioner>
+                </Portal>
+              </Select.Root>
+            )}
+          />
+
+          <Controller
+            name="stage"
+            control={control}
+            disabled={!isStageable}
+            render={({ field }) => (
+              <NumberInput.Root
+                name={field.name}
+                value={field.value.toString()}
+                onValueChange={({ value }) => field.onChange(Number(value))}
+                disabled={field.disabled}
+                min={minStage}
+                max={maxStage}
+                w="32"
+              >
+                <NumberInput.Control />
+                <NumberInput.Input />
+              </NumberInput.Root>
+            )}
+          />
+        </Group>
+
+        <Textarea placeholder="Add notes" {...register('notes')} autoresize />
+
+        <Button type="submit" disabled={!currentStatus} loading={isUpdateLoading}>
+          <PiCheck /> Update Application
+        </Button>
+      </VStack>
+    </HStack>
+  );
 }
 
+// TODO: This page is checking in progress.  Others withint the same folder are DONE
 // FIXME: Timeline array is probably wrong
-export default function ApplicationDrawer({
+// TODO: Show a skeletong instead of the entire drawer dissapearing when selectedApplicationid is null
+// Observe that rn when u collapse the drawer, it becomes blank while closing. Using skeletongs we can fix this
+export default function Drawer({
   isOpen,
   onClose,
-  selectedApplication,
-  onApplicationUpdate,
-}: ApplicationDrawerProps) {
-  console.log(selectedApplication?.timeline);
-  const [selectedStatus, setSelectedStatus] = useState<string[]>([]);
-  const [notes, setNotes] = useState<string>('');
-  const [stage, setStage] = useState<string>('1');
+  selectedApplicationId,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  selectedApplicationId: string | null;
+}) {
+  const { application } = useApplicationQuery(selectedApplicationId);
   const [isGenerating, setIsGenerating] = useState(false);
   const queryClient = useQueryClient();
   const navigate = useNavigate();
 
-  const handleUpdate = async () => {
-    if (!selectedApplication || !selectedStatus.length) return;
-
-    const statusEvent = {
-      status: selectedStatus[0] as StatusEnum,
-      stage: parseInt(stage) || 0,
-      notes: notes || undefined,
-    };
-
-    try {
-      const updatedApplication = await addStatusEvent(selectedApplication.id, statusEvent);
-      // Invalidate and refetch applications query
-      await queryClient.invalidateQueries({ queryKey: ['applications'] });
-      // Update the selected application in the parent component
-      onApplicationUpdate?.(updatedApplication);
-      // Clear the input fields
-      setSelectedStatus([]);
-      setNotes('');
-      setStage('1');
-    } catch (error) {
-      console.error('Failed to update application:', error);
-    }
-  };
-
   const handleGenerateResume = async () => {
-    if (!selectedApplication) return;
+    if (!application) return;
     setIsGenerating(true);
     try {
-      const resume = await createShellResume(selectedApplication.id);
+      const resume = await createShellResume(application.id);
       // Invalidate applications to update resumeId
       await queryClient.invalidateQueries({ queryKey: ['applications'] });
       // Navigate to the new resume
@@ -122,25 +236,24 @@ export default function ApplicationDrawer({
 
   // TODO: I wonder if its possible conditionally show users if they are "undoing" or "updating"
   const statuses = createListCollection({
-    items: [
-      { label: 'Saved', value: 'SAVED' },
-      { label: 'Applied', value: 'APPLIED' },
-      { label: 'Screening', value: 'SCREENING' },
-      { label: 'Interview', value: 'INTERVIEW' },
-      { label: 'Offer Received', value: 'OFFER_RECEIVED' },
-      { label: 'Accepted', value: 'ACCEPTED' },
-      { label: 'Rejected', value: 'REJECTED' },
-      { label: 'Ghosted', value: 'GHOSTED' },
-      { label: 'Withdrawn', value: 'WITHDRAWN' },
-      { label: 'Rescinded', value: 'RESCINDED' },
-    ],
+    items: STATUS_OPTIONS,
   });
+
+  const listingData = application
+    ? [
+        { label: 'Role', value: application.listing.title },
+        { label: 'Location', value: application.listing.location },
+        { label: 'Posted', value: application.listing.postedDate },
+        { label: 'Skills', value: application.listing.skills.join(', ') },
+      ]
+    : [];
 
   return (
     <Box
+      h="full"
       w={isOpen ? 'lg' : '0'}
       transitionProperty="width"
-      transitionDuration="slow"
+      transitionDuration="moderate"
       transitionTimingFunction="ease-out"
       overflow="hidden"
       borderLeft={isOpen ? '1px solid' : 'none'}
@@ -149,26 +262,26 @@ export default function ApplicationDrawer({
       overflowY="auto"
     >
       {/* Need to do this weird asf thing to make it animate properly */}
-      {selectedApplication && (
+      {application && (
         <VStack w="lg" p={4} alignItems="stretch" gap="4">
           <HStack gap="3" alignItems="start">
             <CompanyLogo
-              domain={selectedApplication.listing.domain}
-              companyName={selectedApplication.listing.company}
+              domain={application.listing.domain}
+              companyName={application.listing.company}
               size="xl"
             />
             <VStack alignItems="start" gap="0" flex="1">
               <Text fontSize="xl" fontWeight="bold" lineHeight="shorter">
-                {selectedApplication.listing.company}
+                {application.listing.company}
               </Text>
               <ChakraLink
-                href={selectedApplication.listing.url}
+                href={application.listing.url}
                 variant="underline"
                 fontSize="sm"
                 target="_blank"
                 color="fg.info"
               >
-                {selectedApplication.listing.url}
+                {application.listing.url}
               </ChakraLink>
             </VStack>
             <CloseButton onClick={onClose} size="sm" />
@@ -177,45 +290,24 @@ export default function ApplicationDrawer({
           <VStack align="stretch">
             <Heading size="md">About the Role</Heading>
             <DataList.Root orientation="horizontal" w="full" gap="2" size="lg">
-              <DataList.Item>
-                <DataList.ItemLabel>Role</DataList.ItemLabel>
-                <DataList.ItemValue>{selectedApplication.listing.title}</DataList.ItemValue>
-              </DataList.Item>
-              <DataList.Item>
-                <DataList.ItemLabel>Location</DataList.ItemLabel>
-                <DataList.ItemValue>{selectedApplication.listing.location}</DataList.ItemValue>
-              </DataList.Item>
-              <DataList.Item>
-                <DataList.ItemLabel>Posted</DataList.ItemLabel>
-                <DataList.ItemValue>{selectedApplication.listing.postedDate}</DataList.ItemValue>
-              </DataList.Item>
-              <DataList.Item>
-                <DataList.ItemLabel>Skills</DataList.ItemLabel>
-                <DataList.ItemValue>
-                  {selectedApplication.listing.skills.join(', ')}
-                </DataList.ItemValue>
-              </DataList.Item>
-              {/* <DataList.Item>
-                <DataList.ItemLabel>Status</DataList.ItemLabel>
-                <DataList.ItemValue>
-                  <StatusBadge
-                    status={selectedApplication.currentStatus}
-                    stage={selectedApplication.currentStage}
-                  />
-                </DataList.ItemValue>
-              </DataList.Item> */}
+              {listingData.map((item) => (
+                <DataList.Item key={item.label}>
+                  <DataList.ItemLabel>{item.label}</DataList.ItemLabel>
+                  <DataList.ItemValue>{item.value}</DataList.ItemValue>
+                </DataList.Item>
+              ))}
             </DataList.Root>
           </VStack>
 
           <VStack align="stretch">
             <Heading size="md">Description</Heading>
-            <Text color="fg.muted">{selectedApplication.listing.description}</Text>
+            <Text color="fg.muted">{application.listing.description}</Text>
           </VStack>
 
           <VStack align="stretch">
             <Heading size="md">Requirements</Heading>
             <List.Root variant="plain">
-              {selectedApplication.listing.requirements.map((req, index) => (
+              {application.listing.requirements.map((req, index) => (
                 <List.Item key={index}>
                   <List.Indicator asChild color="green">
                     <PiCheck />
@@ -230,110 +322,10 @@ export default function ApplicationDrawer({
 
           <VStack align="stretch">
             <Heading size="md">Your Application</Heading>
-            <HStack w="full" alignItems="stretch">
-              {/* TODO: Update status */}
-              <Timeline.Root size="sm" variant="solid" flex="0.8" ml="1">
-                {selectedApplication.timeline.map((event) => {
-                  const IconComponent = getStatusIcon(event.status);
-
-                  return (
-                    <Timeline.Item key={event.id}>
-                      <Timeline.Connector>
-                        <Timeline.Separator />
-                        <Timeline.Indicator>
-                          <IconComponent />
-                        </Timeline.Indicator>
-                      </Timeline.Connector>
-                      <Timeline.Content gap="0">
-                        <Timeline.Title>
-                          {event.status.replace('_', ' ')}
-                          {event.stage > 0 && ` ${event.stage}`}
-                        </Timeline.Title>
-                        <Timeline.Description>
-                          {new Date(event.createdAt).toLocaleDateString('en-US', {
-                            year: 'numeric',
-                            month: 'short',
-                            day: 'numeric',
-                          })}
-                        </Timeline.Description>
-                        {event.notes && (
-                          <Text textStyle="sm" color="fg.muted" mt={1}>
-                            {event.notes}
-                          </Text>
-                        )}
-                      </Timeline.Content>
-                    </Timeline.Item>
-                  );
-                })}
-              </Timeline.Root>
-              <VStack flex="1" align="stretch" justify="flex-start">
-                <Group attached>
-                  <Select.Root
-                    collection={statuses}
-                    value={selectedStatus}
-                    onValueChange={(e) => setSelectedStatus(e.value)}
-                  >
-                    <Select.HiddenSelect />
-                    <Select.Control>
-                      <Select.Trigger>
-                        <Select.ValueText placeholder="Update status" />
-                      </Select.Trigger>
-                      <Select.IndicatorGroup>
-                        <Select.Indicator />
-                      </Select.IndicatorGroup>
-                    </Select.Control>
-                    <Portal>
-                      <Select.Positioner>
-                        <Select.Content>
-                          {statuses.items.map((status) => (
-                            <Select.Item item={status} key={status.value}>
-                              {status.label}
-                              <Select.ItemIndicator />
-                            </Select.Item>
-                          ))}
-                        </Select.Content>
-                      </Select.Positioner>
-                    </Portal>
-                  </Select.Root>
-                  <NumberInput.Root
-                    value={stage}
-                    onValueChange={(e) => setStage(e.value)}
-                    disabled={
-                      !selectedStatus.length ||
-                      (selectedStatus[0] !== 'SCREENING' && selectedStatus[0] !== 'INTERVIEW')
-                    }
-                    min={
-                      selectedStatus[0] === 'SCREENING' || selectedStatus[0] === 'INTERVIEW' ? 1 : 0
-                    }
-                    max={
-                      selectedStatus[0] === 'SCREENING'
-                        ? 19
-                        : selectedStatus[0] === 'INTERVIEW'
-                          ? 39
-                          : 1
-                    }
-                    w="32"
-                  >
-                    <NumberInput.Control />
-                    <NumberInput.Input />
-                  </NumberInput.Root>
-                </Group>
-                {/* TODO: Disabled until selected a status */}
-                <Textarea
-                  placeholder="Add notes"
-                  autoresize
-                  disabled={!selectedStatus.length}
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                />
-                <Button disabled={!selectedStatus.length} onClick={handleUpdate}>
-                  <PiCheck /> Update Application
-                </Button>
-              </VStack>
-            </HStack>
-            {selectedApplication.resumeId ? (
+            <TimelineEditor selectedApplicationId={application?.id ?? null} statuses={statuses} />
+            {application.resumeId ? (
               <Button asChild mt="4">
-                <Link to={`resumes/${selectedApplication.resumeId}`}>
+                <Link to={`resumes/${application.resumeId}`}>
                   <PiFile /> Resume
                 </Link>
               </Button>

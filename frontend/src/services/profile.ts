@@ -1,6 +1,6 @@
 import { type Profile } from '@/types/profile';
 
-export async function getProfile() {
+export async function getProfile(): Promise<Profile> {
   const response = await fetch(`/api/profile`);
 
   if (!response.ok) {
