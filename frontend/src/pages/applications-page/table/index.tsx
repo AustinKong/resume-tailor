@@ -6,11 +6,13 @@ import {
   type SortingState,
   useReactTable,
 } from '@tanstack/react-table';
-import React from 'react';
+import React, { useCallback } from 'react';
 
 import CompanyLogo from '@/components/custom/CompanyLogo';
 import DisplayDate from '@/components/custom/DisplayDate';
 import { STATUS_DEFINITIONS } from '@/constants/statuses';
+import { useApplicationsQuery } from '@/hooks/applications';
+import { type ParamHandler, useUrlSyncedState } from '@/hooks/utils/useUrlSyncedState';
 import type { Application, StatusEnum } from '@/types/application';
 
 import StatusFilterMenu from './StatusFilterMenu';
@@ -24,6 +26,21 @@ interface TableMetaType {
 }
 
 const columnHelper = createColumnHelper<Application>();
+
+const tableSortHandler: ParamHandler<SortingState> = {
+  serialize: (v: SortingState) => {
+    const sort = v[0];
+    if (!sort) return null;
+    return `${sort.id}:${sort.desc ? 'desc' : 'asc'}`;
+  },
+  deserialize: (params: URLSearchParams, key: string) => {
+    const val = params.get(key);
+    if (!val) return [];
+
+    const [id, desc] = val.split(':');
+    return [{ id, desc: desc === 'desc' }];
+  },
+};
 
 const columns = [
   columnHelper.accessor('listing.company', {
@@ -94,44 +111,54 @@ const columns = [
 ];
 
 function Table({
-  data,
-  fetchNextPage,
-  hasNextPage,
-  isLoading,
+  debouncedSearch,
   onRowClick,
   onRowHover,
-  sorting,
-  setSorting,
-  onStatusesChange,
-  statuses,
 }: {
-  data: Application[];
-  fetchNextPage: () => void;
-  hasNextPage: boolean;
-  isLoading: boolean;
+  debouncedSearch: string;
   onRowClick: (application: Application) => void;
   onRowHover: (id: string) => void;
-  sorting: SortingState;
-  setSorting: OnChangeFn<SortingState>;
-  onStatusesChange: (statuses: StatusEnum[]) => void;
-  statuses: StatusEnum[];
 }) {
+  const [sorting, setSorting] = useUrlSyncedState<SortingState>('sort', [], {
+    custom: tableSortHandler,
+  });
+  const [statuses, setStatuses] = useUrlSyncedState('status', [], { type: 'ARRAY' });
+
+  const sortBy = sorting[0]?.id || '';
+  const sortOrder = sorting[0]?.desc ? 'desc' : 'asc';
+
+  const handleSortingChange: OnChangeFn<SortingState> = useCallback(
+    (updaterOrValue) => {
+      const newSorting =
+        typeof updaterOrValue === 'function' ? updaterOrValue(sorting) : updaterOrValue;
+      setSorting(newSorting);
+    },
+    [setSorting, sorting]
+  );
+
+  const { applications, fetchNextPage, hasNextPage, isLoading } = useApplicationsQuery({
+    search: debouncedSearch,
+    sortBy: sortBy as 'title' | 'company' | 'posted_at' | 'updated_at',
+    sortOrder: sortOrder as 'asc' | 'desc',
+    statuses: statuses as StatusEnum[],
+  });
+
   const table = useReactTable({
-    data,
+    data: applications,
     columns,
     getCoreRowModel: getCoreRowModel(),
     state: {
       sorting,
     },
-    onSortingChange: setSorting,
+    onSortingChange: handleSortingChange,
     manualSorting: true,
     defaultColumn: {
       minSize: 0,
       size: 0,
     },
     meta: {
-      onStatusesChange,
-      statuses,
+      onStatusesChange: setStatuses,
+      statuses: statuses as StatusEnum[],
     },
   });
 
