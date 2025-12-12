@@ -1,23 +1,21 @@
-import { Badge, Center, HStack, Spinner, Table as ChakraTable, Text } from '@chakra-ui/react';
+import { Badge, HStack, Table as ChakraTable, Text } from '@chakra-ui/react';
 import {
   createColumnHelper,
-  flexRender,
   getCoreRowModel,
   type OnChangeFn,
-  type Row,
   type SortingState,
   useReactTable,
 } from '@tanstack/react-table';
-import { useEffect } from 'react';
 import React from 'react';
-import { PiCaretDown, PiCaretUp, PiCaretUpDown } from 'react-icons/pi';
-import { useInView } from 'react-intersection-observer';
 
 import CompanyLogo from '@/components/custom/CompanyLogo';
 import { STATUS_DEFINITIONS } from '@/constants/statuses';
 import type { Application, StatusEnum } from '@/types/application';
 
-import StatusFilterMenu from './StatusFilter';
+import StatusFilterMenu from './StatusFilterMenu';
+import TableFooter from './TableFooter';
+import TableHeader from './TableHeader';
+import TableRow from './TableRow';
 
 interface TableMetaType {
   onStatusesChange: (statuses: StatusEnum[]) => void;
@@ -93,112 +91,6 @@ const columns = [
     sortDescFirst: false,
   }),
 ];
-
-function TableHeader({ table }: { table: ReturnType<typeof useReactTable<Application>> }) {
-  return (
-    <ChakraTable.Header>
-      {table.getHeaderGroups().map((headerGroup) => (
-        <ChakraTable.Row key={headerGroup.id} bg="bg.subtle">
-          {headerGroup.headers.map((header) => {
-            const canSort = header.column.getCanSort();
-            return (
-              <ChakraTable.ColumnHeader
-                key={header.id}
-                whiteSpace="nowrap"
-                textOverflow="ellipsis"
-                overflow="hidden"
-              >
-                <HStack
-                  alignItems="center"
-                  userSelect="none"
-                  cursor={canSort ? 'pointer' : 'default'}
-                  onClick={header.column.getToggleSortingHandler()}
-                  display="inline-flex"
-                >
-                  {header.isPlaceholder
-                    ? null
-                    : flexRender(header.column.columnDef.header, header.getContext())}
-
-                  {header.column.getCanSort() &&
-                    ({
-                      asc: <PiCaretUp />,
-                      desc: <PiCaretDown />,
-                    }[header.column.getIsSorted() as string] ?? <PiCaretUpDown />)}
-                </HStack>
-              </ChakraTable.ColumnHeader>
-            );
-          })}
-        </ChakraTable.Row>
-      ))}
-    </ChakraTable.Header>
-  );
-}
-
-function TableRow({
-  row,
-  onRowClick,
-  onRowHover,
-}: {
-  row: Row<Application>;
-  onRowClick: () => void;
-  onRowHover: () => void;
-}) {
-  return (
-    <ChakraTable.Row
-      cursor="pointer"
-      _hover={{ bg: 'bg.subtle' }}
-      onClick={onRowClick}
-      onMouseEnter={onRowHover}
-    >
-      {row.getVisibleCells().map((cell) => (
-        <ChakraTable.Cell
-          key={cell.id}
-          whiteSpace="nowrap"
-          textOverflow="ellipsis"
-          overflow="hidden"
-        >
-          {flexRender(cell.column.columnDef.cell, cell.getContext())}
-        </ChakraTable.Cell>
-      ))}
-    </ChakraTable.Row>
-  );
-}
-
-function TableFooter({
-  onFetchNext,
-  hasNextPage,
-  isLoading,
-}: {
-  onFetchNext: () => void;
-  hasNextPage: boolean;
-  isLoading: boolean;
-}) {
-  const { ref, inView } = useInView({
-    rootMargin: '200px',
-  });
-
-  useEffect(() => {
-    if (inView && hasNextPage && !isLoading) {
-      onFetchNext();
-    }
-  }, [inView, hasNextPage, isLoading, onFetchNext]);
-
-  return (
-    <ChakraTable.Row>
-      <ChakraTable.Cell colSpan={columns.length} p="0">
-        <Center ref={ref} h="10">
-          {isLoading && <Spinner size="sm" />}
-
-          {!hasNextPage && !isLoading && (
-            <Text fontSize="xs" color="fg.subtle">
-              No more applications
-            </Text>
-          )}
-        </Center>
-      </ChakraTable.Cell>
-    </ChakraTable.Row>
-  );
-}
 
 function Table({
   data,

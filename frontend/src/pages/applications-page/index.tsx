@@ -9,8 +9,8 @@ import { type ParamHandler, useUrlSyncedState } from '@/hooks/utils/useUrlSynced
 import { getApplication } from '@/services/applications';
 import type { Application, StatusEnum } from '@/types/application';
 
-import Drawer from './Drawer';
-import Table from './Table';
+import Drawer from './drawer';
+import Table from './table';
 import Toolbar from './Toolbar';
 
 // Define handler here to ensure referential stability
@@ -80,7 +80,7 @@ export default function ApplicationsPage() {
     [setSorting, sorting]
   );
 
-  const { flatData, fetchNextPage, hasNextPage, isGetLoading } = useApplicationsQuery({
+  const { applications, fetchNextPage, hasNextPage, isLoading } = useApplicationsQuery({
     search: debouncedSearchInput,
     sortBy: sortBy as 'title' | 'company' | 'posted_at' | 'updated_at',
     sortOrder: sortOrder as 'asc' | 'desc',
@@ -92,10 +92,10 @@ export default function ApplicationsPage() {
       <Toolbar searchInput={searchInput} onSearchChange={setSearchInput} />
       <HStack flex="1" overflow="hidden" gap="0">
         <Table
-          data={flatData}
+          data={applications}
           fetchNextPage={fetchNextPage}
           hasNextPage={hasNextPage}
-          isLoading={isGetLoading}
+          isLoading={isLoading}
           onRowClick={handleRowClick}
           onRowHover={handleRowHover}
           sorting={sorting}

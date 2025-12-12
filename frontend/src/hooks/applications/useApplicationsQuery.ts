@@ -17,40 +17,33 @@ export function useApplicationsQuery({
   statuses?: StatusEnum[];
   pageSize?: number;
 } = {}) {
-  const {
-    data,
-    fetchNextPage,
-    hasNextPage,
-    isFetchingNextPage,
-    isLoading: isGetLoading,
-    isError: isGetError,
-  } = useInfiniteQuery({
-    queryKey: ['applications', search, sortBy, sortOrder, statuses],
-    initialPageParam: 1,
-    queryFn: ({ pageParam }) =>
-      getApplications(
-        pageParam,
-        pageSize,
-        search,
-        statuses?.length ? statuses : undefined,
-        sortBy,
-        sortOrder
-      ),
-    getNextPageParam: (lastPage) => {
-      if (lastPage.page < lastPage.pages) return lastPage.page + 1;
-      return undefined;
-    },
-  });
+  const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading, isError } =
+    useInfiniteQuery({
+      queryKey: ['applications', search, sortBy, sortOrder, statuses],
+      initialPageParam: 1,
+      queryFn: ({ pageParam }) =>
+        getApplications(
+          pageParam,
+          pageSize,
+          search,
+          statuses?.length ? statuses : undefined,
+          sortBy,
+          sortOrder
+        ),
+      getNextPageParam: (lastPage) => {
+        if (lastPage.page < lastPage.pages) return lastPage.page + 1;
+        return undefined;
+      },
+    });
 
-  const flatData = useMemo(() => data?.pages.flatMap((page) => page.items) ?? [], [data]);
+  const applications = useMemo(() => data?.pages.flatMap((page) => page.items) ?? [], [data]);
 
   return {
     data,
-    flatData,
+    applications,
     fetchNextPage,
     hasNextPage,
-    isFetchingNextPage,
-    isGetLoading: isGetLoading || isFetchingNextPage,
-    isGetError,
+    isLoading: isLoading || isFetchingNextPage,
+    isError,
   };
 }
