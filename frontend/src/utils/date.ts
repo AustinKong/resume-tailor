@@ -40,12 +40,23 @@ function parseISODate(value: string): ISODate {
   return value as ISODate;
 }
 
+function formatISODate(
+  value: ISODate,
+  options: Intl.DateTimeFormatOptions = { month: 'short', day: 'numeric', year: 'numeric' },
+  locale = 'en-US'
+) {
+  const [y, m, d] = value.split('-').map(Number);
+  const date = new Date(Date.UTC(y, m - 1, d));
+  return new Intl.DateTimeFormat(locale, { ...options, timeZone: 'UTC' }).format(date);
+}
+
 export const ISODate = {
   fromParts: dateFromParts,
   fromNativeDate: dateFromNativeDate,
   today: dateToday,
   is: isISODate,
   parse: parseISODate,
+  format: formatISODate,
 };
 
 // === ISODatetime utilities ===
@@ -69,11 +80,20 @@ function parseISODatetime(value: string): ISODatetime {
   return value as ISODatetime;
 }
 
+function formatISODatetime(
+  value: ISODatetime,
+  options: Intl.DateTimeFormatOptions = { month: 'short', day: 'numeric', year: 'numeric' },
+  locale = 'en-US'
+) {
+  return new Intl.DateTimeFormat(locale, options).format(new Date(value));
+}
+
 export const ISODatetime = {
   fromNativeDate: datetimeFromNativeDate,
   now: datetimeNow,
   is: isISODatetime,
   parse: parseISODatetime,
+  format: formatISODatetime,
 };
 
 // === ISOYearMonth utilities ===
@@ -101,10 +121,21 @@ function parseISOYearMonth(value: string): ISOYearMonth {
   return value as ISOYearMonth;
 }
 
+function formatISOYearMonth(
+  value: ISOYearMonth,
+  options: Intl.DateTimeFormatOptions = { month: 'long', year: 'numeric' },
+  locale = 'en-US'
+) {
+  const [y, m] = value.split('-').map(Number);
+  const date = new Date(Date.UTC(y, m - 1, 1));
+  return new Intl.DateTimeFormat(locale, { ...options, timeZone: 'UTC' }).format(date);
+}
+
 export const ISOYearMonth = {
   fromParts: yearMonthFromParts,
   fromDate: yearMonthFromDate,
   today: yearMonthToday,
   is: isISOYearMonth,
   parse: parseISOYearMonth,
+  format: formatISOYearMonth,
 };

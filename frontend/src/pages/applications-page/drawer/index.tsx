@@ -5,13 +5,12 @@ import { Link } from 'react-router';
 
 import { useApplicationQuery } from '@/hooks/applications';
 import { useResumeMutations } from '@/hooks/resumes';
+import { useStickyState } from '@/hooks/utils/useStickyState';
 
 import Header from './Header';
 import JobDetails from './JobDetails';
 import TimelineEditor from './TimelineEditor';
 
-// TODO: Make clos drwaer not immediately dissapear
-// TODO: Move handleGenerateResume to a mutation
 export default function Drawer({
   isOpen,
   onClose,
@@ -21,13 +20,15 @@ export default function Drawer({
   onClose: () => void;
   selectedApplicationId: string | null;
 }) {
-  const { application, isLoading } = useApplicationQuery(selectedApplicationId);
+  const { application } = useApplicationQuery(selectedApplicationId);
   const { createResume, isCreateLoading } = useResumeMutations();
   const navigate = useNavigate();
 
+  const displayApplication = useStickyState(application);
+
   const handleGenerateResume = async () => {
-    if (!application) return;
-    const resume = await createResume(application.id);
+    if (!displayApplication) return;
+    const resume = await createResume(displayApplication.id);
     navigate(`/resumes/${resume.id}`);
   };
 
@@ -44,19 +45,19 @@ export default function Drawer({
       bg="bg.panel"
       overflowY="auto"
     >
-      {!application || isLoading ? (
+      {!displayApplication ? (
         <Center w="lg" h="full">
           <Spinner size="lg" />
         </Center>
       ) : (
-        <VStack w="lg" p="4" alignItems="stretch" gap="4">
-          <Header application={application} onClose={onClose} />
-          <JobDetails application={application} />
+        <VStack w="lg" px="6" py="2" alignItems="stretch" gap="4">
+          <Header application={displayApplication} onClose={onClose} />
+          <JobDetails application={displayApplication} />
           <Separator />
-          <TimelineEditor application={application} />
-          {application.resumeId ? (
+          <TimelineEditor application={displayApplication} />
+          {displayApplication.resumeId ? (
             <Button asChild>
-              <Link to={`resumes/${application.resumeId}`}>
+              <Link to={`resumes/${displayApplication.resumeId}`}>
                 <PiFile /> Resume
               </Link>
             </Button>

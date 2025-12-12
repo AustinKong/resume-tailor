@@ -13,7 +13,7 @@ import { useState } from 'react';
 import { PiAcorn, PiArrowSquareOut } from 'react-icons/pi';
 
 import BulletInput from '@/components/custom/BulletInput';
-import FloatingLabelInput from '@/components/custom/FloatingLabelInput';
+import FloatingLabelInput from '@/components/ui/FloatingLabelInput';
 import { useProfileMutations, useProfileQuery } from '@/hooks/profile';
 import { type Education, emptyEducation, type Profile } from '@/types/profile';
 import { ISOYearMonth } from '@/utils/date';

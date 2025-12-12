@@ -1,7 +1,8 @@
 import { Avatar, DataList, Heading, HStack, Menu, Portal, Spacer, VStack } from '@chakra-ui/react';
 
-import Breadcrumb from '@/components/custom/Breadcrumb';
 import { ColorModeButton } from '@/components/ui/color-mode';
+
+import Breadcrumb from './Breadcrumb';
 
 export default function Navbar() {
   return (

@@ -1,27 +1,33 @@
 import { DataList, Heading, List, Text, VStack } from '@chakra-ui/react';
 import { PiCheck } from 'react-icons/pi';
 
+import DisplayDate from '@/components/custom/DisplayDate';
 import type { Application } from '@/types/application';
 
 export default function JobDetails({ application }: { application: Application }) {
-  const listingData = [
-    { label: 'Role', value: application.listing.title },
-    { label: 'Location', value: application.listing.location },
-    { label: 'Posted', value: application.listing.postedDate },
-    { label: 'Skills', value: application.listing.skills.join(', ') },
-  ];
-
   return (
     <>
       <VStack align="stretch">
         <Heading size="md">About the Role</Heading>
         <DataList.Root orientation="horizontal" w="full" gap="2" size="lg">
-          {listingData.map((item) => (
-            <DataList.Item key={item.label}>
-              <DataList.ItemLabel>{item.label}</DataList.ItemLabel>
-              <DataList.ItemValue>{item.value}</DataList.ItemValue>
-            </DataList.Item>
-          ))}
+          <DataList.Item>
+            <DataList.ItemLabel>Role</DataList.ItemLabel>
+            <DataList.ItemValue>{application.listing.title}</DataList.ItemValue>
+          </DataList.Item>
+          <DataList.Item>
+            <DataList.ItemLabel>Location</DataList.ItemLabel>
+            <DataList.ItemValue>{application.listing.location}</DataList.ItemValue>
+          </DataList.Item>
+          <DataList.Item>
+            <DataList.ItemLabel>Posted</DataList.ItemLabel>
+            <DataList.ItemValue>
+              <DisplayDate date={application.listing.postedDate} />
+            </DataList.ItemValue>
+          </DataList.Item>
+          <DataList.Item>
+            <DataList.ItemLabel>Skills</DataList.ItemLabel>
+            <DataList.ItemValue>{application.listing.skills.join(', ')}</DataList.ItemValue>
+          </DataList.Item>
         </DataList.Root>
       </VStack>
 

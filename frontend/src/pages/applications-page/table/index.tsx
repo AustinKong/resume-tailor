@@ -9,6 +9,7 @@ import {
 import React from 'react';
 
 import CompanyLogo from '@/components/custom/CompanyLogo';
+import DisplayDate from '@/components/custom/DisplayDate';
 import { STATUS_DEFINITIONS } from '@/constants/statuses';
 import type { Application, StatusEnum } from '@/types/application';
 
@@ -79,14 +80,14 @@ const columns = [
   columnHelper.accessor('listing.postedDate', {
     id: 'posted_at',
     header: 'Posted',
-    cell: (info) => info.getValue(),
+    cell: (info) => <DisplayDate date={info.getValue()} />,
     size: 15,
     sortDescFirst: false,
   }),
   columnHelper.accessor('timeline', {
     id: 'updated_at',
     header: 'Last Updated',
-    cell: (info) => info.getValue()[0].createdAt,
+    cell: (info) => <DisplayDate date={info.getValue()[0].createdAt} />,
     size: 15,
     sortDescFirst: false,
   }),

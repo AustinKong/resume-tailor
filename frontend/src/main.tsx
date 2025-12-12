@@ -1,5 +1,6 @@
 import './index.css';
 
+import { LocaleProvider } from '@chakra-ui/react';
 import {
   Mutation,
   MutationCache,
@@ -50,9 +51,11 @@ createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
       <ChakraProvider>
-        <BrowserRouter>
-          <App />
-        </BrowserRouter>
+        <LocaleProvider locale="en-US">
+          <BrowserRouter>
+            <App />
+          </BrowserRouter>
+        </LocaleProvider>
       </ChakraProvider>
     </QueryClientProvider>
   </StrictMode>

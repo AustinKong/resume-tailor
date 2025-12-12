@@ -29,8 +29,6 @@ const tableSortHandler: ParamHandler<SortingState> = {
   },
 };
 
-// TODO: Format dates
-
 export default function ApplicationsPage() {
   const queryClient = useQueryClient();
 

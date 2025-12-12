@@ -17,6 +17,7 @@ import { Controller, useForm } from 'react-hook-form';
 import { PiCheck } from 'react-icons/pi';
 import { z } from 'zod';
 
+import DisplayDate from '@/components/custom/DisplayDate';
 import { STATUS_DEFINITIONS, STATUS_OPTIONS } from '@/constants/statuses';
 import { useApplicationMutations } from '@/hooks/applications';
 import type { Application, StatusEnum } from '@/types/application';
@@ -49,11 +50,7 @@ function TimelineDisplay({ timeline }: { timeline: Application['timeline'] }) {
                 {event.stage > 0 && ` ${event.stage}`}
               </Timeline.Title>
               <Timeline.Description>
-                {new Date(event.createdAt).toLocaleDateString('en-US', {
-                  year: 'numeric',
-                  month: 'short',
-                  day: 'numeric',
-                })}
+                <DisplayDate date={event.createdAt} />
               </Timeline.Description>
               <Text textStyle="sm" color="fg.muted">
                 {event.notes}
