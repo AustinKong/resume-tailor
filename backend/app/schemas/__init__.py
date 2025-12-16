@@ -1,18 +1,18 @@
-from app.schemas.application import Application
-from app.schemas.dates import ISODate, ISODatetime, ISOYearMonth
-from app.schemas.experience import (
+from .application import Application
+from .dates import ISODate, ISODatetime, ISOYearMonth
+from .experience import (
   Experience,
   ExperienceType,
   LLMResponseExperience,
 )
-from app.schemas.listing import (
+from .listing import (
   DuplicateListing,
   Listing,
   LLMResponseListing,
   ScrapeResult,
 )
-from app.schemas.profile import Education, Profile
-from app.schemas.resume import (
+from .profile import Education, Profile
+from .resume import (
   DetailedItem,
   DetailedSectionContent,
   ParagraphSectionContent,
@@ -22,8 +22,8 @@ from app.schemas.resume import (
   SectionContent,
   SimpleSectionContent,
 )
-from app.schemas.status_event import StatusEnum, StatusEvent
-from app.schemas.types import CamelModel, Page
+from .status_event import StatusEnum, StatusEvent
+from .types import CamelModel, Page
 
 __all__ = [
   # Base types

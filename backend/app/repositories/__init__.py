@@ -1,7 +1,7 @@
-from app.repositories.database_repository import DatabaseRepository
-from app.repositories.file_repository import FileRepository
-from app.repositories.json_repository import JSONRepository
-from app.repositories.vector_repository import VectorRepository
+from .database_repository import DatabaseRepository
+from .file_repository import FileRepository
+from .json_repository import JSONRepository
+from .vector_repository import VectorRepository
 
 __all__ = [
   'DatabaseRepository',

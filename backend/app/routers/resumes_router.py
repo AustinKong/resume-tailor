@@ -5,7 +5,7 @@ from fastapi import APIRouter
 from fastapi.responses import Response
 
 from app.config import settings
-from app.prompts import OPTIMIZATION_PROMPT
+from app.resources.prompts import OPTIMIZATION_PROMPT
 from app.schemas import (
   DetailedItem,
   DetailedSectionContent,

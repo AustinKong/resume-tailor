@@ -1,13 +1,61 @@
 import base64
 import re
+import urllib.parse
 
 from bs4 import BeautifulSoup
 from playwright.async_api import Page, async_playwright
 from pydantic import BaseModel, HttpUrl
 
 from app.config import settings
-from app.prompts import MARKJS_INJECTION_CODE
+from app.resources.scripts import (
+  JS_INJECT_BASE,
+  JS_MATERIALIZE_STYLES,
+  MARKJS_INJECTION_CODE,
+)
 from app.utils.errors import ServiceError
+
+BOILERPLATE_TAGS = [
+  'script',
+  'style',
+  'noscript',
+  'iframe',
+  'object',
+  'embed',
+  'meta',
+  'link',
+  'svg',
+  'canvas',
+  'map',
+  'area',
+]
+
+AGGRESSIVE_TAGS = [
+  'nav',
+  'header',
+  'footer',
+  'aside',
+  'form',
+  'button',
+  'input',
+  'select',
+  'option',
+]
+
+BOILERPLATE_KEYWORDS = [
+  'terms of service',
+  'privacy policy',
+  'cookie',
+  'apply now',
+  'language',
+  'legal',
+  'candidate privacy policy',
+  'accept cookies',
+  'download',
+  'newsletter',
+  'subscribe',
+  'login',
+  'sign in',
+]
 
 
 class ScrapingResult(BaseModel):
@@ -16,101 +64,44 @@ class ScrapingResult(BaseModel):
 
 
 class ScrapingService:
-  def __init__(self):
-    pass
-
   def _clean_html(self, html: str) -> str:
-    BOILERPLATE_TAGS = [
-      'script',
-      'style',
-      'noscript',
-    ]
-
     soup = BeautifulSoup(html, 'html.parser')
-    for tag in soup(BOILERPLATE_TAGS):
+
+    # Remove boilerplate tags
+    boilerplate_tags = BOILERPLATE_TAGS + (AGGRESSIVE_TAGS if settings.scraping.aggressive else [])
+    for tag in soup(boilerplate_tags):
       tag.decompose()
+
+    # Remove elements containing boilerplate keywords
+    if settings.scraping.aggressive:
+      for tag in reversed(soup.find_all(True)):
+        text = tag.get_text(strip=True)
+        if text and any(keyword.lower() in text.lower() for keyword in BOILERPLATE_KEYWORDS):
+          tag.decompose()
 
     text = ' '.join(soup.stripped_strings)
     text = re.sub(r'\s+', ' ', text)
+
+    # Remove duplicate sentences
+    if settings.scraping.aggressive:
+      sentences = re.split(r'(?<=[.!?]) +', text)
+      seen = set()
+      filtered_sentences = []
+      for sentence in sentences:
+        normalized = sentence.strip().lower()
+        if normalized not in seen:
+          seen.add(normalized)
+          filtered_sentences.append(sentence.strip())
+      text = ' '.join(filtered_sentences)
+
     return text[: settings.scraping.max_length]
 
-  def _clean_html_aggressive(self, html: str) -> str:
-    """
-    Aggressively cleans HTML for LLM input by:
-
-    1. Removing scripts, styles, and noscript tags.
-    2. Deleting tags containing boilerplate keywords (e.g., privacy, cookies).
-    3. Normalizing whitespace.
-    4. Removing duplicate sentences to reduce verbosity.
-    """
-    BOILERPLATE_TAGS = [
-      'script',
-      'style',
-      'noscript',
-      'a',
-      'button',
-      'form',
-      'input',
-      'select',
-      'option',
-      'nav',
-      'header',
-      'footer',
-      'aside',
-      'iframe',
-      'img',
-      'video',
-    ]
-
-    BOILERPLATE_KEYWORDS = [
-      'terms of service',
-      'privacy policy',
-      'cookie',
-      'apply now',
-      'language',
-      'legal',
-      'candidate privacy policy',
-      'accept cookies',
-      'download',
-      'newsletter',
-    ]
-
-    soup = BeautifulSoup(html, 'html.parser')
-    for tag in soup(BOILERPLATE_TAGS):
-      tag.decompose()
-
-    # Remove tags in DFS post-order manner to avoid deleting potentially useful content
-    # BeautifulSoup find_all returns tags in document order (pre-order)
-    for tag in reversed(soup.find_all(True)):
-      text = tag.get_text(strip=True)
-      if text and any(keyword.lower() in text.lower() for keyword in BOILERPLATE_KEYWORDS):
-        tag.decompose()
-
-    text = ' '.join(soup.stripped_strings)
-    text = re.sub(r'\s+', ' ', text)
-
-    sentences = re.split(r'(?<=[.!?]) +', text)
-    seen = set()
-    filtered_sentences = []
-    for sentence in sentences:
-      normalized = sentence.strip().lower()
-      if normalized not in seen:
-        seen.add(normalized)
-        filtered_sentences.append(sentence.strip())
-
-    return ' '.join(filtered_sentences)[: settings.scraping.max_length]
-
   async def _inline_assets(self, page: Page, base_url: str):
-    await page.evaluate(
-      """(url) => {
-          if (!document.querySelector('base')) {
-            const base = document.createElement('base');
-            base.href = url;
-            (document.head || document.body).prepend(base);
-          }
-        }""",
-      base_url,
-    )
+    # Ensures links are resolved correctly
+    await page.evaluate(JS_INJECT_BASE, base_url)
+
+    # Converts CSS-in-JS to static <style> tags
+    await page.evaluate(JS_MATERIALIZE_STYLES)
 
     # Make all external CSS files inline <style> tags
     style_handles = await page.query_selector_all('link[rel="stylesheet"]')
@@ -121,6 +112,15 @@ class ScrapingService:
           response = await page.request.get(href)
           if response.status == 200:
             css_text = await response.text()
+
+            def replacer(match):
+              url = match.group(1).strip('"\'')
+              if not url.startswith(('http', 'https', 'data:')):
+                resolved = urllib.parse.urljoin(base_url, url)
+                return f'url("{resolved}")'
+              return match.group(0)
+
+            css_text = re.sub(r'url\(([^)]+)\)', replacer, css_text)
             await handle.evaluate(
               (
                 '(el, css) => { const style = document.createElement("style"); '
@@ -136,17 +136,16 @@ class ScrapingService:
     for handle in img_handles:
       try:
         src = await handle.get_attribute('src')
+
         if src and not src.startswith('data:'):
           response = await page.request.get(src)
+
           if response.status == 200:
             img_bytes = await response.body()
             img_base64 = base64.b64encode(img_bytes).decode('utf-8')
             mime_type = response.headers.get('content-type', 'image/png')
             data_uri = f'data:{mime_type};base64,{img_base64}'
-            await handle.evaluate(
-              '(el, dataUri) => { el.src = dataUri; }',
-              data_uri,
-            )
+            await handle.evaluate('(el, dataUri) => { el.src = dataUri; }', data_uri)
             await handle.evaluate('el => el.removeAttribute("srcset")')
       except Exception:
         continue
@@ -154,9 +153,13 @@ class ScrapingService:
   def _strip_scripts(self, html: str) -> str:
     soup = BeautifulSoup(html, 'html.parser')
 
-    # Strip scripts to prevent re-hydration errors
-    for tag in soup(['script', 'noscript', 'iframe', 'object', 'embed', 'meta']):
+    # Strip scripts and other problematic tags to prevent re-hydration errors
+    for tag in soup(BOILERPLATE_TAGS):
       tag.decompose()
+
+    # Remove preload links to prevent CORS errors
+    for link in soup.find_all('link', rel='preload'):
+      link.decompose()
 
     # Most meta tags are useless or destructive, except charset
     if soup.head:
@@ -189,21 +192,16 @@ class ScrapingService:
         )
         page = await context.new_page()
         await page.goto(str(url), wait_until='networkidle')
-        await page.wait_for_timeout(2000)
 
-        # Use BeautifulSoup to extract text content (for LLM input)
-        raw_html = await page.content()
-        content = (
-          self._clean_html_aggressive(raw_html)
-          if settings.scraping.aggressive
-          else self._clean_html(raw_html)
-        )
+        # Extract text content for LLM processing
+        html = await page.content()
+        content = self._clean_html(html)
 
-        # Use Playwright + BeautifulSoup to produce a "snapshot" of the page content
+        # Convert page into self-containe HTML file
         await self._inline_assets(page, str(url))
-        heavy_html = await page.content()
-        static_html = self._strip_scripts(heavy_html)
-        html = self._inject_markjs(static_html)
+        html = await page.content()
+        html = self._strip_scripts(html)
+        html = self._inject_markjs(html)
 
         await browser.close()
 

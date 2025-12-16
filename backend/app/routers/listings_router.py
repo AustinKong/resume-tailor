@@ -3,7 +3,7 @@ import asyncio
 from fastapi import APIRouter
 from pydantic import HttpUrl
 
-from app.prompts import LISTING_EXTRACTION_PROMPT
+from app.resources.prompts import LISTING_EXTRACTION_PROMPT
 from app.schemas import Application, DuplicateListing, Listing, LLMResponseListing, ScrapeResult
 from app.services import applications_service, listings_service, llm_service, scraping_service
 from app.utils.errors import ValidationError

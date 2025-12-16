@@ -1,11 +1,11 @@
-from app.services.applications_service import ApplicationsService
-from app.services.experiences_service import ExperiencesService
-from app.services.listings_service import ListingsService
-from app.services.llm_service import LLMService
-from app.services.profile_service import ProfileService
-from app.services.resumes_service import ResumesService
-from app.services.scraping_service import ScrapingService
-from app.services.template_service import TemplateService
+from .applications_service import ApplicationsService
+from .experiences_service import ExperiencesService
+from .listings_service import ListingsService
+from .llm_service import LLMService
+from .profile_service import ProfileService
+from .resumes_service import ResumesService
+from .scraping_service import ScrapingService
+from .template_service import TemplateService
 
 applications_service = ApplicationsService()
 experience_service = ExperiencesService()
