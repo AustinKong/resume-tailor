@@ -34,30 +34,32 @@ async def scrape_listings(urls: list[HttpUrl]):
 
   # 3. Scrape URLs not in database
   urls_to_scrape = [url for url in unique_urls if url not in existing_listings_map]
+  # Produces a list of ScrapingResult objects (has content and html) property
 
-  page_contents = await asyncio.gather(
-    *[scraping_service.fetch_and_clean(url) for url in urls_to_scrape]
-  )
+  pages = await asyncio.gather(*[scraping_service.fetch_and_clean(url) for url in urls_to_scrape])
 
   # TODO: Add cannot scrape handling. Use LLM to return an error state if the scraped content
   # does not look like a job listing.
   llm_listings: list[LLMResponseListing] = await asyncio.gather(
     *[
       llm_service.call_structured(
-        input=LISTING_EXTRACTION_PROMPT.format(content=content),
+        input=LISTING_EXTRACTION_PROMPT.format(content=page.content),
         response_model=LLMResponseListing,
       )
-      for content in page_contents
+      for page in pages
     ]
   )
 
-  scraped_listings: list[Listing] = [
-    Listing(**llm_listing.model_dump(), url=url)
-    for url, llm_listing in zip(urls_to_scrape, llm_listings, strict=False)
-  ]
+  scraped_listings: list[Listing] = []
+  for url, llm_listing, page in zip(urls_to_scrape, llm_listings, pages, strict=False):
+    listing = Listing(**llm_listing.model_dump(), url=url)
+    listings_service.stage_snapshot(page.html, str(listing.id))
+    scraped_listings.append(listing)
 
   # 4. Find similar/duplicate listings among newly scraped and mark as duplicates
   similar_duplicate_pairs = listings_service.find_similar(scraped_listings)
+
+  # TODO: Now, I need to render the HTML in the frontend and try highlight some random text using markjs
 
   duplicates.extend(
     [
@@ -70,6 +72,11 @@ async def scrape_listings(urls: list[HttpUrl]):
   unique = [listing for listing in scraped_listings if listing.id not in similar_duplicate_ids]
 
   return ScrapeResult(unique=unique, duplicates=duplicates)
+
+
+@router.get('', response_model=list[Listing])
+async def get_listings():
+  return listings_service.list_all()
 
 
 @router.post('')

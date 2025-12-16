@@ -1,17 +1,23 @@
 import json
+from pathlib import Path
 
 from chromadb.api.types import Metadata
 from pydantic import HttpUrl
 
 from app.config import settings
-from app.repositories import DatabaseRepository, VectorRepository
+from app.repositories import DatabaseRepository, FileRepository, VectorRepository
 from app.schemas import Listing
 from app.utils.deduplication import fuzzy_text_similarity
 
 
-class ListingsService(DatabaseRepository, VectorRepository):
+class ListingsService(DatabaseRepository, VectorRepository, FileRepository):
   def __init__(self, **kwargs):
     super().__init__(**kwargs)
+
+  def stage_snapshot(self, html_content: str, listing_id: str) -> str:
+    path = Path(settings.paths.snapshots_dir) / f'{listing_id}.html'
+    self.write_text(path, html_content)
+    return path.name
 
   def get_by_urls(self, urls: list[HttpUrl]) -> list[Listing]:
     if not urls:
@@ -212,3 +218,5 @@ class ListingsService(DatabaseRepository, VectorRepository):
         similar.append((existing_listing, combined_score))
 
     return sorted(similar, key=lambda x: x[1], reverse=True)
+
+  # TODO: Implement delete_orphans() to clean up staged files that were never saved to DB

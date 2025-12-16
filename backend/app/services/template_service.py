@@ -1,32 +1,17 @@
 from pathlib import Path
 
-from jinja2 import Environment, FileSystemLoader, TemplateNotFound
+from jinja2 import Template
 from weasyprint import HTML
 
 from app.config import settings
+from app.repositories.file_repository import FileRepository
 from app.schemas import Profile, Resume
+from app.utils.errors import NotFoundError
 
 
-class TemplateService:
+class TemplateService(FileRepository):
   def __init__(self):
-    self._env = None
-
-  @property
-  def templates_dir(self) -> Path:
-    path = Path(settings.paths.templates_dir)
-    path.mkdir(parents=True, exist_ok=True)
-    return path
-
-  @property
-  def env(self) -> Environment:
-    if self._env is None:
-      self._env = Environment(
-        loader=FileSystemLoader(str(self.templates_dir)),
-        autoescape=True,
-        trim_blocks=True,
-        lstrip_blocks=True,
-      )
-    return self._env
+    super().__init__()
 
   def render(self, template_name: str, profile: Profile, resume: Resume) -> str:
     context = {
@@ -35,14 +20,16 @@ class TemplateService:
     }
 
     try:
-      template = self.env.get_template(template_name)
+      filepath = Path(settings.paths.templates_dir) / template_name
+      template_content = self.read_text(filepath)
+      template = Template(template_content)
       return template.render(**context)
-    except TemplateNotFound as e:
-      raise TemplateNotFound(f"Template '{template_name}' not found") from e
+    except NotFoundError as e:
+      raise NotFoundError(f"Template '{template_name}' not found") from e
 
   def render_pdf(self, template_name: str, profile: 'Profile', resume: 'Resume') -> bytes:
     html = self.render(template_name, profile, resume)
-    base_url = str(self.templates_dir.resolve())
+    base_url = str(Path(settings.paths.templates_dir).resolve())
     try:
       pdf = HTML(string=html, base_url=base_url).write_pdf(
         presentational_hints=True,

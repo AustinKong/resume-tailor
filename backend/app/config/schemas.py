@@ -28,14 +28,19 @@ class PathsPrefs(BaseModel):
     description='Path to vector database directory',
     exposure='advanced',
   )
-  data_dir: str = ConfigField(
-    default='data',
-    description='Path to data directory for JSON files',
+  profile_path: str = ConfigField(
+    default='data/profile.json',
+    description='Path to profile JSON file',
     exposure='advanced',
   )
   templates_dir: str = ConfigField(
     default='data/templates',
     description='Path to resume templates directory',
+    exposure='advanced',
+  )
+  snapshots_dir: str = ConfigField(
+    default='data/snapshots',
+    description='Directory for storing HTML snapshots',
     exposure='advanced',
   )
 

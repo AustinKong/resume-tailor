@@ -33,3 +33,14 @@ export async function saveListings(listings: Listing[]) {
   const json = await response.json();
   return json as Listing[];
 }
+
+export async function getListings() {
+  const response = await fetch('/api/listings');
+
+  if (!response.ok) {
+    throw new Error('Failed to fetch listings');
+  }
+
+  const json = await response.json();
+  return json as Listing[];
+}

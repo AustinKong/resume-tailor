@@ -1,25 +1,25 @@
 import json
-import os
+from pathlib import Path
 from typing import TypeVar
 
 from pydantic import BaseModel
 
-from app.config import settings
-from app.utils.errors import NotFoundError, ServiceError
+from app.repositories.file_repository import FileRepository
+from app.utils.errors import ServiceError
 
 T = TypeVar('T', bound=BaseModel)
 
 
-class JSONRepository:
+class JSONRepository(FileRepository):
   def __init__(self, **kwargs):
     super().__init__(**kwargs)
 
-  def read_json(self, filename: str, model: type[T]) -> T:
+  def read_json(self, filepath: Path, model: type[T]) -> T:
     """
     Read and parse a JSON file into a Pydantic model.
 
     Args:
-      filename: Name of the JSON file relative to data directory.
+      filepath: Full path to the JSON file.
       model: Pydantic model class to instantiate.
 
     Returns:
@@ -30,32 +30,27 @@ class JSONRepository:
       ServiceError: If file reading or parsing fails.
     """
     try:
-      filepath = os.path.join(settings.paths.data_dir, filename)
-      with open(filepath) as f:
-        data = json.load(f)
-        return model(**data)
-    except FileNotFoundError as e:
-      raise NotFoundError(f'File {filename} not found') from e
+      content = self.read_text(filepath)
+      data = json.loads(content)
+      return model(**data)
     except json.JSONDecodeError as e:
-      raise ServiceError(f'Failed to parse JSON file {filename}: {str(e)}') from e
+      raise ServiceError(f'Failed to parse JSON file {filepath}: {str(e)}') from e
     except Exception as e:
-      raise ServiceError(f'Failed to read JSON file {filename}: {str(e)}') from e
+      raise ServiceError(f'Failed to read JSON file {filepath}: {str(e)}') from e
 
-  def write_json(self, filename: str, data: BaseModel) -> None:
+  def write_json(self, filepath: Path, data: BaseModel) -> None:
     """
     Write a Pydantic model to a JSON file.
 
     Args:
-      filename: Name of the JSON file relative to data directory.
+      filepath: Full path to the JSON file.
       data: Pydantic model instance to serialize.
 
     Raises:
       ServiceError: If file writing fails.
     """
     try:
-      filepath = os.path.join(settings.paths.data_dir, filename)
-      os.makedirs(os.path.dirname(filepath), exist_ok=True)
-      with open(filepath, 'w') as f:
-        json.dump(data.model_dump(), f, indent=2)
+      content = json.dumps(data.model_dump(), indent=2)
+      self.write_text(filepath, content)
     except Exception as e:
-      raise ServiceError(f'Failed to write JSON file {filename}: {str(e)}') from e
+      raise ServiceError(f'Failed to write JSON file {filepath}: {str(e)}') from e

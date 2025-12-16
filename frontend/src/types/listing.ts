@@ -11,6 +11,7 @@ export type Listing = {
   postedDate?: ISODate;
   skills: string[];
   requirements: string[];
+  snapshotUrl?: string;
 };
 
 export type ScrapeResult = {

@@ -304,8 +304,40 @@ function ListingDetails({ listing, duplicateOf }: { listing: Listing; duplicateO
       {/* Predicted domain */}
       {listing.domain && (
         <Text fontSize="sm">
-          Domain: <Link href={`https://${listing.domain}`} target="_blank">{listing.domain}</Link>
+          Domain:{' '}
+          <Link href={`https://${listing.domain}`} target="_blank">
+            {listing.domain}
+          </Link>
         </Text>
+      )}
+      {/* Snapshot link */}
+      {listing.snapshotUrl && (
+        <VStack align="stretch" gap="2">
+          <Text fontSize="sm">
+            Snapshot:{' '}
+            <Link
+              href={listing.snapshotUrl}
+              target="_blank"
+              colorPalette="green"
+              variant="underline"
+            >
+              View HTML
+            </Link>
+          </Text>
+          <Box border="1px solid" borderColor="gray.200" borderRadius="md" overflow="hidden">
+            <iframe
+              src={listing.snapshotUrl}
+              width="100%"
+              height="400px"
+              style={{ border: 'none' }}
+              title="Job listing snapshot"
+              onError={(e) => {
+                console.error('Failed to load snapshot:', listing.snapshotUrl, e);
+                // Could show a toast or update state here
+              }}
+            />
+          </Box>
+        </VStack>
       )}
     </VStack>
   );

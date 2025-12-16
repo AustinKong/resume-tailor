@@ -1,3 +1,6 @@
+from pathlib import Path
+
+from app.config import settings
 from app.repositories import JSONRepository
 from app.schemas import Profile
 
@@ -7,7 +10,7 @@ class ProfileService(JSONRepository):
     super().__init__()
 
   def get(self) -> Profile:
-    return self.read_json('profile.json', Profile)
+    return self.read_json(Path(settings.paths.profile_path), Profile)
 
   def update(self, profile: Profile) -> None:
-    self.write_json('profile.json', profile)
+    self.write_json(Path(settings.paths.profile_path), profile)

@@ -1,7 +1,7 @@
 from typing import Annotated
 from uuid import UUID, uuid4
 
-from pydantic import BeforeValidator, Field, HttpUrl
+from pydantic import BeforeValidator, Field, HttpUrl, computed_field
 
 from app.schemas.dates import ISODate
 from app.schemas.types import CamelModel, parse_json_list_as
@@ -43,6 +43,11 @@ class LLMResponseListing(CamelModel):
 class Listing(LLMResponseListing):
   id: UUID = Field(default_factory=uuid4)
   url: HttpUrl
+
+  @computed_field
+  @property
+  def snapshot_url(self) -> str:
+    return f'/static/snapshots/{self.id}.html'
 
 
 class DuplicateListing(CamelModel):
