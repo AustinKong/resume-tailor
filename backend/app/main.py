@@ -1,12 +1,9 @@
 import traceback
-from pathlib import Path
 
 from fastapi import FastAPI, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from fastapi.staticfiles import StaticFiles
 
-from app.config import settings
 from app.routers import (
   applications_router,
   config_router,
@@ -30,12 +27,6 @@ app.add_middleware(
   allow_headers=['*'],
 )
 
-Path(settings.paths.snapshots_dir).mkdir(parents=True, exist_ok=True)
-app.mount(
-  '/static/snapshots',
-  StaticFiles(directory=settings.paths.snapshots_dir),
-  name='snapshots',
-)
 app.include_router(applications_router)
 app.include_router(config_router)
 app.include_router(experiences_router)

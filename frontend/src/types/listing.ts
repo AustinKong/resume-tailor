@@ -11,7 +11,37 @@ export type Listing = {
   postedDate?: ISODate;
   skills: string[];
   requirements: string[];
-  snapshotUrl?: string;
+};
+
+export type GroundedItem<T = string> = {
+  value: T;
+  quote: string | null;
+};
+
+export const ScrapeStatus = {
+  COMPLETED: 'completed',
+  DUPLICATE_URL: 'duplicate_url',
+  DUPLICATE_SEMANTIC: 'duplicate_semantic',
+  FAILED: 'failed',
+} as const;
+
+export type ScrapeStatus = (typeof ScrapeStatus)[keyof typeof ScrapeStatus];
+
+export type ScrapingListing = {
+  id: string;
+  url: string;
+  title: string | null;
+  company: string | null;
+  domain: string | null;
+  location: string | null;
+  description: string | null;
+  postedDate: ISODate | null;
+  skills: GroundedItem<string>[];
+  requirements: GroundedItem<string>[];
+  error: string | null;
+  html: string | null;
+  status: ScrapeStatus;
+  duplicateOf: Listing | null;
 };
 
 export type ScrapeResult = {

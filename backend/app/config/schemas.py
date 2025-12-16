@@ -38,11 +38,6 @@ class PathsPrefs(BaseModel):
     description='Path to resume templates directory',
     exposure='advanced',
   )
-  snapshots_dir: str = ConfigField(
-    default='data/snapshots',
-    description='Directory for storing HTML snapshots',
-    exposure='advanced',
-  )
 
 
 class ModelPrefs(BaseModel):

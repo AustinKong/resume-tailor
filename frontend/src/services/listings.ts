@@ -1,6 +1,6 @@
-import type { Listing, ScrapeResult } from '@/types/listing';
+import type { Listing, ScrapingListing } from '@/types/listing';
 
-export async function scrapeListings(urls: string[]) {
+export async function scrapeListings(urls: string[]): Promise<ScrapingListing[]> {
   const response = await fetch('/api/listings/scrape', {
     method: 'POST',
     headers: {
@@ -14,7 +14,7 @@ export async function scrapeListings(urls: string[]) {
   }
 
   const json = await response.json();
-  return json as ScrapeResult;
+  return json as ScrapingListing[];
 }
 
 export async function saveListings(listings: Listing[]) {

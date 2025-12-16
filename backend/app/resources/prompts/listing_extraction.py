@@ -6,8 +6,20 @@ LISTING_EXTRACTION_PROMPT = """
 You are an expert Technical Recruiter and Data Parser. Your goal is to extract
 structured data from the job listing below to power a semantic search engine.
 
-### DATA EXTRACTION RULES
+### VALIDATION STEP (CRITICAL)
+First, determine if the content is a valid Job Listing.
+If the content is:
+- A Login / Sign-in page (e.g. Workday, LinkedIn auth)
+- A "Bot Detected" or "Access Denied" error
+- A generic company homepage without a specific role
+- Empty or garbled text
 
+THEN:
+1. Set the `error` field to a short reason (e.g., "Page requires login", "Not a job listing").
+2. Leave ALL other fields (title, company, skills, etc.) empty/null.
+
+### EXTRACTION RULES (Only if Valid)
+If the page is valid, leave `error` as null and extract:
 1. **title**: Extract the specific job role.
    - CLEAN IT: Remove prefixes like "Job Listing for", "We are hiring a",
      "Vacancy:", or company names.

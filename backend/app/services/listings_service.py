@@ -1,23 +1,17 @@
 import json
-from pathlib import Path
 
 from chromadb.api.types import Metadata
 from pydantic import HttpUrl
 
 from app.config import settings
-from app.repositories import DatabaseRepository, FileRepository, VectorRepository
+from app.repositories import DatabaseRepository, VectorRepository
 from app.schemas import Listing
 from app.utils.deduplication import fuzzy_text_similarity
 
 
-class ListingsService(DatabaseRepository, VectorRepository, FileRepository):
+class ListingsService(DatabaseRepository, VectorRepository):
   def __init__(self, **kwargs):
     super().__init__(**kwargs)
-
-  def stage_snapshot(self, html_content: str, listing_id: str) -> str:
-    path = Path(settings.paths.snapshots_dir) / f'{listing_id}.html'
-    self.write_text(path, html_content)
-    return path.name
 
   def get_by_urls(self, urls: list[HttpUrl]) -> list[Listing]:
     if not urls:
@@ -53,44 +47,38 @@ class ListingsService(DatabaseRepository, VectorRepository, FileRepository):
 
   def find_similar(
     self,
-    new_listings: list[Listing],
-  ) -> list[tuple[Listing, Listing]]:
+    new_listing: Listing,
+  ) -> Listing | None:
     """
-    Find similar listings using BOTH semantic and heuristic methods.
+    Find similar listing using BOTH semantic and heuristic methods.
 
     Args:
-      new_listings: New listings to check for similarities
+      new_listing: New listing to check for similarities
 
     Returns:
-      List of (new_listing, similar_listing) tuples for listings with matches.
+      Similar listing if a match is found, None otherwise.
     """
-    similar_pairs = []
+    best_match = None
+    best_score = 0.0
 
-    for new_listing in new_listings:
+    semantic_matches = self._find_semantic_duplicates(new_listing)
+    if semantic_matches:
+      match, score = semantic_matches[0]
+      if score > best_score:
+        best_match = match
+        best_score = score
+
+    heuristic_matches = self._find_heuristic_duplicates(new_listing)
+    if heuristic_matches:
+      match, score = heuristic_matches[0]
+      if score > best_score:
+        best_match = match
+        best_score = score
+
+    if best_match and new_listing.company != best_match.company:
       best_match = None
-      best_score = 0.0
 
-      semantic_matches = self._find_semantic_duplicates(new_listing)
-      if semantic_matches:
-        match, score = semantic_matches[0]
-        if score > best_score:
-          best_match = match
-          best_score = score
-
-      heuristic_matches = self._find_heuristic_duplicates(new_listing)
-      if heuristic_matches:
-        match, score = heuristic_matches[0]
-        if score > best_score:
-          best_match = match
-          best_score = score
-
-      if best_match and new_listing.company != best_match.company:
-        best_match = None
-
-      if best_match:
-        similar_pairs.append((new_listing, best_match))
-
-    return similar_pairs
+    return best_match
 
   def create(self, listing: Listing) -> Listing:
     self.execute(
@@ -218,5 +206,3 @@ class ListingsService(DatabaseRepository, VectorRepository, FileRepository):
         similar.append((existing_listing, combined_score))
 
     return sorted(similar, key=lambda x: x[1], reverse=True)
-
-  # TODO: Implement delete_orphans() to clean up staged files that were never saved to DB
