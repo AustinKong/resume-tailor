@@ -14,21 +14,26 @@ from app.resources.scripts import (
 )
 from app.utils.errors import ServiceError
 
-BOILERPLATE_TAGS = [
+SNAPSHOT_TAGS = [
   'script',
-  'style',
   'noscript',
   'iframe',
   'object',
   'embed',
-  'meta',
+]
+BASIC_TAGS = [
+  'style',
   'link',
+  'meta',
   'svg',
   'canvas',
   'map',
   'area',
+  'video',
+  'audio',
+  'picture',
+  'source',
 ]
-
 AGGRESSIVE_TAGS = [
   'nav',
   'header',
@@ -68,8 +73,10 @@ class ScrapingService:
     soup = BeautifulSoup(html, 'html.parser')
 
     # Remove boilerplate tags
-    boilerplate_tags = BOILERPLATE_TAGS + (AGGRESSIVE_TAGS if settings.scraping.aggressive else [])
-    for tag in soup(boilerplate_tags):
+    tags_to_remove = SNAPSHOT_TAGS + BASIC_TAGS
+    if settings.scraping.aggressive:
+      tags_to_remove += AGGRESSIVE_TAGS
+    for tag in soup(tags_to_remove):
       tag.decompose()
 
     # Remove elements containing boilerplate keywords
@@ -99,7 +106,6 @@ class ScrapingService:
   async def _inline_assets(self, page: Page, base_url: str):
     # Ensures links are resolved correctly
     await page.evaluate(JS_INJECT_BASE, base_url)
-
     # Converts CSS-in-JS to static <style> tags
     await page.evaluate(JS_MATERIALIZE_STYLES)
 
@@ -154,7 +160,7 @@ class ScrapingService:
     soup = BeautifulSoup(html, 'html.parser')
 
     # Strip scripts and other problematic tags to prevent re-hydration errors
-    for tag in soup(BOILERPLATE_TAGS):
+    for tag in soup(SNAPSHOT_TAGS):
       tag.decompose()
 
     # Remove preload links to prevent CORS errors
@@ -197,7 +203,7 @@ class ScrapingService:
         html = await page.content()
         content = self._clean_html(html)
 
-        # Convert page into self-containe HTML file
+        # Convert page into self-contained HTML file
         await self._inline_assets(page, str(url))
         html = await page.content()
         html = self._strip_scripts(html)

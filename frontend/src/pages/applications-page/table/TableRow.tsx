@@ -13,12 +13,7 @@ export default function TableRow({
   onRowHover: () => void;
 }) {
   return (
-    <ChakraTable.Row
-      cursor="pointer"
-      _hover={{ bg: 'bg.subtle' }}
-      onClick={onRowClick}
-      onMouseEnter={onRowHover}
-    >
+    <ChakraTable.Row onClick={onRowClick} onMouseEnter={onRowHover} cursor="pointer">
       {row.getVisibleCells().map((cell) => (
         <ChakraTable.Cell
           key={cell.id}

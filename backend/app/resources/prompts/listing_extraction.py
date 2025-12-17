@@ -57,6 +57,10 @@ If the page is valid, leave `error` as null and extract:
    If you are unsure, make your best guess based on the company name.
    Do not include 'https://' or 'www'.
 
+8. **description**: Extract a concise summary of the job description, and what the role entails.
+   - Keep it to 2-3 sentences.
+   - Focus on the core duties and information not captured in other fields.
+
 ### INPUT JOB LISTING
 {content}
 """

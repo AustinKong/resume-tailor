@@ -4,6 +4,7 @@ import { PiCheck } from 'react-icons/pi';
 import DisplayDate from '@/components/custom/DisplayDate';
 import type { Application } from '@/types/application';
 
+// TODO: Consider taking in listing: Listing instead of application
 export default function JobDetails({ application }: { application: Application }) {
   return (
     <>

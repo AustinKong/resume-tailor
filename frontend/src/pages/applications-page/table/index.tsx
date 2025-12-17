@@ -170,7 +170,7 @@ function Table({
       borderColor="border"
       flex="1"
     >
-      <ChakraTable.Root size="sm" stickyHeader tableLayout="fixed">
+      <ChakraTable.Root size="sm" stickyHeader tableLayout="fixed" interactive>
         <ChakraTable.ColumnGroup>
           {table.getLeafHeaders().map((header) => (
             <ChakraTable.Column key={header.id} htmlWidth={`${header.getSize()}%`} />

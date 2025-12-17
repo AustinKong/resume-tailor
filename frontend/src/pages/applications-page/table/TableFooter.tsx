@@ -22,7 +22,7 @@ export default function TableFooter({
   }, [inView, hasNextPage, isLoading, onFetchNext]);
 
   return (
-    <ChakraTable.Row>
+    <ChakraTable.Row _hover={{ bg: 'transparent' }}>
       <ChakraTable.Cell colSpan={6} p="0">
         <Center ref={ref} h="10">
           {isLoading && <Spinner size="sm" />}

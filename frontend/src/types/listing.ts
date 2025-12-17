@@ -30,11 +30,11 @@ export type ScrapeStatus = (typeof ScrapeStatus)[keyof typeof ScrapeStatus];
 export type ScrapingListing = {
   id: string;
   url: string;
-  title: string | null;
-  company: string | null;
-  domain: string | null;
+  title: string;
+  company: string;
+  domain: string;
   location: string | null;
-  description: string | null;
+  description: string;
   postedDate: ISODate | null;
   skills: GroundedItem<string>[];
   requirements: GroundedItem<string>[];

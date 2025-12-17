@@ -3,16 +3,71 @@ import { useMutation, useQuery } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
 
 import { getListings, saveListings, scrapeListings } from '@/services/listings';
-import type { Listing, ScrapeResult } from '@/types/listing';
+import type { Listing } from '@/types/listing';
+import { ScrapeStatus, type ScrapingListing } from '@/types/listing';
 
 import Listings from './Listings';
 
 export default function ScrapingPage() {
   const [urls, setUrls] = useState('');
-  const [scrapeResult, setScrapeResult] = useState<ScrapeResult | null>(null);
+  const [scrapeResult, setScrapeResult] = useState<ScrapingListing[] | null>(null);
   const [selectedListings, setSelectedListings] = useState<Set<string>>(new Set());
   const [selectedExistingListing, setSelectedExistingListing] = useState<string>('');
   const [highlightText, setHighlightText] = useState("Bachelor's Degree");
+
+  // Helper functions to extract listings from scrape result
+  const getUniqueListings = (results: ScrapingListing[]): Listing[] => {
+    return results
+      .filter(
+        (listing) =>
+          listing.status === ScrapeStatus.COMPLETED &&
+          listing.title &&
+          listing.company &&
+          listing.domain &&
+          listing.description
+      )
+      .map((scrapingListing) => ({
+        ...scrapingListing,
+        title: scrapingListing.title!,
+        company: scrapingListing.company!,
+        domain: scrapingListing.domain!,
+        description: scrapingListing.description!,
+        location: scrapingListing.location || undefined,
+        postedDate: scrapingListing.postedDate || undefined,
+        skills: scrapingListing.skills.map((skill) => skill.value),
+        requirements: scrapingListing.requirements.map((req) => req.value),
+      }));
+  };
+
+  const getDuplicateListings = (
+    results: ScrapingListing[]
+  ): { listing: Listing; duplicateOf: Listing }[] => {
+    return results
+      .filter(
+        (listing) =>
+          (listing.status === ScrapeStatus.DUPLICATE_URL ||
+            listing.status === ScrapeStatus.DUPLICATE_SEMANTIC) &&
+          listing.duplicateOf !== null &&
+          listing.title &&
+          listing.company &&
+          listing.domain &&
+          listing.description
+      )
+      .map((scrapingListing) => ({
+        listing: {
+          ...scrapingListing,
+          title: scrapingListing.title!,
+          company: scrapingListing.company!,
+          domain: scrapingListing.domain!,
+          description: scrapingListing.description!,
+          location: scrapingListing.location || undefined,
+          postedDate: scrapingListing.postedDate || undefined,
+          skills: scrapingListing.skills.map((skill) => skill.value),
+          requirements: scrapingListing.requirements.map((req) => req.value),
+        },
+        duplicateOf: scrapingListing.duplicateOf!,
+      }));
+  };
 
   // Fetch existing listings
   const { data: existingListings = [] } = useQuery({
@@ -23,7 +78,11 @@ export default function ScrapingPage() {
   // Pre-check unique listings when scrape result changes
   useEffect(() => {
     if (scrapeResult) {
-      const uniqueIds = new Set(scrapeResult.unique.map((listing) => listing.id));
+      const uniqueIds = new Set(
+        scrapeResult
+          .filter((listing) => listing.status === ScrapeStatus.COMPLETED)
+          .map((listing) => listing.id)
+      );
       setSelectedListings(uniqueIds);
     }
   }, [scrapeResult]);
@@ -78,11 +137,19 @@ export default function ScrapingPage() {
     if (selectedExistingListing) {
       const listing = existingListings.find((l) => l.id === selectedExistingListing);
       if (listing) {
-        // Create a fake scrape result with this listing
-        setScrapeResult({
-          unique: [listing],
-          duplicates: [],
-        });
+        // Create a fake scrape result with this listing as completed
+        const fakeScrapingListing: ScrapingListing = {
+          ...listing,
+          location: listing.location ?? null,
+          postedDate: listing.postedDate ?? null,
+          skills: listing.skills.map((skill) => ({ value: skill, quote: null })),
+          requirements: listing.requirements.map((req) => ({ value: req, quote: null })),
+          html: null,
+          status: ScrapeStatus.COMPLETED,
+          duplicateOf: null,
+          error: null,
+        };
+        setScrapeResult([fakeScrapingListing]);
       }
     }
   };
@@ -142,8 +209,8 @@ export default function ScrapingPage() {
     if (scrapeResult) {
       // Collect all listings (unique + duplicates) and filter by selected IDs
       const allListings = [
-        ...scrapeResult.unique,
-        ...scrapeResult.duplicates.map((dup) => dup.listing),
+        ...getUniqueListings(scrapeResult),
+        ...getDuplicateListings(scrapeResult).map((dup) => dup.listing),
       ];
       const listingsToSave = allListings.filter((listing) => selectedListings.has(listing.id));
       saveMutation.mutate(listingsToSave);
@@ -254,8 +321,8 @@ export default function ScrapingPage() {
         <VStack align="stretch" gap="4">
           <HStack justifyContent="space-between">
             <Text fontWeight="medium">
-              Found {scrapeResult.unique.length} unique listings and{' '}
-              {scrapeResult.duplicates.length} duplicates
+              Found {getUniqueListings(scrapeResult).length} unique listings and{' '}
+              {getDuplicateListings(scrapeResult).length} duplicates
             </Text>
             {selectedListings.size > 0 && (
               <Button onClick={handleSave} colorScheme="green" loading={saveMutation.isPending}>
@@ -265,8 +332,8 @@ export default function ScrapingPage() {
             )}
           </HStack>
           <Listings
-            uniqueListings={scrapeResult.unique}
-            duplicateListings={scrapeResult.duplicates}
+            uniqueListings={getUniqueListings(scrapeResult)}
+            duplicateListings={getDuplicateListings(scrapeResult)}
             selectedListings={selectedListings}
             onSelectionChange={handleSelectionChange}
           />
