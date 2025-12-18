@@ -13,6 +13,7 @@ import { CSS } from '@dnd-kit/utilities';
 import {
   type ArrayPath,
   type Control,
+  type FieldArray,
   type FieldValues,
   type Path,
   useFieldArray,
@@ -27,6 +28,8 @@ type BulletInputProps<TFieldValues extends FieldValues> = {
   name: ArrayPath<TFieldValues>;
   label: string;
   marker?: Marker;
+  onItemMouseEnter?: (item: FieldArray<TFieldValues, ArrayPath<TFieldValues>>) => void;
+  onItemMouseLeave?: (item: FieldArray<TFieldValues, ArrayPath<TFieldValues>>) => void;
 };
 
 type Marker = {
@@ -52,6 +55,8 @@ export default function BulletInput<TFieldValues extends FieldValues>({
   name,
   label,
   marker,
+  onItemMouseEnter,
+  onItemMouseLeave,
 }: BulletInputProps<TFieldValues>) {
   const { fields, remove, move, insert } = useFieldArray({
     control,
@@ -96,6 +101,9 @@ export default function BulletInput<TFieldValues extends FieldValues>({
               }
               handleDelete={() => remove(index)}
               marker={marker}
+              onItemMouseEnter={onItemMouseEnter}
+              onItemMouseLeave={onItemMouseLeave}
+              field={field}
             />
           ))}
         </VStack>
@@ -113,6 +121,9 @@ type BulletProps<TFieldValues extends FieldValues> = {
   handleInsertBelow: () => void;
   handleDelete: () => void;
   marker?: Marker;
+  field: FieldArray<TFieldValues, ArrayPath<TFieldValues>>;
+  onItemMouseEnter?: (item: FieldArray<TFieldValues, ArrayPath<TFieldValues>>) => void;
+  onItemMouseLeave?: (item: FieldArray<TFieldValues, ArrayPath<TFieldValues>>) => void;
 };
 
 function Bullet<T extends FieldValues>({
@@ -124,6 +135,9 @@ function Bullet<T extends FieldValues>({
   handleInsertBelow,
   handleDelete,
   marker,
+  onItemMouseEnter,
+  onItemMouseLeave,
+  field,
 }: BulletProps<T>) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id,
@@ -174,6 +188,8 @@ function Bullet<T extends FieldValues>({
         py="1.5"
         autoresize
         spellCheck="false"
+        onMouseEnter={() => onItemMouseEnter?.(field)}
+        onMouseLeave={() => onItemMouseLeave?.(field)}
       />
 
       <BulletMenu
