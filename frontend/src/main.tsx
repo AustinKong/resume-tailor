@@ -1,14 +1,13 @@
 import './index.css';
 
 import { LocaleProvider } from '@chakra-ui/react';
+import { Mutation, MutationCache, Query, QueryCache, QueryClient } from '@tanstack/react-query';
 import {
-  Mutation,
-  MutationCache,
-  Query,
-  QueryCache,
-  QueryClient,
-  QueryClientProvider,
-} from '@tanstack/react-query';
+  type PersistedClient,
+  type Persister,
+  PersistQueryClientProvider,
+} from '@tanstack/react-query-persist-client';
+import { del, get, set } from 'idb-keyval';
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { BrowserRouter } from 'react-router';
@@ -47,9 +46,36 @@ const queryClient = new QueryClient({
   }),
 });
 
+const persister: Persister = {
+  persistClient: async (client: PersistedClient) => {
+    await set('my-app-cache', client);
+  },
+  restoreClient: async () => {
+    return await get('my-app-cache');
+  },
+  removeClient: async () => {
+    await del('my-app-cache');
+  },
+};
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <QueryClientProvider client={queryClient}>
+    <PersistQueryClientProvider
+      client={queryClient}
+      persistOptions={{
+        persister,
+        dehydrateOptions: {
+          shouldDehydrateQuery: (query) => {
+            // Only save listings in IndexDB
+            const isSuccess = query.state.status === 'success';
+            const shouldPersist = query.queryKey[0] === 'listings';
+
+            return isSuccess && shouldPersist;
+          },
+        },
+      }}
+      onSuccess={() => toaster.success({ title: 'DEBUG: Cache restored' })}
+    >
       <ChakraProvider>
         <LocaleProvider locale="en-US">
           <BrowserRouter>
@@ -57,6 +83,6 @@ createRoot(document.getElementById('root')!).render(
           </BrowserRouter>
         </LocaleProvider>
       </ChakraProvider>
-    </QueryClientProvider>
+    </PersistQueryClientProvider>
   </StrictMode>
 );

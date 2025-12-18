@@ -1,19 +1,11 @@
-import {
-  Badge,
-  Checkbox,
-  HStack,
-  Icon,
-  Link as ChakraLink,
-  Table as ChakraTable,
-  Text,
-} from '@chakra-ui/react';
+import { Badge, Checkbox, HStack, Icon, Table as ChakraTable, Text } from '@chakra-ui/react';
 import {
   createColumnHelper,
   flexRender,
   getCoreRowModel,
   useReactTable,
 } from '@tanstack/react-table';
-import { useState } from 'react';
+import type { Dispatch, SetStateAction } from 'react';
 import { PiWarning } from 'react-icons/pi';
 
 import CompanyLogo from '@/components/custom/CompanyLogo';
@@ -54,32 +46,17 @@ const columns = [
       const listing = info.row.original;
       const isFailed = listing.status === 'failed';
 
-      if (isFailed) {
-        return (
-          <HStack gap={2} alignItems={'center'} w="full" overflow="hidden">
+      return (
+        <HStack gap={2} alignItems={'center'} w="full" overflow="hidden">
+          {isFailed ? (
             <Icon size="lg" flexShrink={0}>
               <PiWarning />
             </Icon>
-            <ChakraLink
-              href={listing.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              truncate
-              flex={1}
-              minW={0}
-              display="block"
-            >
-              {listing.url}
-            </ChakraLink>
-          </HStack>
-        );
-      }
-
-      return (
-        <HStack gap={2} alignItems={'center'} w="full" overflow="hidden">
-          <CompanyLogo domain={listing.domain} companyName={listing.company} flexShrink={0} />
+          ) : (
+            <CompanyLogo domain={listing.domain} companyName={listing.company} flexShrink={0} />
+          )}
           <Text truncate flex={1} minW={0}>
-            {listing.company} - {listing.title}
+            {isFailed ? listing.url : `${listing.company} - ${listing.title}`}
           </Text>
         </HStack>
       );
@@ -119,15 +96,17 @@ const columns = [
 
 export default function Table({
   listings,
+  rowSelection,
+  setRowSelection,
   selectedListingId,
   setSelectedListingId,
 }: {
   listings: ScrapingListing[];
+  rowSelection: Record<string, boolean>;
+  setRowSelection: Dispatch<SetStateAction<Record<string, boolean>>>;
   selectedListingId: string | null;
   setSelectedListingId: (id: string | null) => void;
 }) {
-  const [rowSelection, setRowSelection] = useState({});
-
   const table = useReactTable({
     data: listings,
     columns,

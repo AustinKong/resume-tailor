@@ -186,8 +186,10 @@ function Bullet<T extends FieldValues>({
         rows={1}
         variant="flushed"
         py="1.5"
-        autoresize
+        // Less jittery than autoresize
+        css={{ fieldSizing: 'content' }}
         spellCheck="false"
+        resize="none"
         onMouseEnter={() => onItemMouseEnter?.(field)}
         onMouseLeave={() => onItemMouseLeave?.(field)}
       />

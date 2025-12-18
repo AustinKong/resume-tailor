@@ -18,7 +18,7 @@ export default function Header({
         companyName={application.listing.company}
         size="xl"
       />
-      <VStack alignItems="start" gap="0" flex="1">
+      <VStack alignItems="start" gap="0" flex="1" minW="0">
         <Text fontSize="xl" fontWeight="bold" lineHeight="shorter">
           {application.listing.company}
         </Text>
@@ -28,6 +28,9 @@ export default function Header({
           fontSize="sm"
           target="_blank"
           color="fg.info"
+          truncate
+          display="block"
+          w="full"
         >
           {application.listing.url}
         </ChakraLink>

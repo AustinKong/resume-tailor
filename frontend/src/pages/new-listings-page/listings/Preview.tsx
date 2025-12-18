@@ -1,5 +1,5 @@
-import { Box, Center, Text } from '@chakra-ui/react';
-import { forwardRef, useImperativeHandle, useMemo, useRef } from 'react';
+import { Box, Button, Center, Heading, HStack, Image, Link, Text, VStack } from '@chakra-ui/react';
+import { forwardRef, useImperativeHandle, useMemo, useRef, useState } from 'react';
 
 import { HIGHLIGHT_SCRIPT } from '@/constants/highlight-script';
 import type { ScrapingListing } from '@/types/listing';
@@ -15,6 +15,7 @@ type PreviewProps = {
 
 const Preview = forwardRef<PreviewHandle, PreviewProps>(({ listing }, ref) => {
   const iframeRef = useRef<HTMLIFrameElement>(null);
+  const [showAnyways, setShowAnyways] = useState(false);
 
   // Inject script required for MarkJS highlighting
   const htmlContent = useMemo(() => {
@@ -31,10 +32,30 @@ const Preview = forwardRef<PreviewHandle, PreviewProps>(({ listing }, ref) => {
     },
   }));
 
-  if (!listing.html) {
+  if (!showAnyways && (listing.error || !listing.html)) {
     return (
-      <Center>
-        <Text>No preview available</Text>
+      <Center w="full" h="full">
+        <VStack textAlign="center" maxW="md" textWrap="pretty" gap="6">
+          <Image src={listing.html ? 'https://http.cat/422' : 'https://http.cat/400'} />
+          <Heading size="2xl">
+            Failed to get any useful <br /> information from this listing.
+          </Heading>
+          <Text textStyle="lg" color="fg.error" maxW="md">
+            Error: {listing.error}
+          </Text>
+          <HStack>
+            <Button asChild size="lg">
+              <Link href={listing.url} target="_blank" rel="noopener noreferrer">
+                View website
+              </Link>
+            </Button>
+            {listing.html && (
+              <Button onClick={() => setShowAnyways(true)} size="lg" variant="outline">
+                View anyways
+              </Button>
+            )}
+          </HStack>
+        </VStack>
       </Center>
     );
   }

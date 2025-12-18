@@ -1,9 +1,4 @@
-import { useMutation } from '@tanstack/react-query';
-import { useState } from 'react';
-
-import { scrapeListings } from '@/services/listings';
-import type { ScrapingListing } from '@/types/listing';
-import IndexedDBStorage from '@/utils/indexeddb';
+import { useListingCache, useListingMutations, useListingsQuery } from '@/hooks/listings';
 
 import Input from './Input';
 import Listings from './listings';
@@ -32,46 +27,16 @@ import ScrapeLoader from './ScrapeLoader';
  */
 
 export default function NewListingsPage() {
-  const [listings, setListings] = useState<ScrapingListing[] | undefined>(undefined);
-  const [isLoadingCache, setIsLoadingCache] = useState(false); // Acts as isPending for cache loading
+  const { listings, isLoading } = useListingsQuery();
+  const { scrapeListings, isScrapeLoading } = useListingMutations();
+  const { clearListings } = useListingCache();
 
-  const { mutate, isPending } = useMutation({
-    mutationFn: scrapeListings,
-    onSuccess: async (data) => {
-      setListings(data);
-      // Cache the results (overwrites any previous cache)
-      await IndexedDBStorage.save('listings', data);
-    },
-  });
-
-  const handleSubmit = async (urls: string[]) => {
-    // Check for any cached data (regardless of URLs)
-    const cachedData = await IndexedDBStorage.get<ScrapingListing[]>('listings');
-
-    if (cachedData) {
-      // Load cached data after 1 second delay
-      setIsLoadingCache(true);
-      setTimeout(() => {
-        setListings(cachedData);
-        setIsLoadingCache(false);
-      }, 1000);
-    } else {
-      // No cached data, proceed with normal mutation
-      mutate(urls);
-    }
-  };
-
-  const clearCache = async () => {
-    await IndexedDBStorage.clear();
-    setListings(undefined);
-  };
-
-  if (isPending || isLoadingCache) {
+  if (isScrapeLoading || isLoading) {
     return <ScrapeLoader />;
   }
 
-  if (!listings) {
-    return <Input onSubmit={handleSubmit} onClearCache={clearCache} />;
+  if (!listings.length) {
+    return <Input onSubmit={scrapeListings} onClearCache={clearListings} />;
   }
 
   return <Listings listings={listings} />;

@@ -1,11 +1,22 @@
-import { Button, Field, HStack, Input, TagsInput, Text, Textarea, VStack } from '@chakra-ui/react';
+import {
+  Field,
+  HStack,
+  IconButton,
+  Input,
+  TagsInput,
+  Text,
+  Textarea,
+  VStack,
+} from '@chakra-ui/react';
 import { Link as ChakraLink } from '@chakra-ui/react';
+import { useEffect } from 'react';
 import { Controller, useForm } from 'react-hook-form';
-import { PiCheck } from 'react-icons/pi';
+import { PiBookmarkSimple, PiCheck } from 'react-icons/pi';
 
 import BulletInput from '@/components/custom/BulletInput';
 import CompanyLogo from '@/components/custom/CompanyLogo';
 import { ISODateInput } from '@/components/custom/DatePickers';
+import { useListingCache } from '@/hooks/listings';
 import type { GroundedItem, ScrapingListing } from '@/types/listing';
 import type { ISODate } from '@/utils/date';
 
@@ -28,8 +39,15 @@ export default function Details({
   onHighlight: (text: string | null) => void;
   onClearHighlight: () => void;
 }) {
-  const { register, handleSubmit, control } = useForm<FormValues>({
-    defaultValues: {
+  const {
+    register,
+    handleSubmit,
+    control,
+    formState: { isDirty },
+    reset,
+    getValues,
+  } = useForm<FormValues>({
+    values: {
       title: listing.title,
       company: listing.company,
       location: listing.location || '',
@@ -39,11 +57,22 @@ export default function Details({
       postedDate: listing.postedDate,
     },
   });
-  console.log(listing);
+
+  const { updateListing } = useListingCache();
 
   const onSubmit = (data: FormValues) => {
-    console.log(data);
+    updateListing(listing.id, data);
+    reset(data);
   };
+
+  // Auto-save on unmount (switch listing)
+  useEffect(() => {
+    return () => {
+      if (isDirty) {
+        updateListing(listing.id, getValues());
+      }
+    };
+  }, [listing.id, isDirty, getValues, updateListing]);
 
   return (
     <VStack
@@ -58,8 +87,8 @@ export default function Details({
       overflowX="hidden"
     >
       <HStack gap="3" align="start">
-        <CompanyLogo domain={listing.domain} companyName={listing.company} size="xl" />
-        <VStack alignItems="start" gap="0" flex="1">
+        <CompanyLogo domain={listing.domain} companyName={listing.company} size="2xl" />
+        <VStack alignItems="start" gap="0" flex="1" minW="0">
           <Text fontSize="xl" fontWeight="bold" lineHeight="shorter">
             {listing.company}
           </Text>
@@ -69,10 +98,16 @@ export default function Details({
             fontSize="sm"
             target="_blank"
             color="fg.info"
+            truncate
+            display="block"
+            w="full"
           >
             {listing.url}
           </ChakraLink>
         </VStack>
+        <IconButton variant="ghost" type="submit">
+          {isDirty ? <PiBookmarkSimple /> : <PiCheck />}
+        </IconButton>
       </HStack>
 
       <Field.Root>
@@ -138,7 +173,7 @@ export default function Details({
                   <TagsInput.ItemInput />
                 </TagsInput.Item>
               ))}
-              <TagsInput.Input placeholder="Add tag..." />
+              <TagsInput.Input placeholder="Add skill..." />
             </TagsInput.Control>
           </TagsInput.Root>
         )}
@@ -158,8 +193,6 @@ export default function Details({
         onItemMouseEnter={(item) => item.quote && _onHighlight(item.quote)}
         onItemMouseLeave={_onClearHighlight}
       />
-
-      <Button type="submit">Submit</Button>
     </VStack>
   );
 }
