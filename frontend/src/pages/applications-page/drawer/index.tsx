@@ -12,11 +12,9 @@ import JobDetails from './JobDetails';
 import TimelineEditor from './TimelineEditor';
 
 export default function Drawer({
-  isOpen,
   onClose,
   selectedApplicationId,
 }: {
-  isOpen: boolean;
   onClose: () => void;
   selectedApplicationId: string | null;
 }) {
@@ -33,24 +31,13 @@ export default function Drawer({
   };
 
   return (
-    <VStack
-      h="full"
-      w={isOpen ? 'lg' : '0'}
-      transitionProperty="width"
-      transitionDuration="moderate"
-      transitionTimingFunction="ease-out"
-      overflow="hidden"
-      borderLeft={isOpen ? '1px solid' : 'none'}
-      borderColor="border"
-      bg="bg.panel"
-      overflowY="auto"
-    >
+    <VStack h="full" w="full" overflow="hidden" alignItems="stretch" bg="bg.panel" overflowY="auto">
       {!displayApplication ? (
-        <Center w="lg" h="full">
+        <Center h="full">
           <Spinner size="lg" />
         </Center>
       ) : (
-        <VStack w="lg" px="6" py="2" alignItems="stretch" gap="4">
+        <VStack p="4" alignItems="stretch" gap="4" minW="md">
           <Header application={displayApplication} onClose={onClose} />
           <JobDetails application={displayApplication} />
           <Separator />

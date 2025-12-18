@@ -50,13 +50,12 @@ export default function Details({
       as="form"
       onSubmit={handleSubmit(onSubmit)}
       align="stretch"
-      w="lg"
+      w="full"
       p="4"
       gap="4"
       h="full"
-      borderX="1px solid"
-      borderColor="border"
       overflowY="auto"
+      overflowX="hidden"
     >
       <HStack gap="3" align="start">
         <CompanyLogo domain={listing.domain} companyName={listing.company} size="xl" />

@@ -40,7 +40,7 @@ const Preview = forwardRef<PreviewHandle, PreviewProps>(({ listing }, ref) => {
   }
 
   return (
-    <Box flex="1" h="full">
+    <Box w="full" h="full">
       <iframe
         ref={iframeRef}
         srcDoc={htmlContent}

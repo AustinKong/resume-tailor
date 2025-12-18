@@ -139,7 +139,7 @@ export default function Table({
   });
 
   return (
-    <ChakraTable.ScrollArea h="full" overflowY="scroll" w="md" overflowX="hidden">
+    <ChakraTable.ScrollArea h="full" overflowY="scroll" w="full" overflowX="hidden">
       <ChakraTable.Root size="sm" tableLayout="fixed" stickyHeader interactive>
         <ChakraTable.Header>
           {table.getHeaderGroups().map((headerGroup) => (

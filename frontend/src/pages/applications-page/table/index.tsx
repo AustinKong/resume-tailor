@@ -165,13 +165,7 @@ function Table({
   });
 
   return (
-    <ChakraTable.ScrollArea
-      h="full"
-      overflowY="scroll"
-      borderTop="1px solid"
-      borderColor="border"
-      flex="1"
-    >
+    <ChakraTable.ScrollArea h="full" overflowY="scroll">
       <ChakraTable.Root size="sm" stickyHeader tableLayout="fixed" interactive>
         <ChakraTable.ColumnGroup>
           {table.getLeafHeaders().map((header) => (

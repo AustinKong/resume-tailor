@@ -1,8 +1,10 @@
-import { HStack, VStack } from '@chakra-ui/react';
+import { VStack } from '@chakra-ui/react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useCallback } from 'react';
 
+import { AnimatedSplitter } from '@/components/custom/AnimatedSpliter';
 import { useDebouncedUrlSyncedState } from '@/hooks/utils/useDebouncedUrlSyncedState';
+import { useLocalStorage } from '@/hooks/utils/useLocalStorage';
 import { useUrlSyncedState } from '@/hooks/utils/useUrlSyncedState';
 import { getApplication } from '@/services/applications';
 import type { Application } from '@/types/application';
@@ -22,6 +24,14 @@ export default function ApplicationsPage() {
   const [applicationId, setApplicationId] = useUrlSyncedState('applicationId', '', {
     type: 'STRING',
   });
+
+  const [drawerOpenSizes, setDrawerOpenSizes] = useLocalStorage(
+    'applications-splitter-sizes',
+    [70, 30]
+  );
+
+  const splitterSizes = applicationId !== '' ? drawerOpenSizes : [100, 0];
+  const setSplitterSizes = applicationId !== '' ? setDrawerOpenSizes : () => {};
 
   const handleRowClick = useCallback(
     (application: Application) => {
@@ -45,18 +55,33 @@ export default function ApplicationsPage() {
   return (
     <VStack h="full" alignItems="stretch" gap="0">
       <Toolbar searchInput={searchInput} onSearchChange={setSearchInput} />
-      <HStack flex="1" overflow="hidden" gap="0">
-        <Table
-          debouncedSearch={debouncedSearchInput}
-          onRowClick={handleRowClick}
-          onRowHover={handleRowHover}
-        />
-        <Drawer
-          isOpen={applicationId !== ''}
-          onClose={() => setApplicationId('')}
-          selectedApplicationId={applicationId || null}
-        />
-      </HStack>
+      <AnimatedSplitter.Root
+        panels={[
+          { id: 'table', minSize: 40 },
+          { id: 'drawer', minSize: 30 },
+        ]}
+        size={splitterSizes}
+        onResize={(details) => setSplitterSizes(details.size)}
+        h="full"
+        w="full"
+      >
+        <AnimatedSplitter.Panel id="table">
+          <Table
+            debouncedSearch={debouncedSearchInput}
+            onRowClick={handleRowClick}
+            onRowHover={handleRowHover}
+          />
+        </AnimatedSplitter.Panel>
+        <AnimatedSplitter.ResizeTrigger id="table:drawer">
+          <AnimatedSplitter.ResizeTriggerSeparator />
+        </AnimatedSplitter.ResizeTrigger>
+        <AnimatedSplitter.Panel id="drawer">
+          <Drawer
+            onClose={() => setApplicationId('')}
+            selectedApplicationId={applicationId || null}
+          />
+        </AnimatedSplitter.Panel>
+      </AnimatedSplitter.Root>
     </VStack>
   );
 }
