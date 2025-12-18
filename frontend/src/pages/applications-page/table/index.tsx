@@ -51,9 +51,11 @@ const columns = [
       const domain = info.row.original.listing.domain;
 
       return (
-        <HStack gap={2} alignItems={'center'}>
-          <CompanyLogo domain={domain} companyName={company} size="2xs" />
-          <Text>{company}</Text>
+        <HStack gap={2} alignItems={'center'} w="full" overflow="hidden">
+          <CompanyLogo domain={domain} companyName={company} size="2xs" flexShrink={0} />
+          <Text truncate flex={1} minW={0}>
+            {company}
+          </Text>
         </HStack>
       );
     },

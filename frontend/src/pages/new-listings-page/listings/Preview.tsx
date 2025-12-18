@@ -1,6 +1,7 @@
 import { Box, Center, Text } from '@chakra-ui/react';
-import { forwardRef, useImperativeHandle, useRef } from 'react';
+import { forwardRef, useImperativeHandle, useMemo, useRef } from 'react';
 
+import { HIGHLIGHT_SCRIPT } from '@/constants/highlight-script';
 import type { ScrapingListing } from '@/types/listing';
 
 export type PreviewHandle = {
@@ -14,6 +15,12 @@ type PreviewProps = {
 
 const Preview = forwardRef<PreviewHandle, PreviewProps>(({ listing }, ref) => {
   const iframeRef = useRef<HTMLIFrameElement>(null);
+
+  // Inject script required for MarkJS highlighting
+  const htmlContent = useMemo(() => {
+    if (!listing.html) return '';
+    return listing.html + HIGHLIGHT_SCRIPT;
+  }, [listing.html]);
 
   useImperativeHandle(ref, () => ({
     highlight: (text: string) => {
@@ -36,7 +43,7 @@ const Preview = forwardRef<PreviewHandle, PreviewProps>(({ listing }, ref) => {
     <Box flex="1" h="full">
       <iframe
         ref={iframeRef}
-        srcDoc={listing.html}
+        srcDoc={htmlContent}
         width="100%"
         height="100%"
         style={{ border: 'none' }}

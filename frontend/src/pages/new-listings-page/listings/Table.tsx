@@ -24,6 +24,7 @@ const columnHelper = createColumnHelper<ScrapingListing>();
 const columns = [
   columnHelper.display({
     id: 'select',
+    size: 40,
     header: ({ table }) => (
       <Checkbox.Root
         checked={table.getIsAllRowsSelected()}
@@ -48,17 +49,26 @@ const columns = [
   }),
   columnHelper.accessor('title', {
     header: 'Listing',
+    size: 0,
     cell: (info) => {
       const listing = info.row.original;
       const isFailed = listing.status === 'failed';
 
       if (isFailed) {
         return (
-          <HStack gap={2} alignItems={'center'}>
-            <Icon size="lg">
+          <HStack gap={2} alignItems={'center'} w="full" overflow="hidden">
+            <Icon size="lg" flexShrink={0}>
               <PiWarning />
             </Icon>
-            <ChakraLink href={listing.url} target="_blank" rel="noopener noreferrer">
+            <ChakraLink
+              href={listing.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              truncate
+              flex={1}
+              minW={0}
+              display="block"
+            >
               {listing.url}
             </ChakraLink>
           </HStack>
@@ -66,9 +76,9 @@ const columns = [
       }
 
       return (
-        <HStack gap={2} alignItems={'center'}>
-          <CompanyLogo domain={listing.domain} companyName={listing.company} />
-          <Text>
+        <HStack gap={2} alignItems={'center'} w="full" overflow="hidden">
+          <CompanyLogo domain={listing.domain} companyName={listing.company} flexShrink={0} />
+          <Text truncate flex={1} minW={0}>
             {listing.company} - {listing.title}
           </Text>
         </HStack>
@@ -77,6 +87,7 @@ const columns = [
   }),
   columnHelper.accessor('status', {
     header: 'Status',
+    size: 70,
     cell: (info) => {
       const status = info.getValue();
       let colorScheme: string = 'gray';
@@ -128,18 +139,24 @@ export default function Table({
   });
 
   return (
-    <ChakraTable.ScrollArea h="full" overflowY="scroll" w="lg" overflowX="hidden">
-      <ChakraTable.Root size="sm">
+    <ChakraTable.ScrollArea h="full" overflowY="scroll" w="md" overflowX="hidden">
+      <ChakraTable.Root size="sm" tableLayout="fixed" stickyHeader interactive>
         <ChakraTable.Header>
           {table.getHeaderGroups().map((headerGroup) => (
-            <ChakraTable.Row key={headerGroup.id}>
-              {headerGroup.headers.map((header) => (
-                <ChakraTable.ColumnHeader key={header.id}>
-                  {header.isPlaceholder
-                    ? null
-                    : flexRender(header.column.columnDef.header, header.getContext())}
-                </ChakraTable.ColumnHeader>
-              ))}
+            <ChakraTable.Row key={headerGroup.id} bg="bg.subtle">
+              {headerGroup.headers.map((header) => {
+                const width = header.column.columnDef.size
+                  ? `${header.column.columnDef.size}px`
+                  : 'auto';
+
+                return (
+                  <ChakraTable.ColumnHeader key={header.id} w={width}>
+                    {header.isPlaceholder
+                      ? null
+                      : flexRender(header.column.columnDef.header, header.getContext())}
+                  </ChakraTable.ColumnHeader>
+                );
+              })}
             </ChakraTable.Row>
           ))}
         </ChakraTable.Header>
@@ -153,12 +170,7 @@ export default function Table({
               cursor="pointer"
             >
               {row.getVisibleCells().map((cell) => (
-                <ChakraTable.Cell
-                  key={cell.id}
-                  whiteSpace="nowrap"
-                  textOverflow="ellipsis"
-                  overflow="hidden"
-                >
+                <ChakraTable.Cell key={cell.id} overflow="hidden">
                   {flexRender(cell.column.columnDef.cell, cell.getContext())}
                 </ChakraTable.Cell>
               ))}

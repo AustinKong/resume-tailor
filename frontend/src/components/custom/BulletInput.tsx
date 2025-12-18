@@ -1,4 +1,4 @@
-import { HStack, IconButton, Menu, Portal, Text, Textarea, VStack } from '@chakra-ui/react';
+import { HStack, Icon, IconButton, Menu, Portal, Text, Textarea, VStack } from '@chakra-ui/react';
 import {
   closestCorners,
   DndContext,
@@ -8,107 +8,68 @@ import {
   useSensors,
 } from '@dnd-kit/core';
 import { restrictToParentElement, restrictToVerticalAxis } from '@dnd-kit/modifiers';
-import {
-  arrayMove,
-  SortableContext,
-  useSortable,
-  verticalListSortingStrategy,
-} from '@dnd-kit/sortable';
+import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { useCallback, useEffect, useRef } from 'react';
+import {
+  type ArrayPath,
+  type Control,
+  type FieldValues,
+  type Path,
+  useFieldArray,
+  type UseFormRegister,
+} from 'react-hook-form';
+import type { IconBaseProps } from 'react-icons';
 import { PiDotsThreeVertical } from 'react-icons/pi';
 
-/**
- * BulletInput is a draggable, sortable input component for managing a list of bullet points.
- * It allows users to add, edit, delete, and reorder bullets via drag-and-drop and a context menu.
- *
- * @param bullets - Array of strings representing the current bullet points.
- * @param onBulletsChange - Callback function invoked when the bullets array changes (e.g., on edit, add, delete, or reorder).
- * @param label - Label text displayed above the bullet list.
- */
-export default function BulletInput({
-  bullets,
-  onBulletsChange,
-  label,
-}: {
-  bullets: string[];
-  onBulletsChange: (bullets: string[]) => void;
+type BulletInputProps<TFieldValues extends FieldValues> = {
+  control: Control<TFieldValues>;
+  register: UseFormRegister<TFieldValues>;
+  name: ArrayPath<TFieldValues>;
   label: string;
-}) {
-  const idsRef = useRef<string[]>([]);
+  marker?: Marker;
+};
 
-  // Sync ids with bullets length to ensure keys are always available
-  if (idsRef.current.length < bullets.length) {
-    idsRef.current.push(
-      ...Array.from({ length: bullets.length - idsRef.current.length }, () => crypto.randomUUID())
-    );
-  } else if (idsRef.current.length > bullets.length) {
-    idsRef.current = idsRef.current.slice(0, bullets.length);
-  }
+type Marker = {
+  icon: React.ReactNode;
+  color?: IconBaseProps['color'];
+};
 
-  // Ensure there is always at least one bullet.
-  useEffect(() => {
-    if (bullets.length === 0) {
-      idsRef.current = [crypto.randomUUID()];
-      onBulletsChange(['']);
-    }
-  }, [bullets.length, onBulletsChange]);
+/**
+ * BulletInput is a draggable, sortable input component integrated with React Hook Form.
+ *
+ * @template TFieldValues - The shape of the form values.
+ *
+ * @param props.control - The `control` object from `useForm`. Required for state management.
+ * @param props.register - The `register` function from `useForm`. Used to bind inputs.
+ * @param props.name - The path to the array field in the form data.
+ * **Important:** The array schema must be an array of objects containing a `value` key.
+ * Example: `[{ value: "Item 1" }, { value: "Item 2" }]`.
+ * @param props.label - The label text displayed above the list.
+ */
+export default function BulletInput<TFieldValues extends FieldValues>({
+  control,
+  register,
+  name,
+  label,
+  marker,
+}: BulletInputProps<TFieldValues>) {
+  const { fields, remove, move, insert } = useFieldArray({
+    control,
+    name,
+  });
 
   const sensors = useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: { distance: { y: 8 } },
-    })
+    useSensor(PointerSensor, { activationConstraint: { distance: { y: 8 } } })
   );
 
-  const addAtIndex = useCallback(
-    (index: number) => {
-      const nextBullets = [...bullets];
-      nextBullets.splice(index, 0, '');
-      const nextIds = [...idsRef.current];
-      nextIds.splice(index, 0, crypto.randomUUID());
-
-      onBulletsChange(nextBullets);
-      idsRef.current = nextIds;
-    },
-    [bullets, onBulletsChange]
-  );
-
-  const removeAtIndex = useCallback(
-    (index: number) => {
-      if (bullets.length <= 1) return;
-
-      const nextBullets = [...bullets];
-      nextBullets.splice(index, 1);
-      const nextIds = [...idsRef.current];
-      nextIds.splice(index, 1);
-
-      onBulletsChange(nextBullets);
-      idsRef.current = nextIds;
-    },
-    [bullets, onBulletsChange]
-  );
-
-  const handleChange = useCallback(
-    (id: string, content: string) => {
-      const index = idsRef.current.indexOf(id);
-      const nextBullets = [...bullets];
-      nextBullets[index] = content;
-      onBulletsChange(nextBullets);
-    },
-    [bullets, onBulletsChange]
-  );
-
-  const handleDragEnd = useCallback(
-    ({ active, over }: DragEndEvent) => {
-      if (!over || active.id === over.id) return;
-      const oldIndex = idsRef.current.indexOf(active.id as string);
-      const newIndex = idsRef.current.indexOf(over.id as string);
-
-      idsRef.current = arrayMove(idsRef.current, oldIndex, newIndex);
-      onBulletsChange(arrayMove(bullets, oldIndex, newIndex));
-    },
-    [bullets, onBulletsChange]
-  );
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (over && active.id !== over.id) {
+      const oldIndex = fields.findIndex((f) => f.id === active.id);
+      const newIndex = fields.findIndex((f) => f.id === over.id);
+      move(oldIndex, newIndex);
+    }
+  };
 
   return (
     <DndContext
@@ -117,20 +78,24 @@ export default function BulletInput({
       onDragEnd={handleDragEnd}
       modifiers={[restrictToVerticalAxis, restrictToParentElement]}
     >
-      <SortableContext items={[...idsRef.current]} strategy={verticalListSortingStrategy}>
+      <SortableContext items={fields} strategy={verticalListSortingStrategy}>
         <Text w="full" p="0" color="fg.muted" fontSize="sm" mb="-3">
           {label}
         </Text>
         <VStack gap="0.5" w="full">
-          {bullets.map((content, index) => (
-            <Bullet
-              key={idsRef.current[index]}
-              id={idsRef.current[index]}
-              content={content}
-              onChange={handleChange}
-              handleInsertAbove={() => addAtIndex(index)}
-              handleInsertBelow={() => addAtIndex(index + 1)}
-              handleDelete={() => removeAtIndex(index)}
+          {fields.map((field, index) => (
+            <Bullet<TFieldValues>
+              key={field.id}
+              id={field.id}
+              index={index}
+              register={register}
+              name={name}
+              handleInsertAbove={() => insert(index, { value: '' } as Parameters<typeof insert>[1])}
+              handleInsertBelow={() =>
+                insert(index + 1, { value: '' } as Parameters<typeof insert>[1])
+              }
+              handleDelete={() => remove(index)}
+              marker={marker}
             />
           ))}
         </VStack>
@@ -139,57 +104,82 @@ export default function BulletInput({
   );
 }
 
-function Bullet({
+type BulletProps<TFieldValues extends FieldValues> = {
+  id: string;
+  index: number;
+  register: UseFormRegister<TFieldValues>;
+  name: ArrayPath<TFieldValues>;
+  handleInsertAbove: () => void;
+  handleInsertBelow: () => void;
+  handleDelete: () => void;
+  marker?: Marker;
+};
+
+function Bullet<T extends FieldValues>({
   id,
-  content,
-  onChange,
+  index,
+  register,
+  name,
   handleInsertAbove,
   handleInsertBelow,
   handleDelete,
-}: {
-  id: string;
-  content: string;
-  onChange: (id: string, content: string) => void;
-  handleInsertAbove: (id: string) => void;
-  handleInsertBelow: (id: string) => void;
-  handleDelete: (id: string) => void;
-}) {
-  const { attributes, listeners, setNodeRef, transform, transition } = useSortable({
+  marker,
+}: BulletProps<T>) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id,
   });
 
   const style = {
     transform: CSS.Translate.toString(transform),
     transition,
+    zIndex: isDragging ? 1 : 0,
+    opacity: isDragging ? 0.5 : 1,
   };
 
   return (
     <HStack ref={setNodeRef} style={style} w="full">
-      <Text
-        {...attributes}
-        {...listeners}
-        mb="auto"
-        pt="0.25rem"
-        pl="2"
-        cursor="grab"
-        _active={{ cursor: 'grabbing' }}
-      >
-        •
-      </Text>
+      {marker ? (
+        <Icon
+          {...attributes}
+          {...listeners}
+          color={marker.color}
+          mb="auto"
+          mt="0.5rem"
+          cursor="grab"
+          size="sm"
+          _active={{ cursor: 'grabbing' }}
+          _focus={{ boxShadow: 'none' }}
+          outline="none"
+        >
+          {marker.icon}
+        </Icon>
+      ) : (
+        <Text
+          {...attributes}
+          {...listeners}
+          mb="auto"
+          mt="0.25rem"
+          ml="2"
+          cursor="grab"
+          _active={{ cursor: 'grabbing' }}
+        >
+          •
+        </Text>
+      )}
+
       <Textarea
-        value={content ?? ''}
-        onChange={(e) => onChange(id, e.target.value)}
+        {...register(`${name}.${index}.value` as Path<T>)}
         rows={1}
-        autoresize
         variant="flushed"
-        spellCheck="false"
         py="1.5"
+        autoresize
+        spellCheck="false"
       />
+
       <BulletMenu
         handleInsertAbove={handleInsertAbove}
         handleInsertBelow={handleInsertBelow}
         handleDelete={handleDelete}
-        id={id}
       />
     </HStack>
   );
@@ -199,23 +189,21 @@ function BulletMenu({
   handleInsertAbove,
   handleInsertBelow,
   handleDelete,
-  id,
 }: {
-  handleInsertAbove: (id: string) => void;
-  handleInsertBelow: (id: string) => void;
-  handleDelete: (id: string) => void;
-  id: string;
+  handleInsertAbove: () => void;
+  handleInsertBelow: () => void;
+  handleDelete: () => void;
 }) {
   function handleSelect({ value }: { value: string }) {
     switch (value) {
       case 'insert-above':
-        handleInsertAbove(id);
+        handleInsertAbove();
         break;
       case 'insert-below':
-        handleInsertBelow(id);
+        handleInsertBelow();
         break;
       case 'delete':
-        handleDelete(id);
+        handleDelete();
         break;
     }
   }

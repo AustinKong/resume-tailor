@@ -1,18 +1,9 @@
-"""
-Code injection to include MarkJS library into scraped HTML content.
-"""
-
-MARKJS_INJECTION_CODE = """
-<script>
-  window.addEventListener("message", (event) => {
-    // Basic message handling
-  });
-</script>
+export const HIGHLIGHT_SCRIPT = `
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mark.js/8.11.1/mark.min.js"></script>
 <script>
   function initMarker() {
     if (typeof Mark === 'undefined') {
-      console.error('MarkJS: Mark.js library not loaded');
+      setTimeout(initMarker, 100);
       return;
     }
 
@@ -33,19 +24,13 @@ MARKJS_INJECTION_CODE = """
                   "accuracy": "partially",
                   "scroll": true,
                   "done": function(totalMarks) {
-                    // Find all mark elements and apply inline styles
-                    const marks = document.querySelectorAll('mark.highlight-mark');
-                    marks.forEach(function(mark) {
-                      mark.style.backgroundColor = '#ffff00';
-                      mark.style.color = '#000000';
-                      mark.style.padding = '2px 4px';
-                      mark.style.borderRadius = '3px';
-                      mark.style.fontWeight = 'bold';
-                    });
-                    
-                    // Scroll to the first highlighted element
-                    if (marks.length > 0) {
-                      marks[0].scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    // Scroll to the first highlighted mark
+                    const firstMark = document.querySelector("mark.highlight-mark");
+                    if (firstMark) {
+                      firstMark.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'center'
+                      });
                     }
                   }
                 });
@@ -70,6 +55,7 @@ MARKJS_INJECTION_CODE = """
     initMarker();
   }
 </script>
+
 <style>
 .highlight-mark {
   background-color: #ffff00 !important;
@@ -79,4 +65,4 @@ MARKJS_INJECTION_CODE = """
   font-weight: bold !important;
 }
 </style>
-"""
+`;

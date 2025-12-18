@@ -31,6 +31,7 @@ export default function Listings({ listings }: { listings: ScrapingListing[] }) 
         setSelectedListingId={setSelectedListingId}
       />
       <Details
+        key={selectedListingId}
         listing={selectedListing}
         onHighlight={handleHighlight}
         onClearHighlight={handleClearHighlight}

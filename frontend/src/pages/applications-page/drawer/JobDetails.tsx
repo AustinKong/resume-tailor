@@ -1,4 +1,4 @@
-import { DataList, Heading, List, Text, VStack } from '@chakra-ui/react';
+import { DataList, Heading, List, Tag, Text, VStack, Wrap } from '@chakra-ui/react';
 import { PiCheck } from 'react-icons/pi';
 
 import DisplayDate from '@/components/custom/DisplayDate';
@@ -27,7 +27,15 @@ export default function JobDetails({ application }: { application: Application }
           </DataList.Item>
           <DataList.Item>
             <DataList.ItemLabel>Skills</DataList.ItemLabel>
-            <DataList.ItemValue>{application.listing.skills.join(', ')}</DataList.ItemValue>
+            <DataList.ItemValue>
+              <Wrap>
+                {application.listing.skills.map((skill) => (
+                  <Tag.Root key={skill} variant="subtle" size="lg">
+                    <Tag.Label>{skill}</Tag.Label>
+                  </Tag.Root>
+                ))}
+              </Wrap>
+            </DataList.ItemValue>
           </DataList.Item>
         </DataList.Root>
       </VStack>

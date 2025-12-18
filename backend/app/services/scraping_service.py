@@ -10,7 +10,6 @@ from app.config import settings
 from app.resources.scripts import (
   JS_INJECT_BASE,
   JS_MATERIALIZE_STYLES,
-  MARKJS_INJECTION_CODE,
 )
 from app.utils.errors import ServiceError
 
@@ -180,12 +179,6 @@ class ScrapingService:
 
     return str(soup)
 
-  def _inject_markjs(self, html: str) -> str:
-    if '</body>' in html:
-      return html.replace('</body>', f'{MARKJS_INJECTION_CODE}</body>')
-    # Some pages might not have <body> tag
-    return f'{html}{MARKJS_INJECTION_CODE}'
-
   async def fetch_and_clean(self, url: HttpUrl) -> ScrapingResult:
     try:
       async with async_playwright() as p:
@@ -207,7 +200,6 @@ class ScrapingService:
         await self._inline_assets(page, str(url))
         html = await page.content()
         html = self._strip_scripts(html)
-        html = self._inject_markjs(html)
 
         await browser.close()
 
