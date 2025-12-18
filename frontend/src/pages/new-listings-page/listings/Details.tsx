@@ -1,9 +1,11 @@
-import { Button, Field, Input, TagsInput, Text, Textarea, VStack } from '@chakra-ui/react';
+import 'react-datepicker/dist/react-datepicker.css';
+
+import { Button, Field, Input, TagsInput, Textarea, VStack } from '@chakra-ui/react';
 import { Controller, useForm } from 'react-hook-form';
 import { PiCheck } from 'react-icons/pi';
 
 import BulletInput from '@/components/custom/BulletInput';
-import DisplayDate from '@/components/custom/DisplayDate';
+import DatePicker from '@/components/custom/DatePicker';
 import type { ScrapingListing } from '@/types/listing';
 
 interface FormValues {
@@ -12,12 +14,13 @@ interface FormValues {
   description: string;
   requirements: { value: string }[];
   skills: string[];
+  postedDate: Date | null;
 }
 
 export default function Details({
   listing,
-  onHighlight,
-  onClearHighlight,
+  onHighlight: _onHighlight,
+  onClearHighlight: _onClearHighlight,
 }: {
   listing: ScrapingListing;
   onHighlight: (text: string | null) => void;
@@ -30,6 +33,7 @@ export default function Details({
       description: listing.description,
       requirements: listing.requirements.map((r) => ({ value: r.value })),
       skills: listing.skills.map((s) => s.value),
+      postedDate: listing.postedDate ? new Date(listing.postedDate) : null,
     },
   });
 
@@ -60,7 +64,17 @@ export default function Details({
         <Input {...register('location')} />
       </Field.Root>
 
-      <Text>Posted: {listing.postedDate ? <DisplayDate date={listing.postedDate} /> : 'N/A'}</Text>
+      <Controller
+        name="postedDate"
+        control={control}
+        render={({ field }) => (
+          <DatePicker
+            selected={field.value}
+            onChange={(date) => field.onChange(date)}
+            colorPalette="blue"
+          />
+        )}
+      />
 
       <Controller
         control={control}
