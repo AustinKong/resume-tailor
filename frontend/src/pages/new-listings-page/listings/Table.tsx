@@ -64,7 +64,7 @@ const columns = [
   }),
   columnHelper.accessor('status', {
     header: 'Status',
-    size: 70,
+    size: 150,
     cell: (info) => {
       const status = info.getValue();
       let colorScheme: string = 'gray';
@@ -112,6 +112,7 @@ export default function Table({
     columns,
     getCoreRowModel: getCoreRowModel(),
     onRowSelectionChange: setRowSelection,
+    getRowId: (row) => row.id,
     state: {
       rowSelection,
     },

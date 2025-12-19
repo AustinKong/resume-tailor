@@ -17,7 +17,7 @@ export type StatusEnum =
 export type Application = {
   id: string;
   listing: Listing;
-  resumeId?: string;
+  resumeId: string | null;
   statusEvents: StatusEvent[];
   currentStatus: StatusEnum;
   currentStage: number;
@@ -30,5 +30,5 @@ export type StatusEvent = {
   status: StatusEnum;
   stage: number;
   createdAt: ISODatetime;
-  notes?: string;
+  notes: string | null;
 };

@@ -67,6 +67,9 @@ class ScrapingResult(BaseModel):
   html: str
 
 
+# TODO: Need to respect robots.txt?
+# Generally my-use case doesn't violate any legal guidelines. But we should include a
+# "Ethical scraping" setting and respect robots.txt for those who enable it.
 class ScrapingService:
   def _clean_html(self, html: str) -> str:
     soup = BeautifulSoup(html, 'html.parser')

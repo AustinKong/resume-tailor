@@ -12,6 +12,7 @@ from app.schemas.types import CamelModel
 T = TypeVar('T')
 
 
+# TODO: Move into Listings schema file
 class ScrapeStatus(str, Enum):
   COMPLETED = 'completed'
   DUPLICATE_URL = 'duplicate_url'
@@ -55,8 +56,11 @@ class ScrapingListing(ExtractionListing):
     )
 
   @classmethod
-  def from_error(cls, url: HttpUrl, error: str, html: str | None = None) -> 'ScrapingListing':
+  def from_error(
+    cls, url: HttpUrl, error: str, html: str | None = None, id: UUID | None = None
+  ) -> 'ScrapingListing':
     return cls(
+      id=id or uuid4(),
       url=url,
       status=ScrapeStatus.FAILED,
       error=error,

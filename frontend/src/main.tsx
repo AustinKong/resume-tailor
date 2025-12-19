@@ -46,6 +46,25 @@ const queryClient = new QueryClient({
   }),
 });
 
+// DEBUG
+queryClient.getQueryCache().subscribe((event) => {
+  // We only care when data is updated (manual or via fetch)
+  if (event.type === 'updated' && event.action.type === 'success') {
+    const query = event.query;
+
+    if (query.queryKey[0] === 'listings') {
+      console.log('Cache sync via Subscribe', query.state.data);
+
+      toaster.create({
+        title: 'DEBUG: Cache Sync',
+        description: `Listings updated (${new Date().toLocaleTimeString()})`,
+        type: 'info',
+        duration: 2000,
+      });
+    }
+  }
+});
+
 const persister: Persister = {
   persistClient: async (client: PersistedClient) => {
     await set('my-app-cache', client);

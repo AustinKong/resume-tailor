@@ -8,7 +8,9 @@ import Details from './Details';
 import Footer from './Footer';
 import Preview, { type PreviewHandle } from './Preview';
 import Table from './Table';
+import Toolbar from './Toolbar';
 
+// TODO: With the useListingsQuery hook, we don't really need to pass listings as a prop?
 export default function Listings({ listings }: { listings: ScrapingListing[] }) {
   const [selectedListingId, setSelectedListingId] = useState<string | null>(null);
   const [rowSelection, setRowSelection] = useState<Record<string, boolean>>({});
@@ -34,6 +36,7 @@ export default function Listings({ listings }: { listings: ScrapingListing[] }) 
 
   return (
     <VStack h="full" w="full" gap="0" alignItems="stretch">
+      <Toolbar rowSelection={rowSelection} />
       <Splitter.Root
         panels={[
           { id: 'table', minSize: 15, maxSize: 40 },

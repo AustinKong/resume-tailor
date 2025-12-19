@@ -1,6 +1,11 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 
-import { scrapeListings as scrapeListingsSvc } from '@/services/listings';
+import {
+  extractListing as extractListingSvc,
+  saveListings as saveListingsSvc,
+  scrapeListings as scrapeListingsSvc,
+} from '@/services/listings';
+import type { ScrapingListing } from '@/types/listing';
 
 export function useListingMutations() {
   const queryClient = useQueryClient();
@@ -11,8 +16,23 @@ export function useListingMutations() {
     isError: isScrapeError,
   } = useMutation({
     mutationFn: scrapeListingsSvc,
-    onSuccess: (data) => {
-      queryClient.setQueryData(['listings'], data);
+    onSuccess: (listings) => {
+      queryClient.setQueryData(['listings'], listings);
+    },
+  });
+
+  const {
+    mutateAsync: extractListing,
+    isPending: isExtractLoading,
+    isError: isExtractError,
+  } = useMutation({
+    mutationFn: ({ id, url, content }: { id: string; url: string; content: string }) => {
+      return extractListingSvc(id, url, content);
+    },
+    onSuccess: (updatedListing) => {
+      queryClient.setQueryData(['listings'], (old: ScrapingListing[] | undefined) => {
+        return old?.map((l) => (l.id === updatedListing.id ? updatedListing : l));
+      });
     },
   });
 
@@ -21,15 +41,16 @@ export function useListingMutations() {
     isPending: isSaveLoading,
     isError: isSaveError,
   } = useMutation({
-    mutationFn: async (listings: string) => {
-      return Promise.resolve();
-    },
+    mutationFn: saveListingsSvc,
   });
 
   return {
     scrapeListings,
     isScrapeLoading,
     isScrapeError,
+    extractListing,
+    isExtractLoading,
+    isExtractError,
     saveListings,
     isSaveLoading,
     isSaveError,

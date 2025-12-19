@@ -74,6 +74,8 @@ export default function Details({
     };
   }, [listing.id, isDirty, getValues, updateListing]);
 
+  const isDisabled = listing.status === 'duplicate_url';
+
   return (
     <VStack
       as="form"
@@ -87,7 +89,7 @@ export default function Details({
       overflowX="hidden"
     >
       <HStack gap="3" align="start">
-        <CompanyLogo domain={listing.domain} companyName={listing.company} size="2xl" />
+        <CompanyLogo domain={listing.domain} companyName={listing.company || '?'} size="2xl" />
         <VStack alignItems="start" gap="0" flex="1" minW="0">
           <Text fontSize="xl" fontWeight="bold" lineHeight="shorter">
             {listing.company}
@@ -105,31 +107,32 @@ export default function Details({
             {listing.url}
           </ChakraLink>
         </VStack>
-        <IconButton variant="ghost" type="submit">
+        <IconButton variant="ghost" type="submit" disabled={isDisabled || !isDirty}>
           {isDirty ? <PiBookmarkSimple /> : <PiCheck />}
         </IconButton>
       </HStack>
 
-      <Field.Root>
-        <Field.Label>Role</Field.Label>
-        <Input {...register('title')} />
-      </Field.Root>
-
-      <Field.Root>
+      <Field.Root disabled={isDisabled}>
         <Field.Label>Company</Field.Label>
-        <Input {...register('company')} />
+        <Input {...register('company', { disabled: isDisabled })} />
       </Field.Root>
 
-      <Field.Root>
+      <Field.Root disabled={isDisabled}>
+        <Field.Label>Role</Field.Label>
+        <Input {...register('title', { disabled: isDisabled })} />
+      </Field.Root>
+
+      <Field.Root disabled={isDisabled}>
         <Field.Label>Location</Field.Label>
-        <Input {...register('location')} />
+        <Input {...register('location', { disabled: isDisabled })} />
       </Field.Root>
 
-      <Field.Root>
+      <Field.Root disabled={isDisabled}>
         <Field.Label>Posted Date</Field.Label>
         <Controller
           control={control}
           name="postedDate"
+          disabled={isDisabled}
           render={({ field }) => (
             <ISODateInput
               value={field.value}
@@ -144,6 +147,7 @@ export default function Details({
       <Controller
         control={control}
         name="skills"
+        disabled={isDisabled}
         render={({ field }) => (
           <TagsInput.Root
             value={field.value.map((s) => s.value)}
@@ -179,9 +183,9 @@ export default function Details({
         )}
       />
 
-      <Field.Root>
+      <Field.Root disabled={isDisabled}>
         <Field.Label>Description</Field.Label>
-        <Textarea {...register('description')} autoresize />
+        <Textarea {...register('description', { disabled: isDisabled })} autoresize />
       </Field.Root>
 
       <BulletInput
@@ -192,6 +196,7 @@ export default function Details({
         marker={{ icon: <PiCheck />, color: 'green' }}
         onItemMouseEnter={(item) => item.quote && _onHighlight(item.quote)}
         onItemMouseLeave={_onClearHighlight}
+        disabled={isDisabled}
       />
     </VStack>
   );

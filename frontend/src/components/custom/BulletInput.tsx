@@ -30,6 +30,7 @@ type BulletInputProps<TFieldValues extends FieldValues> = {
   marker?: Marker;
   onItemMouseEnter?: (item: FieldArray<TFieldValues, ArrayPath<TFieldValues>>) => void;
   onItemMouseLeave?: (item: FieldArray<TFieldValues, ArrayPath<TFieldValues>>) => void;
+  disabled?: boolean;
 };
 
 type Marker = {
@@ -57,6 +58,7 @@ export default function BulletInput<TFieldValues extends FieldValues>({
   marker,
   onItemMouseEnter,
   onItemMouseLeave,
+  disabled = false,
 }: BulletInputProps<TFieldValues>) {
   const { fields, remove, move, insert } = useFieldArray({
     control,
@@ -68,6 +70,7 @@ export default function BulletInput<TFieldValues extends FieldValues>({
   );
 
   const handleDragEnd = (event: DragEndEvent) => {
+    if (disabled) return;
     const { active, over } = event;
     if (over && active.id !== over.id) {
       const oldIndex = fields.findIndex((f) => f.id === active.id);
@@ -83,8 +86,8 @@ export default function BulletInput<TFieldValues extends FieldValues>({
       onDragEnd={handleDragEnd}
       modifiers={[restrictToVerticalAxis, restrictToParentElement]}
     >
-      <SortableContext items={fields} strategy={verticalListSortingStrategy}>
-        <Text w="full" p="0" color="fg.muted" fontSize="sm" mb="-3">
+      <SortableContext items={fields} strategy={verticalListSortingStrategy} disabled={disabled}>
+        <Text w="full" p="0" color={disabled ? 'fg.subtle' : 'fg.error'} fontSize="sm" mb="-3">
           {label}
         </Text>
         <VStack gap="0.5" w="full">
@@ -104,6 +107,7 @@ export default function BulletInput<TFieldValues extends FieldValues>({
               onItemMouseEnter={onItemMouseEnter}
               onItemMouseLeave={onItemMouseLeave}
               field={field}
+              disabled={disabled}
             />
           ))}
         </VStack>
@@ -124,6 +128,7 @@ type BulletProps<TFieldValues extends FieldValues> = {
   field: FieldArray<TFieldValues, ArrayPath<TFieldValues>>;
   onItemMouseEnter?: (item: FieldArray<TFieldValues, ArrayPath<TFieldValues>>) => void;
   onItemMouseLeave?: (item: FieldArray<TFieldValues, ArrayPath<TFieldValues>>) => void;
+  disabled?: boolean;
 };
 
 function Bullet<T extends FieldValues>({
@@ -138,9 +143,11 @@ function Bullet<T extends FieldValues>({
   onItemMouseEnter,
   onItemMouseLeave,
   field,
+  disabled = false,
 }: BulletProps<T>) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id,
+    disabled,
   });
 
   const style = {
@@ -159,9 +166,9 @@ function Bullet<T extends FieldValues>({
           color={marker.color}
           mb="auto"
           mt="0.5rem"
-          cursor="grab"
+          cursor={disabled ? 'default' : 'grab'}
           size="sm"
-          _active={{ cursor: 'grabbing' }}
+          _active={disabled ? {} : { cursor: 'grabbing' }}
           _focus={{ boxShadow: 'none' }}
           outline="none"
         >
@@ -174,15 +181,15 @@ function Bullet<T extends FieldValues>({
           mb="auto"
           mt="0.25rem"
           ml="2"
-          cursor="grab"
-          _active={{ cursor: 'grabbing' }}
+          cursor={disabled ? 'default' : 'grab'}
+          _active={disabled ? {} : { cursor: 'grabbing' }}
         >
           •
         </Text>
       )}
 
       <Textarea
-        {...register(`${name}.${index}.value` as Path<T>)}
+        {...register(`${name}.${index}.value` as Path<T>, { disabled })}
         rows={1}
         variant="flushed"
         py="1.5"
@@ -198,6 +205,7 @@ function Bullet<T extends FieldValues>({
         handleInsertAbove={handleInsertAbove}
         handleInsertBelow={handleInsertBelow}
         handleDelete={handleDelete}
+        disabled={disabled}
       />
     </HStack>
   );
@@ -207,10 +215,12 @@ function BulletMenu({
   handleInsertAbove,
   handleInsertBelow,
   handleDelete,
+  disabled,
 }: {
   handleInsertAbove: () => void;
   handleInsertBelow: () => void;
   handleDelete: () => void;
+  disabled?: boolean;
 }) {
   function handleSelect({ value }: { value: string }) {
     switch (value) {
@@ -228,7 +238,7 @@ function BulletMenu({
 
   return (
     <Menu.Root onSelect={handleSelect}>
-      <Menu.Trigger asChild>
+      <Menu.Trigger asChild disabled={disabled}>
         <IconButton variant="ghost" size="xs" color="fg.muted">
           <PiDotsThreeVertical />
         </IconButton>

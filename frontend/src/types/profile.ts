@@ -3,18 +3,18 @@ import { ISOYearMonth } from '@/utils/date';
 export type Education = {
   institution: string;
   program: string;
-  location?: string;
+  location: string | null;
   startDate: ISOYearMonth;
-  endDate?: ISOYearMonth;
+  endDate: ISOYearMonth | null;
   bullets: string[];
 };
 
 export type Profile = {
   fullName: string;
   email: string;
-  phone?: string;
-  location?: string;
-  website?: string;
+  phone: string | null;
+  location: string | null;
+  website: string | null;
   education: Education[];
   certifications: string[];
   awards: string[];
@@ -23,6 +23,9 @@ export type Profile = {
 export const emptyProfile: Profile = {
   fullName: '',
   email: '',
+  phone: null,
+  location: null,
+  website: null,
   education: [],
   certifications: [],
   awards: [],
@@ -31,6 +34,8 @@ export const emptyProfile: Profile = {
 export const emptyEducation: Education = {
   institution: '',
   program: '',
+  location: null,
   startDate: ISOYearMonth.today(),
+  endDate: null,
   bullets: [],
 };

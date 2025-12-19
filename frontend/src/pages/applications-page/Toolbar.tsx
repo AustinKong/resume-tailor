@@ -10,7 +10,7 @@ export default function Toolbar({
   onSearchChange: (value: string) => void;
 }) {
   return (
-    <HStack p="1.5" border="1px solid" borderColor="border">
+    <HStack p="1.5" borderBottom="1px solid" borderColor="border">
       <InputGroup startElement={<PiMagnifyingGlass />} w="md">
         <Input
           size="md"

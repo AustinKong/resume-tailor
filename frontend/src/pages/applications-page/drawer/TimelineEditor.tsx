@@ -83,7 +83,7 @@ function StatusForm({ application }: { application: Application }) {
     const statusEvent = {
       status: data.status[0] as StatusEnum,
       stage: data.stage,
-      notes: data.notes,
+      notes: data.notes || null,
     };
 
     await updateApplicationStatus({

@@ -6,9 +6,9 @@ export type Listing = {
   title: string;
   company: string;
   domain: string;
-  location?: string;
+  location: string | null;
   description: string;
-  postedDate?: ISODate;
+  postedDate: ISODate | null;
   skills: string[];
   requirements: string[];
 };

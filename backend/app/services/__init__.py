@@ -8,11 +8,11 @@ from .scraping_service import ScrapingService
 from .template_service import TemplateService
 
 applications_service = ApplicationsService()
-experience_service = ExperiencesService()
+experience_service = ExperiencesService()  # TODO: Make plural
 listings_service = ListingsService()
 llm_service = LLMService()
 profile_service = ProfileService()
-resume_service = ResumesService()
+resume_service = ResumesService()  # TODO: Make plural
 scraping_service = ScrapingService()
 template_service = TemplateService()
 

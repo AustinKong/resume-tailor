@@ -13,6 +13,7 @@ type PreviewProps = {
   listing: ScrapingListing;
 };
 
+// TODO: Show different message if semantic or url duplicate
 const Preview = forwardRef<PreviewHandle, PreviewProps>(({ listing }, ref) => {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [showAnyways, setShowAnyways] = useState(false);

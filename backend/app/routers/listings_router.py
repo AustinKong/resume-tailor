@@ -1,4 +1,5 @@
 import asyncio
+from uuid import UUID
 
 from fastapi import APIRouter
 from pydantic import HttpUrl
@@ -23,31 +24,40 @@ router = APIRouter(
 
 
 """
-Scrapes the provided URLs and returns draft listings in one of four states:
+Scrapes the provided URLs and returns draft listings in one of the following states:
 
-1. COMPLETED
-    - Fresh scrape.
+1. UNIQUE (Status: COMPLETED)
+    - Successful fresh scrape and extraction.
     - 'html': Populated (Snapshot available).
-    - 'skills': Grounded (Quotes populated).
+    - 'skills'/'requirements': Grounded (Contains original quotes).
     - 'duplicate_of': None.
 
 2. DUPLICATE_URL (Exact Match)
-    - URL already exists in DB. Scrape was skipped.
+    - URL (normalized) already exists in the database. 
+    - Scrape and LLM extraction are skipped for performance.
     - 'html': None.
-    - 'skills': Ungrounded (Quotes are None).
-    - 'duplicate_of': Populated with the existing DB listing.
+    - 'skills'/'requirements': Ungrounded (Quotes are None).
+    - 'duplicate_of': Populated with the existing database listing.
 
 3. DUPLICATE_SEMANTIC (Content Match)
-    - Fresh scrape, but content looks identical to an existing listing.
-    - 'html': Populated.
-    - 'skills': Grounded.
-    - 'duplicate_of': Populated with the similar DB listing.
+    - Fresh scrape performed, but LLM content matches an existing record (e.g., same job on 
+      different sites).
+    - 'html': Populated (Useful for verifying the match).
+    - 'skills'/'requirements': Grounded.
+    - 'duplicate_of': Populated with the similar database listing.
 
-4. FAILED
-    - Scrape or LLM extraction failed.
-    - 'html': None.
-    - 'error': Populated with the exception message.
-    - All other fields are empty/default.
+4. FAILED (Error States)
+    - Case A: NO_HTML_HAS_ERROR
+        - Scraper was blocked (e.g., 403, Cloudflare) or network timeout.
+        - 'html': None.
+        - 'error': Populated with network/proxy exception message.
+    - Case B: HAS_HTML_HAS_ERROR
+        - Scraper succeeded, but LLM failed to parse the content into the schema.
+        - 'html': Populated (Crucial for manual extraction override).
+        - 'error': Populated with LLM parsing/validation error.
+    - Case C: HAS_HTML_NO_ERROR (Anomalous State)
+        - Data successfully retrieved but extraction resulted in empty/insufficient content.
+        - Treat as FAILED for UI purposes to trigger manual review.
 """
 
 
@@ -70,11 +80,12 @@ async def scrape_listings(urls: list[HttpUrl]):
       existing = existing_listings_map[url]
       results.append(
         ScrapingListing(
-          **existing.model_dump(),
+          **existing.model_dump(exclude={'skills', 'requirements'}),
           skills=[GroundedItem(value=s, quote=None) for s in existing.skills],
           requirements=[GroundedItem(value=r, quote=None) for r in existing.requirements],
           status=ScrapeStatus.DUPLICATE_URL,
           duplicate_of=existing,
+          html=None,
         )
       )
     else:
@@ -92,8 +103,6 @@ async def scrape_listings(urls: list[HttpUrl]):
     else:
       valid_pairs.append((url, result))
 
-  # TODO: Add cannot scrape handling. Use LLM to return an error state if the scraped content
-  # does not look like a job listing.
   valid_pages = [p[1] for p in valid_pairs]
   llm_results: list[ExtractionListing] = await asyncio.gather(
     *[
@@ -126,12 +135,43 @@ async def scrape_listings(urls: list[HttpUrl]):
   return results
 
 
+@router.post('/extract', response_model=ScrapingListing)
+async def extract_listing(id: UUID, url: HttpUrl, content: str):
+  extraction = await llm_service.call_structured(
+    input=LISTING_EXTRACTION_PROMPT.format(content=content),
+    response_model=ExtractionListing,
+  )
+
+  if extraction.error:
+    return ScrapingListing.from_error(
+      id=id,
+      url=url,
+      error=extraction.error,
+    )
+
+  draft = ScrapingListing(
+    **extraction.model_dump(),
+    url=url,
+    html=None,
+    status=ScrapeStatus.COMPLETED,
+    id=id,
+  )
+
+  similar_match = listings_service.find_similar(draft.to_listing())
+
+  if similar_match:
+    draft.status = ScrapeStatus.DUPLICATE_SEMANTIC
+    draft.duplicate_of = similar_match
+
+  return draft
+
+
 @router.get('', response_model=list[Listing])
 async def get_listings():
   return listings_service.list_all()
 
 
-# Frontend flattens into Listing for us
+# TODO: Should POST take singular listings to be more RESTful?
 @router.post('')
 async def save_listings(listings: list[Listing]):
   saved_listings = []

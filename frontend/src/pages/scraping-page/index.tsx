@@ -32,8 +32,8 @@ export default function ScrapingPage() {
         company: scrapingListing.company!,
         domain: scrapingListing.domain!,
         description: scrapingListing.description!,
-        location: scrapingListing.location || undefined,
-        postedDate: scrapingListing.postedDate || undefined,
+        location: scrapingListing.location || null,
+        postedDate: scrapingListing.postedDate || null,
         skills: scrapingListing.skills.map((skill) => skill.value),
         requirements: scrapingListing.requirements.map((req) => req.value),
       }));
@@ -60,20 +60,14 @@ export default function ScrapingPage() {
           company: scrapingListing.company!,
           domain: scrapingListing.domain!,
           description: scrapingListing.description!,
-          location: scrapingListing.location || undefined,
-          postedDate: scrapingListing.postedDate || undefined,
+          location: scrapingListing.location || null,
+          postedDate: scrapingListing.postedDate || null,
           skills: scrapingListing.skills.map((skill) => skill.value),
           requirements: scrapingListing.requirements.map((req) => req.value),
         },
         duplicateOf: scrapingListing.duplicateOf!,
       }));
   };
-
-  // Fetch existing listings
-  const { data: existingListings = [] } = useQuery({
-    queryKey: ['listings'],
-    queryFn: getListings,
-  });
 
   // Pre-check unique listings when scrape result changes
   useEffect(() => {
