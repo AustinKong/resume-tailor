@@ -1,6 +1,28 @@
+import os
+import sys
+from pathlib import Path
 from typing import Any, Literal
 
 from pydantic import BaseModel, Field
+
+
+def get_data_dir() -> Path:
+  if sys.platform == 'win32':
+    # C:\Users\<User>\AppData\Local
+    base = Path(os.environ.get('LOCALAPPDATA', os.path.expanduser('~')))
+  elif sys.platform == 'darwin':
+    # /Users/<User>/Library/Application Support
+    base = Path(os.path.expanduser('~/Library/Application Support'))
+  else:
+    # ~/.local/share
+    base = Path(os.path.expanduser('~/.local/share'))
+
+  app_folder = 'ResumeTailor'
+
+  if not getattr(sys, 'frozen', False):
+    app_folder += '-Dev'
+
+  return base / app_folder
 
 
 def ConfigField(
@@ -19,22 +41,22 @@ def ConfigField(
 
 class PathsPrefs(BaseModel):
   db_path: str = ConfigField(
-    default='data/db.sqlite3',
+    default_factory=lambda: str(get_data_dir() / 'db.sqlite3'),
     description='Path to SQLite database file',
     exposure='advanced',
   )
   vector_path: str = ConfigField(
-    default='data/vecs',
+    default_factory=lambda: str(get_data_dir() / 'vectors'),
     description='Path to vector database directory',
     exposure='advanced',
   )
   profile_path: str = ConfigField(
-    default='data/profile.json',
+    default_factory=lambda: str(get_data_dir() / 'profile.json'),
     description='Path to profile JSON file',
     exposure='advanced',
   )
   templates_dir: str = ConfigField(
-    default='data/templates',
+    default_factory=lambda: str(get_data_dir() / 'resume_templates'),
     description='Path to resume templates directory',
     exposure='advanced',
   )

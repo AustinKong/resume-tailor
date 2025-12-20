@@ -1,6 +1,5 @@
 import os
 import re
-from pathlib import Path
 
 import yaml
 from dotenv import load_dotenv
@@ -13,18 +12,21 @@ from app.config.schemas import (
   PathsPrefs,
   ResumePrefs,
   ScrapingPrefs,
+  get_data_dir,
 )
 from app.utils.structure import assign_path, deep_merge, flatten_structure
 
 
 class ConfigManager:
   def __init__(self):
-    self.user_config_path = Path('config/config.user.yaml')
-    self.env_path = Path('config/.env')
+    self.data_dir = get_data_dir()
+    self.user_config_path = self.data_dir / 'config.user.yaml'
+    self.env_path = self.data_dir / '.env'
+
     self._config: AppConfig | None = None
     self._exposure_map: dict | None = None
 
-    self.user_config_path.parent.mkdir(parents=True, exist_ok=True)
+    self.data_dir.mkdir(parents=True, exist_ok=True)
     if not self.user_config_path.exists():
       self.user_config_path.touch()
     if not self.env_path.exists():

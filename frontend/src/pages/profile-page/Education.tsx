@@ -12,7 +12,7 @@ import {
 import { useState } from 'react';
 import { PiAcorn, PiArrowSquareOut } from 'react-icons/pi';
 
-import BulletInput from '@/components/custom/BulletInput';
+// import BulletInput from '@/components/custom/BulletInput';
 import FloatingLabelInput from '@/components/ui/FloatingLabelInput';
 import { useProfileMutations, useProfileQuery } from '@/hooks/profile';
 import { type Education, emptyEducation, type Profile } from '@/types/profile';
@@ -166,11 +166,11 @@ function Entry({
           <Checkbox.Label>Present</Checkbox.Label>
         </Checkbox.Root>
       </HStack>
-      <BulletInput
+      {/* <BulletInput
         bullets={education.bullets}
         onBulletsChange={(points) => updateEducation({ bullets: points })}
         label="Bullet Points"
-      />
+      /> */}
     </>
   );
 }

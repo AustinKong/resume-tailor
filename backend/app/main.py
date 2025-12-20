@@ -1,9 +1,12 @@
-import traceback
+from fastapi import FastAPI
+from starlette.middleware.base import BaseHTTPMiddleware
 
-from fastapi import FastAPI, status
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
-
+from app.exception_handlers import (
+  application_error_exception_handler,
+  not_found_exception_handler,
+  service_error_exception_handler,
+)
+from app.middleware import exception_logging_middleware
 from app.routers import (
   applications_router,
   config_router,
@@ -18,62 +21,21 @@ from app.utils.errors import (
   ServiceError,
 )
 
-app = FastAPI()
-app.add_middleware(
-  CORSMiddleware,
-  allow_origins=['http://localhost:5173'],
-  allow_credentials=True,
-  allow_methods=['*'],
-  allow_headers=['*'],
-)
 
-app.include_router(applications_router)
-app.include_router(config_router)
-app.include_router(experiences_router)
-app.include_router(listings_router)
-app.include_router(profile_router)
-app.include_router(resumes_router)
+def create_app() -> FastAPI:
+  app = FastAPI()
 
+  app.include_router(applications_router, prefix='/api')
+  app.include_router(config_router, prefix='/api')
+  app.include_router(experiences_router, prefix='/api')
+  app.include_router(listings_router, prefix='/api')
+  app.include_router(profile_router, prefix='/api')
+  app.include_router(resumes_router, prefix='/api')
 
-@app.exception_handler(NotFoundError)
-async def not_found_exception_handler(request, exc):
-  return JSONResponse(
-    status_code=status.HTTP_404_NOT_FOUND,
-    content={'detail': str(exc)},
-  )
+  app.add_exception_handler(NotFoundError, not_found_exception_handler)
+  app.add_exception_handler(ServiceError, service_error_exception_handler)
+  app.add_exception_handler(ApplicationError, application_error_exception_handler)
 
+  app.add_middleware(BaseHTTPMiddleware, dispatch=exception_logging_middleware)
 
-# TODO: Why is there both ServiceError and ApplicationError?
-# TODO: Also, where is ValidationError handled?
-@app.exception_handler(ServiceError)
-async def service_error_exception_handler(request, exc):
-  return JSONResponse(
-    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-    content={'detail': str(exc)},
-  )
-
-
-@app.exception_handler(ApplicationError)
-async def application_error_exception_handler(request, exc):
-  return JSONResponse(
-    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-    content={'detail': str(exc)},
-  )
-
-
-@app.get('/health')
-async def health_check():
-  return {'message': 'OK'}
-
-
-@app.middleware('http')
-async def log_exceptions(request, call_next):
-  try:
-    return await call_next(request)
-  except Exception as e:
-    print(f'Exception occurred: {e}')
-    traceback.print_exc()
-    return JSONResponse(
-      status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-      content={'detail': 'Internal Server Error'},
-    )
+  return app

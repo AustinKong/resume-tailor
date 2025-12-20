@@ -15,6 +15,13 @@ dependencies = [
   "weasyprint>=59.0",
 ]
 
+[project.optional-dependencies]
+dev = [
+  "pyinstaller",
+  "ruff",
+  "pytest"
+]
+
 [tool.setuptools]
 packages = ["app"]
 

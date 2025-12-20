@@ -2,7 +2,7 @@ import { Button, Checkbox, Field, Heading, HStack, Link, Text, VStack } from '@c
 import { useState } from 'react';
 import { PiArrowSquareOut } from 'react-icons/pi';
 
-import BulletInput from '@/components/custom/BulletInput';
+// import BulletInput from '@/components/custom/BulletInput';
 import FloatingLabelInput from '@/components/ui/FloatingLabelInput';
 import { useExperienceMutations, useExperiencesQuery } from '@/hooks/experiences';
 import { emptyExperience, type Experience, type ExperienceType } from '@/types/experience';
@@ -176,11 +176,11 @@ function Entry({
           <Checkbox.Label>Ongoing</Checkbox.Label>
         </Checkbox.Root>
       </HStack>
-      <BulletInput
+      {/* <BulletInput
         bullets={experience.bullets}
         onBulletsChange={(bullets) => updateExperience({ bullets })}
         label="Bullet Points"
-      />
+      /> */}
       <Button colorScheme="red" variant="outline" onClick={onDelete} alignSelf="flex-end">
         Delete Experience
       </Button>

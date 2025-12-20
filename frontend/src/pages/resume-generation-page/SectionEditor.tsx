@@ -14,12 +14,12 @@ import { CSS } from '@dnd-kit/utilities';
 import { LuChevronRight } from 'react-icons/lu';
 import { PiDotsSixVertical, PiDotsThreeVertical } from 'react-icons/pi';
 
-import BulletInput from '@/components/custom/BulletInput';
+// import BulletInput from '@/components/custom/BulletInput';
 import type {
   DetailedSectionContent,
   ParagraphSectionContent,
   Section,
-  SimpleSectionContent,
+  // SimpleSectionContent,
 } from '@/types/resume';
 
 import DetailedItemEditor from './DetailedItemEditor';
@@ -85,19 +85,8 @@ export default function SectionEditor({
         );
       } else {
         // Simple section
-        const content = section.content as SimpleSectionContent;
-        return (
-          <BulletInput
-            bullets={content.bullets}
-            onBulletsChange={(bullets) =>
-              onSectionChange({
-                ...section,
-                content: { bullets },
-              })
-            }
-            label="Bullets"
-          />
-        );
+        // const content = section.content as SimpleSectionContent;
+        return <Text color="fg.muted">BulletInput commented out</Text>;
       }
     }
     return <Text color="fg.muted">Unknown section type</Text>;

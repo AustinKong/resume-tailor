@@ -18,7 +18,7 @@ import { CSS } from '@dnd-kit/utilities';
 import { useCallback, useRef } from 'react';
 import { PiDotsSixVertical, PiDotsThreeVertical } from 'react-icons/pi';
 
-import BulletInput from '@/components/custom/BulletInput';
+// import BulletInput from '@/components/custom/BulletInput';
 import type { DetailedItem } from '@/types/resume';
 
 interface DetailedItemEditorProps {
@@ -205,11 +205,11 @@ function DetailedItemCard({
             variant="flushed"
           />
         </HStack>
-        <BulletInput
+        {/* <BulletInput
           bullets={item.bullets}
           onBulletsChange={(bullets) => onItemChange({ ...item, bullets })}
           label="Bullets"
-        />
+        /> */}
       </VStack>
     </VStack>
   );

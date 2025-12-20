@@ -1,7 +1,7 @@
 import { Button, Field, Input, VStack } from '@chakra-ui/react';
 import { useState } from 'react';
 
-import BulletInput from '@/components/custom/BulletInput';
+// import BulletInput from '@/components/custom/BulletInput';
 import { useProfileMutations, useProfileQuery } from '@/hooks/profile';
 import type { Profile } from '@/types/profile';
 
@@ -70,16 +70,16 @@ function PersonalInformationForm({ initialData }: PersonalInformationProps) {
         />
         <Field.HelperText>Your personal or professional website.</Field.HelperText>
       </Field.Root>
-      <BulletInput
+      {/* <BulletInput
         label="Certifications"
         bullets={formData.certifications}
         onBulletsChange={(certifications) => setFormField({ certifications })}
-      />
-      <BulletInput
+      /> */}
+      {/* <BulletInput
         label="Awards"
         bullets={formData.awards}
         onBulletsChange={(awards) => setFormField({ awards })}
-      />
+      /> */}
       <Button onClick={() => updateProfile(formData)}>Save Changes</Button>
     </VStack>
   );
