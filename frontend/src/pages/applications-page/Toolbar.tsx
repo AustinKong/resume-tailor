@@ -25,7 +25,7 @@ export default function Toolbar({
         Export
       </Button>
       <Button asChild>
-        <Link to="/scraping">
+        <Link to="/listings/new">
           <PiPlus />
           New
         </Link>

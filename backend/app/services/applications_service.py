@@ -246,6 +246,57 @@ class ApplicationsService(DatabaseRepository):
       status_events=status_events,
     )
 
+  def get_by_listing_id(self, listing_id: UUID) -> Application:
+    row = self.fetch_one(
+      """
+      SELECT
+        a.id as application_id,
+        a.resume_id,
+        l.id as listing_id, l.url, l.title, l.company, l.domain,
+        l.location, l.description, l.posted_date, l.skills, l.requirements,
+        COALESCE(
+          json_group_array(
+            json_object(
+              'id', se.id,
+              'applicationId', se.application_id,
+              'status', se.status,
+              'stage', se.stage,
+              'created_at', se.created_at,
+              'notes', se.notes
+            )
+          ),
+          json_array()
+        ) as status_events_json
+      FROM applications a
+      JOIN listings l ON a.listing_id = l.id
+      LEFT JOIN status_events se ON a.id = se.application_id
+      WHERE a.listing_id = ?
+      GROUP BY a.id, l.id
+      ORDER BY a.id DESC
+      LIMIT 1
+    """,
+      (str(listing_id),),
+    )
+
+    if not row:
+      raise NotFoundError(f'No application found for listing {listing_id}')
+
+    row_dict = dict(row)
+    status_events_json = row_dict.pop('status_events_json')
+    application_id = row_dict.pop('application_id')
+    resume_id = row_dict.pop('resume_id')
+
+    status_events = [
+      StatusEvent(**event) for event in json.loads(status_events_json) if event.get('id')
+    ]
+
+    return Application(
+      id=application_id,
+      listing=Listing(**row_dict),
+      resume_id=resume_id,
+      status_events=status_events,
+    )
+
   def create(self, application: Application) -> Application:
     if not application.status_events:
       raise ValidationError('Application should at least have SAVED status event')

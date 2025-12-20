@@ -6,6 +6,9 @@ LISTING_EXTRACTION_PROMPT = """
 You are an expert Technical Recruiter and Data Parser. Your goal is to extract
 structured data from the job listing below to power a semantic search engine.
 
+### CONTEXT
+Today's Date: {current_date}
+
 ### VALIDATION STEP (CRITICAL)
 First, determine if the content is a valid Job Listing.
 If the content is:
@@ -48,6 +51,7 @@ If the page is valid, leave `error` as null and extract:
 
 5. **location**: Extract the city and country.
    - Format: "City, Country" (e.g., "Singapore, Singapore" or "New York, USA").
+   - If no location information can be found in the listing, set to null.
 
 6. **company**: Extract the company name.
    - Ensure it is the hiring company, not the recruitment agency (if applicable).
@@ -60,6 +64,16 @@ If the page is valid, leave `error` as null and extract:
 8. **description**: Extract a concise summary of the job description, and what the role entails.
    - Keep it to 2-3 sentences.
    - Focus on the core duties and information not captured in other fields.
+
+9. **posted_date**: Extract or infer the date the job was posted.
+   - Format: "YYYY-MM-DD".
+   - Use "Today's Date" ({current_date}) to calculate relative dates. 
+   - Examples: 
+     - "Posted 2 weeks ago" -> Calculate 14 days prior to {current_date}.
+     - "Posted yesterday" -> Calculate 1 day prior to {current_date}.
+     - "30+ days ago" -> Estimate 30 days prior to {current_date}.
+   - If the listing provides a specific date (e.g., "Oct 12"), use the current year.
+   - If no date information is found or you are unsure, set to null.
 
 ### INPUT JOB LISTING
 {content}

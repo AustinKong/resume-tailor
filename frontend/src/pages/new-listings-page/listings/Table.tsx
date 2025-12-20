@@ -16,10 +16,9 @@ const columnHelper = createColumnHelper<ScrapingListing>();
 const columns = [
   columnHelper.display({
     id: 'select',
-    size: 40,
     header: ({ table }) => (
       <Checkbox.Root
-        checked={table.getIsAllRowsSelected()}
+        checked={table.getIsSomePageRowsSelected() ? 'indeterminate' : table.getIsAllRowsSelected()}
         onCheckedChange={(changes) => table.toggleAllRowsSelected(!!changes.checked)}
         aria-label="Select all rows"
       >
@@ -33,7 +32,9 @@ const columns = [
         onCheckedChange={(changes) => row.toggleSelected(!!changes.checked)}
         onClick={(e) => e.stopPropagation()}
         aria-label="Select row"
+        disabled={!row.getCanSelect()}
       >
+        {/* TODO: Add an explaination why this is disabled (tooltip) */}
         <Checkbox.HiddenInput />
         <Checkbox.Control />
       </Checkbox.Root>
@@ -41,13 +42,12 @@ const columns = [
   }),
   columnHelper.accessor('title', {
     header: 'Listing',
-    size: 0,
     cell: (info) => {
       const listing = info.row.original;
       const isFailed = listing.status === 'failed';
 
       return (
-        <HStack gap={2} alignItems={'center'} w="full" overflow="hidden">
+        <HStack gap={2} alignItems={'center'} w="full" overflow="hidden" minW="0">
           {isFailed ? (
             <Icon size="lg" flexShrink={0}>
               <PiWarning />
@@ -64,7 +64,6 @@ const columns = [
   }),
   columnHelper.accessor('status', {
     header: 'Status',
-    size: 150,
     cell: (info) => {
       const status = info.getValue();
       let colorScheme: string = 'gray';
@@ -112,6 +111,7 @@ export default function Table({
     columns,
     getCoreRowModel: getCoreRowModel(),
     onRowSelectionChange: setRowSelection,
+    enableRowSelection: (row) => row.original.status !== 'duplicate_url',
     getRowId: (row) => row.id,
     state: {
       rowSelection,
@@ -120,17 +120,18 @@ export default function Table({
 
   return (
     <ChakraTable.ScrollArea h="full" overflowY="scroll" w="full" overflowX="hidden">
-      <ChakraTable.Root size="sm" tableLayout="fixed" stickyHeader interactive>
+      <ChakraTable.Root size="sm" stickyHeader interactive>
         <ChakraTable.Header>
           {table.getHeaderGroups().map((headerGroup) => (
             <ChakraTable.Row key={headerGroup.id} bg="bg.subtle">
               {headerGroup.headers.map((header) => {
-                const width = header.column.columnDef.size
-                  ? `${header.column.columnDef.size}px`
-                  : 'auto';
+                // TODO: Abit complex, is there no native way to do this?
+                const isListing = header.column.id === 'title';
+                const width = isListing ? '100%' : 'auto';
+                const whiteSpace = isListing ? 'normal' : 'nowrap';
 
                 return (
-                  <ChakraTable.ColumnHeader key={header.id} w={width}>
+                  <ChakraTable.ColumnHeader key={header.id} w={width} whiteSpace={whiteSpace}>
                     {header.isPlaceholder
                       ? null
                       : flexRender(header.column.columnDef.header, header.getContext())}
@@ -149,11 +150,19 @@ export default function Table({
               }
               cursor="pointer"
             >
-              {row.getVisibleCells().map((cell) => (
-                <ChakraTable.Cell key={cell.id} overflow="hidden">
-                  {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                </ChakraTable.Cell>
-              ))}
+              {row.getVisibleCells().map((cell) => {
+                const isListing = cell.column.id === 'title';
+                return (
+                  <ChakraTable.Cell
+                    key={cell.id}
+                    maxW={isListing ? '0' : 'none'}
+                    w={isListing ? '100%' : 'auto'}
+                    whiteSpace={isListing ? 'normal' : 'nowrap'}
+                  >
+                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                  </ChakraTable.Cell>
+                );
+              })}
             </ChakraTable.Row>
           ))}
         </ChakraTable.Body>

@@ -16,7 +16,7 @@ import { PiBookmarkSimple, PiCheck } from 'react-icons/pi';
 import BulletInput from '@/components/custom/BulletInput';
 import CompanyLogo from '@/components/custom/CompanyLogo';
 import { ISODateInput } from '@/components/custom/DatePickers';
-import { useListingCache } from '@/hooks/listings';
+import { useListingCache, useListingMutations } from '@/hooks/listings';
 import type { GroundedItem, ScrapingListing } from '@/types/listing';
 import type { ISODate } from '@/utils/date';
 
@@ -58,9 +58,13 @@ export default function Details({
     },
   });
 
+  const { isExtractLoading } = useListingMutations();
+
   const { updateListing } = useListingCache();
 
   const onSubmit = (data: FormValues) => {
+    const cleanedRequirements = data.requirements.filter((item) => item.value.trim() !== '');
+    data.requirements = cleanedRequirements;
     updateListing(listing.id, data);
     reset(data);
   };
@@ -74,7 +78,12 @@ export default function Details({
     };
   }, [listing.id, isDirty, getValues, updateListing]);
 
-  const isDisabled = listing.status === 'duplicate_url';
+  // INFO:
+  // Unique - always allow edits and allow selecting
+  // URL similarity - disallow edits or even selecting
+  // Semantic similarity - allow edits but how to display that it is similar
+  // Error - Allow edits and pasting plaintext
+  const isDisabled = listing.status === 'duplicate_url' || isExtractLoading(listing);
 
   return (
     <VStack
@@ -89,7 +98,7 @@ export default function Details({
       overflowX="hidden"
     >
       <HStack gap="3" align="start">
-        <CompanyLogo domain={listing.domain} companyName={listing.company || '?'} size="2xl" />
+        <CompanyLogo domain={listing.domain} companyName={listing.company || '?'} size="xl" />
         <VStack alignItems="start" gap="0" flex="1" minW="0">
           <Text fontSize="xl" fontWeight="bold" lineHeight="shorter">
             {listing.company}
@@ -185,7 +194,7 @@ export default function Details({
 
       <Field.Root disabled={isDisabled}>
         <Field.Label>Description</Field.Label>
-        <Textarea {...register('description', { disabled: isDisabled })} autoresize />
+        <Textarea {...register('description', { disabled: isDisabled })} autoresize resize="none" />
       </Field.Root>
 
       <BulletInput
@@ -197,6 +206,7 @@ export default function Details({
         onItemMouseEnter={(item) => item.quote && _onHighlight(item.quote)}
         onItemMouseLeave={_onClearHighlight}
         disabled={isDisabled}
+        defaultItem={{ value: '', quote: null }}
       />
     </VStack>
   );

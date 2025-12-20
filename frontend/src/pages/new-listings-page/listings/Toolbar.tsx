@@ -1,4 +1,5 @@
 import { Button, HStack } from '@chakra-ui/react';
+import { PiArrowLeft } from 'react-icons/pi';
 import { useNavigate } from 'react-router';
 
 import { useListingCache, useListingMutations, useListingsQuery } from '@/hooks/listings';
@@ -6,7 +7,7 @@ import { useListingCache, useListingMutations, useListingsQuery } from '@/hooks/
 export default function Toolbar({ rowSelection }: { rowSelection: Record<string, boolean> }) {
   const { listings } = useListingsQuery();
   const { clearListings } = useListingCache();
-  const { saveListings, isSaveLoading } = useListingMutations();
+  const { saveListings, isSaveLoading, isExtractLoading } = useListingMutations();
   const navigate = useNavigate();
 
   const selectedCount = Object.values(rowSelection).filter(Boolean).length;
@@ -27,10 +28,15 @@ export default function Toolbar({ rowSelection }: { rowSelection: Record<string,
       borderBottom="1px solid"
       borderColor="border"
     >
-      <Button onClick={clearListings} variant="subtle">
+      <Button onClick={clearListings} variant="ghost">
+        <PiArrowLeft />
         Back
       </Button>
-      <Button onClick={handleSaveListings} loading={isSaveLoading} disabled={selectedCount === 0}>
+      <Button
+        onClick={handleSaveListings}
+        loading={isSaveLoading}
+        disabled={selectedCount === 0 || isExtractLoading(null)}
+      >
         Save {selectedCount} Listings
       </Button>
     </HStack>

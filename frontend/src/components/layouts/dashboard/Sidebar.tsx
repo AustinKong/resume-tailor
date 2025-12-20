@@ -5,8 +5,8 @@ import {
   PiCaretLeft,
   PiCaretRight,
   PiGear,
-  PiMagnifyingGlass,
   PiNewspaper,
+  PiPlus,
   PiUser,
 } from 'react-icons/pi';
 import { NavLink } from 'react-router';
@@ -18,9 +18,9 @@ type NavItemConfig = {
 };
 
 const NAV_ITEMS: NavItemConfig[] = [
+  { label: 'Applications', path: '/applications', icon: <PiBookmarkSimple /> },
   { label: 'Profile', path: '/profile', icon: <PiUser /> },
-  { label: 'Scrape Jobs', path: '/scraping', icon: <PiMagnifyingGlass /> },
-  { label: 'Saved Listings', path: '/saved', icon: <PiBookmarkSimple /> },
+  { label: 'New Listing', path: '/listings/new', icon: <PiPlus /> },
   { label: 'Latest News', path: '/news', icon: <PiNewspaper /> },
   { label: 'My Cards', path: '/cards', icon: <PiCards /> },
   { label: 'Settings', path: '/settings', icon: <PiGear /> },

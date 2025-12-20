@@ -1,12 +1,15 @@
 import asyncio
+from datetime import date
+from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Body
 from pydantic import HttpUrl
 
 from app.resources.prompts import LISTING_EXTRACTION_PROMPT
 from app.schemas import (
   Application,
+  DuplicateOf,
   ExtractionListing,
   GroundedItem,
   Listing,
@@ -78,13 +81,14 @@ async def scrape_listings(urls: list[HttpUrl]):
   for url in unique_urls:
     if url in existing_listings_map:
       existing = existing_listings_map[url]
+      application = applications_service.get_by_listing_id(existing.id)
       results.append(
         ScrapingListing(
           **existing.model_dump(exclude={'skills', 'requirements'}),
           skills=[GroundedItem(value=s, quote=None) for s in existing.skills],
           requirements=[GroundedItem(value=r, quote=None) for r in existing.requirements],
           status=ScrapeStatus.DUPLICATE_URL,
-          duplicate_of=existing,
+          duplicate_of=DuplicateOf(listing=existing, application_id=application.id),
           html=None,
         )
       )
@@ -107,7 +111,9 @@ async def scrape_listings(urls: list[HttpUrl]):
   llm_results: list[ExtractionListing] = await asyncio.gather(
     *[
       llm_service.call_structured(
-        input=LISTING_EXTRACTION_PROMPT.format(content=page.content),
+        input=LISTING_EXTRACTION_PROMPT.format(
+          current_date=date.today().isoformat(), content=page.content
+        ),
         response_model=ExtractionListing,
       )
       for page in valid_pages
@@ -127,7 +133,9 @@ async def scrape_listings(urls: list[HttpUrl]):
 
     if similar_match:
       draft.status = ScrapeStatus.DUPLICATE_SEMANTIC
-      draft.duplicate_of = similar_match
+      # Get the application for the similar listing
+      application = applications_service.get_by_listing_id(similar_match.id)
+      draft.duplicate_of = DuplicateOf(listing=similar_match, application_id=application.id)
 
     # Add semantic duplicates and unique listings
     results.append(draft)
@@ -136,9 +144,11 @@ async def scrape_listings(urls: list[HttpUrl]):
 
 
 @router.post('/extract', response_model=ScrapingListing)
-async def extract_listing(id: UUID, url: HttpUrl, content: str):
+async def extract_listing(
+  id: Annotated[UUID, Body()], url: Annotated[HttpUrl, Body()], content: Annotated[str, Body()]
+):
   extraction = await llm_service.call_structured(
-    input=LISTING_EXTRACTION_PROMPT.format(content=content),
+    input=LISTING_EXTRACTION_PROMPT.format(current_date=date.today().isoformat(), content=content),
     response_model=ExtractionListing,
   )
 
@@ -161,7 +171,8 @@ async def extract_listing(id: UUID, url: HttpUrl, content: str):
 
   if similar_match:
     draft.status = ScrapeStatus.DUPLICATE_SEMANTIC
-    draft.duplicate_of = similar_match
+    application = applications_service.get_by_listing_id(similar_match.id)
+    draft.duplicate_of = DuplicateOf(listing=similar_match, application_id=application.id)
 
   return draft
 

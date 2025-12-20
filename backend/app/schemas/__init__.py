@@ -19,7 +19,7 @@ from .resume import (
   SectionContent,
   SimpleSectionContent,
 )
-from .scraping import ExtractionListing, GroundedItem, ScrapeStatus, ScrapingListing
+from .scraping import DuplicateOf, ExtractionListing, GroundedItem, ScrapeStatus, ScrapingListing
 from .status_event import StatusEnum, StatusEvent
 from .types import CamelModel, Page
 
@@ -35,6 +35,7 @@ __all__ = [
   'ExperienceType',
   'LLMResponseExperience',
   # Listing
+  'DuplicateOf',
   'ExtractionListing',
   'GroundedItem',
   'Listing',

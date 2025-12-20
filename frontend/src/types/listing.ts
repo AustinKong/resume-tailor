@@ -27,6 +27,11 @@ export const ScrapeStatus = {
 
 export type ScrapeStatus = (typeof ScrapeStatus)[keyof typeof ScrapeStatus];
 
+export type DuplicateOf = {
+  listing: Listing;
+  applicationId: string;
+};
+
 export type ScrapingListing = {
   id: string;
   url: string;
@@ -41,13 +46,13 @@ export type ScrapingListing = {
   error: string | null;
   html: string | null;
   status: ScrapeStatus;
-  duplicateOf: Listing | null;
+  duplicateOf: DuplicateOf | null;
 };
 
 export type ScrapeResult = {
   unique: Listing[];
   duplicates: {
     listing: Listing;
-    duplicateOf: Listing;
+    duplicateOf: DuplicateOf;
   }[];
 };

@@ -39,12 +39,17 @@ class ExtractionListing(CamelModel):
   error: str | None = None
 
 
+class DuplicateOf(CamelModel):
+  listing: Listing
+  application_id: UUID
+
+
 class ScrapingListing(ExtractionListing):
   id: UUID = Field(default_factory=uuid4)
   url: HttpUrl
   html: str | None
   status: ScrapeStatus
-  duplicate_of: Listing | None = None
+  duplicate_of: DuplicateOf | None = None
 
   def to_listing(self) -> Listing:
     if self.error is not None:

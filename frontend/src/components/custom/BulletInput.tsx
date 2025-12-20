@@ -1,4 +1,4 @@
-import { HStack, Icon, IconButton, Menu, Portal, Text, Textarea, VStack } from '@chakra-ui/react';
+import { HStack, Icon, IconButton, Text, Textarea, VStack } from '@chakra-ui/react';
 import {
   closestCorners,
   DndContext,
@@ -10,6 +10,7 @@ import {
 import { restrictToParentElement, restrictToVerticalAxis } from '@dnd-kit/modifiers';
 import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import { useEffect } from 'react';
 import {
   type ArrayPath,
   type Control,
@@ -20,7 +21,7 @@ import {
   type UseFormRegister,
 } from 'react-hook-form';
 import type { IconBaseProps } from 'react-icons';
-import { PiDotsThreeVertical } from 'react-icons/pi';
+import { PiPlus, PiX } from 'react-icons/pi';
 
 type BulletInputProps<TFieldValues extends FieldValues> = {
   control: Control<TFieldValues>;
@@ -31,6 +32,7 @@ type BulletInputProps<TFieldValues extends FieldValues> = {
   onItemMouseEnter?: (item: FieldArray<TFieldValues, ArrayPath<TFieldValues>>) => void;
   onItemMouseLeave?: (item: FieldArray<TFieldValues, ArrayPath<TFieldValues>>) => void;
   disabled?: boolean;
+  defaultItem: FieldArray<TFieldValues, ArrayPath<TFieldValues>>;
 };
 
 type Marker = {
@@ -38,6 +40,7 @@ type Marker = {
   color?: IconBaseProps['color'];
 };
 
+// TODO: Make this open component composition instead of exposing onItemMouseEnter and onItemMouseLeave etc.
 /**
  * BulletInput is a draggable, sortable input component integrated with React Hook Form.
  *
@@ -59,8 +62,9 @@ export default function BulletInput<TFieldValues extends FieldValues>({
   onItemMouseEnter,
   onItemMouseLeave,
   disabled = false,
+  defaultItem,
 }: BulletInputProps<TFieldValues>) {
-  const { fields, remove, move, insert } = useFieldArray({
+  const { fields, remove, move, append, update } = useFieldArray({
     control,
     name,
   });
@@ -68,6 +72,12 @@ export default function BulletInput<TFieldValues extends FieldValues>({
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: { y: 8 } } })
   );
+
+  useEffect(() => {
+    if (fields.length === 0) {
+      append(defaultItem);
+    }
+  }, [fields.length, append, defaultItem]);
 
   const handleDragEnd = (event: DragEndEvent) => {
     if (disabled) return;
@@ -79,6 +89,14 @@ export default function BulletInput<TFieldValues extends FieldValues>({
     }
   };
 
+  const handleRemove = (index: number) => {
+    if (fields.length <= 1) {
+      update(index, defaultItem);
+    } else {
+      remove(index);
+    }
+  };
+
   return (
     <DndContext
       sensors={sensors}
@@ -87,29 +105,38 @@ export default function BulletInput<TFieldValues extends FieldValues>({
       modifiers={[restrictToVerticalAxis, restrictToParentElement]}
     >
       <SortableContext items={fields} strategy={verticalListSortingStrategy} disabled={disabled}>
-        <Text w="full" p="0" color={disabled ? 'fg.subtle' : 'fg.error'} fontSize="sm" mb="-3">
-          {label}
-        </Text>
-        <VStack gap="0.5" w="full">
-          {fields.map((field, index) => (
-            <Bullet<TFieldValues>
-              key={field.id}
-              id={field.id}
-              index={index}
-              register={register}
-              name={name}
-              handleInsertAbove={() => insert(index, { value: '' } as Parameters<typeof insert>[1])}
-              handleInsertBelow={() =>
-                insert(index + 1, { value: '' } as Parameters<typeof insert>[1])
-              }
-              handleDelete={() => remove(index)}
-              marker={marker}
-              onItemMouseEnter={onItemMouseEnter}
-              onItemMouseLeave={onItemMouseLeave}
-              field={field}
+        <VStack align="stretch">
+          <HStack justifyContent="space-between" p="0">
+            <Text p="0" color={disabled ? 'fg.subtle' : 'fg'} fontSize="sm">
+              {label}
+            </Text>
+            <IconButton
+              onClick={() => append(defaultItem)}
               disabled={disabled}
-            />
-          ))}
+              size="2xs"
+              variant="ghost"
+            >
+              <PiPlus />
+            </IconButton>
+          </HStack>
+          <VStack gap="0.5">
+            {fields.map((field, index) => (
+              <Bullet<TFieldValues>
+                key={field.id}
+                id={field.id}
+                index={index}
+                register={register}
+                name={name}
+                handleDelete={() => handleRemove(index)}
+                marker={marker}
+                onItemMouseEnter={onItemMouseEnter}
+                onItemMouseLeave={onItemMouseLeave}
+                field={field}
+                disabled={disabled}
+                disableDelete={fields.length <= 1}
+              />
+            ))}
+          </VStack>
         </VStack>
       </SortableContext>
     </DndContext>
@@ -121,14 +148,13 @@ type BulletProps<TFieldValues extends FieldValues> = {
   index: number;
   register: UseFormRegister<TFieldValues>;
   name: ArrayPath<TFieldValues>;
-  handleInsertAbove: () => void;
-  handleInsertBelow: () => void;
   handleDelete: () => void;
   marker?: Marker;
   field: FieldArray<TFieldValues, ArrayPath<TFieldValues>>;
   onItemMouseEnter?: (item: FieldArray<TFieldValues, ArrayPath<TFieldValues>>) => void;
   onItemMouseLeave?: (item: FieldArray<TFieldValues, ArrayPath<TFieldValues>>) => void;
   disabled?: boolean;
+  disableDelete?: boolean;
 };
 
 function Bullet<T extends FieldValues>({
@@ -136,14 +162,13 @@ function Bullet<T extends FieldValues>({
   index,
   register,
   name,
-  handleInsertAbove,
-  handleInsertBelow,
   handleDelete,
   marker,
   onItemMouseEnter,
   onItemMouseLeave,
   field,
   disabled = false,
+  disableDelete = false,
 }: BulletProps<T>) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id,
@@ -158,7 +183,7 @@ function Bullet<T extends FieldValues>({
   };
 
   return (
-    <HStack ref={setNodeRef} style={style} w="full">
+    <HStack ref={setNodeRef} style={style} w="full" className="group">
       {marker ? (
         <Icon
           {...attributes}
@@ -201,63 +226,17 @@ function Bullet<T extends FieldValues>({
         onMouseLeave={() => onItemMouseLeave?.(field)}
       />
 
-      <BulletMenu
-        handleInsertAbove={handleInsertAbove}
-        handleInsertBelow={handleInsertBelow}
-        handleDelete={handleDelete}
-        disabled={disabled}
-      />
+      <IconButton
+        onClick={handleDelete}
+        disabled={disabled || disableDelete}
+        size="2xs"
+        variant="ghost"
+        _groupHover={{ opacity: 1 }}
+        color="fg.muted"
+        opacity={0.2}
+      >
+        <PiX />
+      </IconButton>
     </HStack>
-  );
-}
-
-function BulletMenu({
-  handleInsertAbove,
-  handleInsertBelow,
-  handleDelete,
-  disabled,
-}: {
-  handleInsertAbove: () => void;
-  handleInsertBelow: () => void;
-  handleDelete: () => void;
-  disabled?: boolean;
-}) {
-  function handleSelect({ value }: { value: string }) {
-    switch (value) {
-      case 'insert-above':
-        handleInsertAbove();
-        break;
-      case 'insert-below':
-        handleInsertBelow();
-        break;
-      case 'delete':
-        handleDelete();
-        break;
-    }
-  }
-
-  return (
-    <Menu.Root onSelect={handleSelect}>
-      <Menu.Trigger asChild disabled={disabled}>
-        <IconButton variant="ghost" size="xs" color="fg.muted">
-          <PiDotsThreeVertical />
-        </IconButton>
-      </Menu.Trigger>
-      <Portal>
-        <Menu.Positioner>
-          <Menu.Content>
-            <Menu.Item value="insert-above">Insert Above</Menu.Item>
-            <Menu.Item value="insert-below">Insert Below</Menu.Item>
-            <Menu.Item
-              value="delete"
-              color="fg.error"
-              _hover={{ bg: 'bg.error', color: 'fg.error' }}
-            >
-              Delete
-            </Menu.Item>
-          </Menu.Content>
-        </Menu.Positioner>
-      </Portal>
-    </Menu.Root>
   );
 }

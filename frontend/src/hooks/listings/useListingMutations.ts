@@ -1,4 +1,4 @@
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useMutationState, useQueryClient } from '@tanstack/react-query';
 
 import {
   extractListing as extractListingSvc,
@@ -21,13 +21,10 @@ export function useListingMutations() {
     },
   });
 
-  const {
-    mutateAsync: extractListing,
-    isPending: isExtractLoading,
-    isError: isExtractError,
-  } = useMutation({
-    mutationFn: ({ id, url, content }: { id: string; url: string; content: string }) => {
-      return extractListingSvc(id, url, content);
+  const { mutateAsync: extractListing, isError: isExtractError } = useMutation({
+    mutationKey: ['extractListing'],
+    mutationFn: ({ listing, content }: { listing: ScrapingListing; content: string }) => {
+      return extractListingSvc(listing.id, listing.url, content);
     },
     onSuccess: (updatedListing) => {
       queryClient.setQueryData(['listings'], (old: ScrapingListing[] | undefined) => {
@@ -35,6 +32,18 @@ export function useListingMutations() {
       });
     },
   });
+
+  // Track pending extractions even across component unmounts
+  const pendingExtractions = useMutationState({
+    filters: { status: 'pending', mutationKey: ['extractListing'] },
+    select: (mutation) => (mutation.state.variables as { id: string })?.id,
+  });
+
+  // If listing is null, check if any extraction is pending
+  const isExtractLoading = (listing: ScrapingListing | null) => {
+    if (!listing) return pendingExtractions.length > 0;
+    return pendingExtractions.includes(listing.id);
+  };
 
   const {
     mutateAsync: saveListings,
