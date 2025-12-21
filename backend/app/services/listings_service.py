@@ -1,6 +1,6 @@
 import json
 
-from chromadb.api.types import Metadata
+from chromadb.api.types import Embedding, Metadata
 from pydantic import HttpUrl
 
 from app.config import settings
@@ -48,37 +48,34 @@ class ListingsService(DatabaseRepository, VectorRepository):
   def find_similar(
     self,
     new_listing: Listing,
+    targets: list[Listing] | None = None,
+    # Cache embeddings to avoid recomputation during memory-to-memory comparisons
+    cache: dict[str, Embedding] | None = None,
   ) -> Listing | None:
     """
     Find similar listing using BOTH semantic and heuristic methods.
+    If targets is provided, compares against those listings instead of the DB.
 
     Args:
       new_listing: New listing to check for similarities
+      targets: Optional list of listings to compare against instead of DB
+      cache: Optional cache of embeddings for faster comparison
 
     Returns:
       Similar listing if a match is found, None otherwise.
     """
-    best_match = None
-    best_score = 0.0
+    # 1. Check Batch first (Cheaper, contextually relevant)
+    if targets:
+      match = self._find_best_match(new_listing, targets=targets, cache=cache)
+      if match:
+        return match
 
-    semantic_matches = self._find_semantic_duplicates(new_listing)
-    if semantic_matches:
-      match, score = semantic_matches[0]
-      if score > best_score:
-        best_match = match
-        best_score = score
+    # 2. Check Database (Global search)
+    match = self._find_best_match(new_listing, targets=None, cache=cache)
+    if match:
+      return match
 
-    heuristic_matches = self._find_heuristic_duplicates(new_listing)
-    if heuristic_matches:
-      match, score = heuristic_matches[0]
-      if score > best_score:
-        best_match = match
-        best_score = score
-
-    if best_match and new_listing.company != best_match.company:
-      best_match = None
-
-    return best_match
+    return None
 
   def create(self, listing: Listing) -> Listing:
     self.execute(
@@ -126,20 +123,61 @@ class ListingsService(DatabaseRepository, VectorRepository):
 
     return '\n'.join(parts)
 
+  def _find_best_match(
+    self, new_listing: Listing, targets: list[Listing] | None, cache: dict[str, Embedding] | None
+  ) -> Listing | None:
+    """Internal helper to aggregate semantic and heuristic checks."""
+    best_match = None
+    best_score = 0.0
+
+    semantic = self._find_semantic_duplicates(new_listing, targets=targets, cache=cache)
+    if semantic:
+      best_match, best_score = semantic[0]
+
+    heuristic = self._find_heuristic_duplicates(new_listing, targets=targets)
+    if heuristic:
+      match, score = heuristic[0]
+      if score > best_score:
+        best_match, best_score = match, score
+
+    if best_match and new_listing.company != best_match.company:
+      return None
+
+    return best_match
+
   def _find_semantic_duplicates(
     self,
     new_listing: Listing,
+    targets: list[Listing] | None = None,
+    cache: dict[str, Embedding] | None = None,
   ) -> list[tuple[Listing, float]]:
     """
     Find semantically similar listings using vector similarity.
+    Either searches the DB or compares against provided targets.
 
     Args:
       new_listing: The listing to check
+      targets: Optional list of listings to compare against instead of DB
+      cache: Optional cache of embeddings for faster comparison
 
     Returns:
       List of (similar_listing, similarity_score) tuples above threshold
     """
     query_text = self._create_listing_embedding_text(new_listing)
+
+    # Compare against provided targets if given
+    if targets is not None:
+      target_texts = [self._create_listing_embedding_text(t) for t in targets]
+      comparison_results = self.compare_documents(query_text, target_texts, cache=cache)
+
+      matches = [
+        (targets[i], score)
+        for i, (_, score) in enumerate(comparison_results)
+        if score >= settings.listings.semantic_threshold
+      ]
+      return sorted(matches, key=lambda x: x[1], reverse=True)
+
+    # Otherwise search the DB
     search_results = self.search_documents(
       collection_name='listings',
       query=query_text,
@@ -181,28 +219,31 @@ class ListingsService(DatabaseRepository, VectorRepository):
   def _find_heuristic_duplicates(
     self,
     new_listing: Listing,
+    targets: list[Listing] | None = None,
   ) -> list[tuple[Listing, float]]:
     """
     Find duplicates using fuzzy string matching on company and title.
+    Searches either the DB or compares against provided targets.
 
     Args:
       new_listing: The listing to check
+      targets: Optional list of listings to compare against instead of DB
 
     Returns:
       List of (similar_listing, similarity_score) tuples above threshold
     """
-    existing_listings = self.list_all()
+    candidates = targets if targets is not None else self.list_all()
 
     similar = []
-    for existing_listing in existing_listings:
-      title_sim = fuzzy_text_similarity(new_listing.title, existing_listing.title)
-      company_sim = fuzzy_text_similarity(new_listing.company, existing_listing.company)
+    for candidate in candidates:
+      title_sim = fuzzy_text_similarity(new_listing.title, candidate.title)
+      company_sim = fuzzy_text_similarity(new_listing.company, candidate.company)
 
       if (
         title_sim >= settings.listings.title_threshold
         and company_sim >= settings.listings.company_threshold
       ):
         combined_score = (title_sim + company_sim) / 2
-        similar.append((existing_listing, combined_score))
+        similar.append((candidate, combined_score))
 
     return sorted(similar, key=lambda x: x[1], reverse=True)

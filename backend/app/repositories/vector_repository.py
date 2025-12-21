@@ -1,9 +1,11 @@
+import hashlib
+import math
 from typing import Any, cast
 from uuid import uuid4
 
 import chromadb
-from chromadb.api.types import Metadata
-from chromadb.utils.embedding_functions import OpenAIEmbeddingFunction
+from chromadb.api.types import Embedding, Embeddings, Metadata
+from openai import OpenAI
 
 from app.config import settings
 from app.utils.errors import ServiceError
@@ -26,42 +28,68 @@ class VectorRepository:
         raise ServiceError(f'Failed to initialize ChromaDB client: {str(e)}') from e
     return self._chroma_client
 
-  @property
-  def embedding_function(self) -> chromadb.EmbeddingFunction:
-    if self._embedding_function is None:
-      try:
-        self._embedding_function = OpenAIEmbeddingFunction(
-          api_key=settings.model.openai_api_key,
-          model_name=settings.model.embedding,
-        )
-      except Exception as e:
-        raise ServiceError(f'Failed to initialize OpenAI embedding function: {str(e)}') from e
-    return self._embedding_function
+  def _get_hash(self, text: str) -> str:
+    return hashlib.sha256(text.encode('utf-8')).hexdigest()
+
+  def _normalize(self, v: Embedding) -> Embedding:
+    norm = math.sqrt(sum(x * x for x in v))
+    return cast(Embedding, [x / norm for x in v]) if norm > 0 else v
 
   def _get_collection(self, collection_name: str) -> chromadb.Collection:
-    """
-    Get or create a collection with cosine similarity and embedding function.
-
-    Args:
-      collection_name: Name of the collection
-
-    Returns:
-      ChromaDB collection
-
-    Note:
-      Distance metric is hardcoded to 'cosine' because our similarity calculation
-      (similarity = 1 - distance) only works correctly with cosine distance.
-    """
     if collection_name not in self._collection_cache:
       try:
         self._collection_cache[collection_name] = self.chroma_client.get_or_create_collection(
           name=collection_name,
-          embedding_function=self.embedding_function,
           metadata={'hnsw:space': 'cosine'},
         )
       except Exception as e:
         raise ServiceError(f'Failed to get or create collection {collection_name}: {str(e)}') from e
     return self._collection_cache[collection_name]
+
+  def get_embeddings(
+    self, texts: list[str], cache: dict[str, Embedding] | None = None
+  ) -> Embeddings:
+    """
+    Generate embeddings for a list of text strings using OpenAI's embedding model.
+
+    Uses caching to avoid recomputing embeddings for previously seen texts.
+    Embeddings are normalized for consistent similarity calculations.
+
+    Args:
+      texts: List of text strings to embed.
+
+    Returns:
+      List of embedding vectors, one for each input text.
+    """
+    if not texts:
+      return cast(Embeddings, [])
+
+    results: list[Embedding | None] = [None] * len(texts)
+    to_fetch = []
+    to_fetch_indices = []
+
+    for i, text in enumerate(texts):
+      h = self._get_hash(text)
+      if cache is not None and h in cache:
+        results[i] = cast(Embedding, cache[h])
+      else:
+        to_fetch.append(text)
+        to_fetch_indices.append(i)
+
+    if to_fetch:
+      client = OpenAI(api_key=settings.model.openai_api_key)
+      response = client.embeddings.create(input=to_fetch, model=settings.model.embedding)
+
+      # BUG FIX: Extract the list of floats from OpenAI response objects
+      for i, item in zip(to_fetch_indices, response.data, strict=True):
+        # Ensure vectors are normalized so they work irrespective of embedding function
+        normalized = self._normalize(cast(Embedding, item.embedding))
+        h = self._get_hash(texts[i])
+        if cache is not None:
+          cache[h] = normalized
+        results[i] = normalized
+
+    return cast(Embeddings, results)
 
   def add_documents(
     self,
@@ -85,8 +113,11 @@ class VectorRepository:
       collection = self._get_collection(collection_name)
       ids = [str(uuid4()) for _ in documents]
 
+      embeddings = self.get_embeddings(documents)
+
       collection.add(
         documents=documents,
+        embeddings=embeddings,
         metadatas=metadatas,
         ids=ids,
       )
@@ -149,7 +180,7 @@ class VectorRepository:
       raise ServiceError(f'Failed to delete documents from {collection_name}: {str(e)}') from e
 
   def search_documents(
-    self, collection_name: str, query: str, k: int = 10
+    self, collection_name: str, query: str, k: int = 10, cache: dict[str, Embedding] | None = None
   ) -> list[tuple[str, dict[str, Any], float]]:
     """
     Search for similar documents in a collection.
@@ -166,14 +197,15 @@ class VectorRepository:
     try:
       collection = self._get_collection(collection_name)
 
-      results = collection.query(query_texts=[query], n_results=k)
+      query_vector = self.get_embeddings([query], cache=cache)[0]
+      results = collection.query(query_embeddings=[query_vector], n_results=k)
 
       documents: list[tuple[str, dict[str, Any], float]] = []
 
-      result_ids = cast(list[list[str]], results.get('ids', [[]]))[0]
-      result_docs = cast(list[list[str]], results.get('documents', [[]]))[0]
-      result_metas = cast(list[list[dict[str, Any]]], results.get('metadatas', [[]]))[0]
-      result_distances = cast(list[list[float]], results.get('distances', [[]]))[0]
+      result_ids = cast(list[list[str]], results.get('ids') or [[]])[0]
+      result_docs = cast(list[list[str]], results.get('documents') or [[]])[0]
+      result_metas = cast(list[list[dict[str, Any]]], results.get('metadatas') or [[]])[0]
+      result_distances = cast(list[list[float]], results.get('distances') or [[]])[0]
 
       for i in range(len(result_ids)):
         doc_text = result_docs[i] if i < len(result_docs) else ''
@@ -191,3 +223,29 @@ class VectorRepository:
       raise
     except Exception as e:
       raise ServiceError(f'Failed to search documents in {collection_name}: {str(e)}') from e
+
+  def compare_documents(
+    self, source_doc: str, target_docs: list[str], cache: dict[str, Embedding] | None = None
+  ) -> list[tuple[str, float]]:
+    """
+    Compare a source document with multiple target documents using cosine similarity.
+
+    Args:
+      source_doc: The source document text to compare against.
+      target_docs: List of target document texts to compare with the source.
+
+    Returns:
+      List of (document_text, similarity_score) tuples, where similarity_score
+      is a float between 0 and 1 (higher means more similar).
+    """
+    source_emb = self.get_embeddings([source_doc], cache=cache)[0]
+    target_embs = self.get_embeddings(target_docs, cache=cache)
+
+    results = []
+    for doc, emb in zip(target_docs, target_embs, strict=True):
+      # Perform cosine similarity. Since vectors are normalized, this is just the dot product.
+      dot_product = sum(s * t for s, t in zip(source_emb, emb, strict=True))
+      similarity = dot_product
+      results.append((doc, similarity))
+
+    return results

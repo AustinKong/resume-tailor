@@ -3,6 +3,7 @@ from datetime import date
 from typing import Annotated
 from uuid import UUID
 
+from chromadb.api.types import Embedding
 from fastapi import APIRouter, Body
 from pydantic import HttpUrl
 
@@ -25,6 +26,27 @@ router = APIRouter(
   tags=['Listings'],
 )
 
+# ARCHITECTURAL NOTE: Intra-batch deduplication was discarded as a "bottleneck footgun."
+#
+# The Problem:
+# To deduplicate semantically within a batch, we must process items sequentially
+# (or in complex stages) to use the embeddings of 'Item A' to prevent the
+# extraction cost of 'Item B'. This destroys parallelism and forces a "stop-the-world"
+# sync point in an otherwise async pipeline.
+#
+# The current implementation in this branch does implement intra-batch deduplication,
+# However, the existence of the extract/rescrape endpoint compromises the system by
+# not having access to the batch context.
+#
+# Meaning that even if the batch were deduplicated, a user could still rescrape
+# and come up with duplicates in the final save batch.
+#
+# The Decision:
+# Prioritize UX (streaming results) and code simplicity over marginal OpenAI savings.
+# 1. Frontend handles URL-level deduplication via Set/Normalization.
+# 2. Backend handles Global-level deduplication (New Scrape vs. Database).
+# 3. Acceptance of "Double-Spend": If two different URLs contain identical content
+#    within the same batch, we accept the risk of duplicate listings in favor of simplicity.
 
 """
 Scrapes the provided URLs and returns draft listings in one of the following states:
@@ -120,6 +142,9 @@ async def scrape_listings(urls: list[HttpUrl]):
     ]
   )
 
+  cache: dict[str, Embedding] = {}
+  processed: list[Listing] = []
+
   for (url, page), extraction in zip(valid_pairs, llm_results, strict=True):
     if extraction.error:
       results.append(ScrapingListing.from_error(url, extraction.error, html=page.html))
@@ -129,7 +154,10 @@ async def scrape_listings(urls: list[HttpUrl]):
       **extraction.model_dump(), url=url, html=page.html, status=ScrapeStatus.COMPLETED
     )
 
-    similar_match = listings_service.find_similar(draft.to_listing())
+    similar_match = listings_service.find_similar(
+      draft.to_listing(), targets=processed, cache=cache
+    )
+    processed.append(draft.to_listing())
 
     if similar_match:
       draft.status = ScrapeStatus.DUPLICATE_SEMANTIC
