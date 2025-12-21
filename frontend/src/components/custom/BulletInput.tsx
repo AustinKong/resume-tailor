@@ -64,7 +64,7 @@ export default function BulletInput<TFieldValues extends FieldValues>({
   disabled = false,
   defaultItem,
 }: BulletInputProps<TFieldValues>) {
-  const { fields, remove, move, append, update } = useFieldArray({
+  const { fields, remove, move, append, update, insert } = useFieldArray({
     control,
     name,
   });
@@ -95,6 +95,42 @@ export default function BulletInput<TFieldValues extends FieldValues>({
     } else {
       remove(index);
     }
+  };
+
+  // Inside BulletInput
+  const handleBulkPaste = (text: string, index: number) => {
+    if (disabled) return;
+
+    const lines = text
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .filter((line) => line.length > 0);
+
+    if (lines.length === 0) return;
+
+    // 1. Handle the first line: Update the current row being pasted into
+    update(index, { ...fields[index], value: lines[0] } as FieldArray<
+      TFieldValues,
+      ArrayPath<TFieldValues>
+    >);
+
+    // 2. Handle subsequent lines: Append them
+    const remainingLines = lines.slice(1).map(
+      (line) =>
+        ({
+          ...(defaultItem as object),
+          value: line,
+        }) as FieldArray<TFieldValues, ArrayPath<TFieldValues>>
+    );
+
+    // You can use insert() to put them right after the current index,
+    // or append() to put them at the end. For Galileo, insert is better UX.
+    remainingLines.forEach((item, i) => {
+      // Insert after the current index + i
+      // Note: useFieldArray insert method is: insert(index, value)
+      // (Check if your version of RHF has 'insert', otherwise use append)
+      insert(index + 1 + i, item);
+    });
   };
 
   return (
@@ -134,6 +170,9 @@ export default function BulletInput<TFieldValues extends FieldValues>({
                 field={field}
                 disabled={disabled}
                 disableDelete={fields.length <= 1}
+                handleBulkPaste={handleBulkPaste}
+                insert={insert}
+                defaultItem={defaultItem}
               />
             ))}
           </VStack>
@@ -155,6 +194,9 @@ type BulletProps<TFieldValues extends FieldValues> = {
   onItemMouseLeave?: (item: FieldArray<TFieldValues, ArrayPath<TFieldValues>>) => void;
   disabled?: boolean;
   disableDelete?: boolean;
+  insert: (index: number, value: FieldArray<TFieldValues, ArrayPath<TFieldValues>>) => void;
+  defaultItem: FieldArray<TFieldValues, ArrayPath<TFieldValues>>;
+  handleBulkPaste: (text: string, index: number) => void;
 };
 
 function Bullet<T extends FieldValues>({
@@ -167,8 +209,11 @@ function Bullet<T extends FieldValues>({
   onItemMouseEnter,
   onItemMouseLeave,
   field,
+  insert,
+  defaultItem,
   disabled = false,
   disableDelete = false,
+  handleBulkPaste,
 }: BulletProps<T>) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id,
@@ -222,8 +267,41 @@ function Bullet<T extends FieldValues>({
         css={{ fieldSizing: 'content' }}
         spellCheck="false"
         resize="none"
+        autoFocus
         onMouseEnter={() => onItemMouseEnter?.(field)}
         onMouseLeave={() => onItemMouseLeave?.(field)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            insert(index + 1, defaultItem);
+          }
+
+          console.log('field value:', field);
+          const isRowEmpty = (e.target as HTMLTextAreaElement).value === '';
+          if (e.key === 'Backspace' && isRowEmpty && index > 0) {
+            e.preventDefault();
+
+            // 1. Calculate the previous row's ID/index to set focus
+            const prevIndex = index - 1;
+
+            // 2. Remove the current row via the parent handler
+            handleDelete();
+
+            // 3. Focus the previous row's textarea
+            // Tip: You can use a ref or query selector to find the previous input
+            setTimeout(() => {
+              const inputs = document.querySelectorAll(`textarea[name^="${name}"]`);
+              (inputs[prevIndex] as HTMLElement)?.focus();
+            }, 0);
+          }
+        }}
+        onPaste={(e) => {
+          const pasteText = e.clipboardData.getData('text');
+          if (pasteText.includes('\n') || pasteText.includes('\r')) {
+            e.preventDefault();
+            handleBulkPaste(pasteText, index);
+          }
+        }}
       />
 
       <IconButton

@@ -2,7 +2,7 @@ import { VStack } from '@chakra-ui/react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useCallback } from 'react';
 
-import { AnimatedSplitter } from '@/components/custom/AnimatedSpliter';
+import * as Splitter from '@/components/custom/AnimatedSpliter';
 import { useDebouncedUrlSyncedState } from '@/hooks/utils/useDebouncedUrlSyncedState';
 import { useLocalStorage } from '@/hooks/utils/useLocalStorage';
 import { useUrlSyncedState } from '@/hooks/utils/useUrlSyncedState';
@@ -55,7 +55,7 @@ export default function ApplicationsPage() {
   return (
     <VStack h="full" alignItems="stretch" gap="0">
       <Toolbar searchInput={searchInput} onSearchChange={setSearchInput} />
-      <AnimatedSplitter.Root
+      <Splitter.Root
         panels={[
           { id: 'table', minSize: 40 },
           { id: 'drawer', minSize: 30 },
@@ -65,23 +65,23 @@ export default function ApplicationsPage() {
         h="full"
         w="full"
       >
-        <AnimatedSplitter.Panel id="table">
+        <Splitter.Panel id="table">
           <Table
             debouncedSearch={debouncedSearchInput}
             onRowClick={handleRowClick}
             onRowHover={handleRowHover}
           />
-        </AnimatedSplitter.Panel>
-        <AnimatedSplitter.ResizeTrigger id="table:drawer">
-          <AnimatedSplitter.ResizeTriggerSeparator />
-        </AnimatedSplitter.ResizeTrigger>
-        <AnimatedSplitter.Panel id="drawer">
+        </Splitter.Panel>
+        <Splitter.ResizeTrigger id="table:drawer">
+          <Splitter.ResizeTriggerSeparator />
+        </Splitter.ResizeTrigger>
+        <Splitter.Panel id="drawer">
           <Drawer
             onClose={() => setApplicationId('')}
             selectedApplicationId={applicationId || null}
           />
-        </AnimatedSplitter.Panel>
-      </AnimatedSplitter.Root>
+        </Splitter.Panel>
+      </Splitter.Root>
     </VStack>
   );
 }

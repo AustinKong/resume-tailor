@@ -18,6 +18,7 @@ export type GroundedItem<T = string> = {
   quote: string | null;
 };
 
+// TODO: Use the full caps version and remove this type alias
 export const ScrapeStatus = {
   COMPLETED: 'completed',
   DUPLICATE_URL: 'duplicate_url',

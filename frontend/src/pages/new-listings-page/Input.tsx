@@ -1,8 +1,13 @@
-import { Button, Center, HStack, IconButton, Textarea } from '@chakra-ui/react';
-import { useState } from 'react';
+import { Button, Center, HStack, IconButton } from '@chakra-ui/react';
+import { useForm } from 'react-hook-form';
 import { MdDelete } from 'react-icons/md';
 
-// TODO: Use a better input method and/or use rhf
+import BulletInput from '@/components/custom/BulletInput';
+
+type FormData = {
+  urls: { value: string }[];
+};
+
 export default function Input({
   onSubmit,
   onClearCache,
@@ -10,30 +15,32 @@ export default function Input({
   onSubmit: (urls: string[]) => void;
   onClearCache: () => void;
 }) {
-  const [value, setValue] = useState('');
+  const { control, register, handleSubmit } = useForm<FormData>({
+    defaultValues: {
+      urls: [{ value: '' }],
+    },
+  });
 
-  const handleSubmit = () => {
-    const urls = value
-      .split('\n')
-      .map((line) => line.trim())
-      .filter((line) => line.length > 0);
+  const handleFormSubmit = (data: FormData) => {
+    const urls = data.urls.map((item) => item.value.trim()).filter((value) => value.length > 0);
     onSubmit(urls);
   };
 
   return (
     <div style={{ position: 'relative', minHeight: '100vh' }}>
       <Center height="full" flexDirection="column" gap={4}>
-        <Textarea
-          placeholder="Enter job listing URLs, one per line"
-          size="lg"
-          width="80%"
-          height="300px"
-          value={value}
-          onChange={(e) => setValue(e.target.value)}
-        />
-        <HStack>
-          <Button onClick={handleSubmit}>Submit</Button>
-        </HStack>
+        <form onSubmit={handleSubmit(handleFormSubmit)} style={{ width: '80%' }}>
+          <BulletInput
+            control={control}
+            register={register}
+            name="urls"
+            label="Job Listing URLs"
+            defaultItem={{ value: '' }}
+          />
+          <HStack justifyContent="center" mt={4}>
+            <Button type="submit">Submit</Button>
+          </HStack>
+        </form>
       </Center>
 
       {/* Floating Action Button */}

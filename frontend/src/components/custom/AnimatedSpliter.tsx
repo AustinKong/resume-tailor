@@ -1,7 +1,7 @@
 import { Splitter, type SplitterPanelProps, type SplitterRootProps } from '@chakra-ui/react';
 import { type CSSProperties, forwardRef, useState } from 'react';
 
-const Root = forwardRef<HTMLDivElement, SplitterRootProps>(function AnimatedSplitterRoot(
+export const Root = forwardRef<HTMLDivElement, SplitterRootProps>(function AnimatedSplitterRoot(
   { onResizeStart, onResizeEnd, style, ...props },
   ref
 ) {
@@ -31,15 +31,11 @@ const Root = forwardRef<HTMLDivElement, SplitterRootProps>(function AnimatedSpli
   );
 });
 
-const Panel = forwardRef<HTMLDivElement, SplitterPanelProps>(
+export const Panel = forwardRef<HTMLDivElement, SplitterPanelProps>(
   function AnimatedSplitterPanel(props, ref) {
     return <Splitter.Panel ref={ref} {...props} transition="var(--splitter-transition)" />;
   }
 );
 
-export const AnimatedSplitter = {
-  Root,
-  Panel,
-  ResizeTrigger: Splitter.ResizeTrigger,
-  ResizeTriggerSeparator: Splitter.ResizeTriggerSeparator,
-};
+export const ResizeTrigger = Splitter.ResizeTrigger;
+export const ResizeTriggerSeparator = Splitter.ResizeTriggerSeparator;
