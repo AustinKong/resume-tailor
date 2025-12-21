@@ -18,24 +18,7 @@ export type GroundedItem<T = string> = {
   quote: string | null;
 };
 
-// TODO: Use the full caps version and remove this type alias
-export const ScrapeStatus = {
-  COMPLETED: 'completed',
-  DUPLICATE_URL: 'duplicate_url',
-  DUPLICATE_SEMANTIC: 'duplicate_semantic',
-  FAILED: 'failed',
-} as const;
-
-export type ScrapeStatus = (typeof ScrapeStatus)[keyof typeof ScrapeStatus];
-
-export type DuplicateOf = {
-  listing: Listing;
-  applicationId: string;
-};
-
-export type ScrapingListing = {
-  id: string;
-  url: string;
+export type ListingExtraction = {
   title: string;
   company: string;
   domain: string;
@@ -44,16 +27,46 @@ export type ScrapingListing = {
   postedDate: ISODate | null;
   skills: GroundedItem<string>[];
   requirements: GroundedItem<string>[];
-  error: string | null;
-  html: string | null;
-  status: ScrapeStatus;
-  duplicateOf: DuplicateOf | null;
 };
 
-export type ScrapeResult = {
-  unique: Listing[];
-  duplicates: {
-    listing: Listing;
-    duplicateOf: DuplicateOf;
-  }[];
+type BaseListingDraft = {
+  id: string;
+  url: string;
 };
+
+export type ListingDraftUnique = BaseListingDraft & {
+  status: 'unique';
+  listing: ListingExtraction;
+  html: string;
+};
+
+export type ListingDraftDuplicateUrl = BaseListingDraft & {
+  status: 'duplicate_url';
+  duplicateOf: Listing;
+  duplicateOfApplicationId: string;
+};
+
+export type ListingDraftDuplicateContent = BaseListingDraft & {
+  status: 'duplicate_content';
+  listing: ListingExtraction;
+  duplicateOf: Listing;
+  duplicateOfApplicationId: string;
+  html: string;
+};
+
+export type ListingDraftError = BaseListingDraft & {
+  status: 'error';
+  error: string;
+  html: string | null;
+};
+
+export type ListingDraftPending = BaseListingDraft & {
+  status: 'pending';
+};
+
+export type ListingDraft =
+  | ListingDraftPending
+  | ListingDraftUnique
+  | ListingDraftDuplicateUrl
+  | ListingDraftDuplicateContent
+  | ListingDraftError;

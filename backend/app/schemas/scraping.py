@@ -1,23 +1,13 @@
-from enum import Enum
-from typing import Generic, TypeVar
+from typing import Annotated, Generic, Literal, TypeVar
 from uuid import UUID, uuid4
 
 from pydantic import Field, HttpUrl
 
-# TODO: Use the barrel exports
 from app.schemas.dates import ISODate
-from app.schemas.listing import Listing
+from app.schemas.listing import Listing, ListingBase
 from app.schemas.types import CamelModel
 
 T = TypeVar('T')
-
-
-# TODO: Move into Listings schema file
-class ScrapeStatus(str, Enum):
-  COMPLETED = 'completed'
-  DUPLICATE_URL = 'duplicate_url'
-  DUPLICATE_SEMANTIC = 'duplicate_semantic'
-  FAILED = 'failed'
 
 
 class GroundedItem(CamelModel, Generic[T]):
@@ -27,51 +17,63 @@ class GroundedItem(CamelModel, Generic[T]):
   )
 
 
-class ExtractionListing(CamelModel):
-  title: str
-  company: str
-  domain: str
-  location: str | None = None
-  description: str
-  posted_date: ISODate | None = None
+class ListingExtraction(ListingBase):
   skills: list[GroundedItem[str]] = Field(default_factory=list)
   requirements: list[GroundedItem[str]] = Field(default_factory=list)
-  error: str | None = None
 
 
-class DuplicateOf(CamelModel):
-  listing: Listing
-  application_id: UUID
+# ===== Extraction (Output of LLM) =====
 
 
-class ScrapingListing(ExtractionListing):
+class ExtractionResponse(CamelModel):
+  # OpenAI formatted outputs do not accept ListingExtraction | None due to AnyOf limitations
+  title: str | None
+  company: str | None
+  domain: str | None
+  location: str | None
+  description: str | None
+  posted_date: ISODate | None
+  skills: list[GroundedItem[str]] = Field(default_factory=list)
+  requirements: list[GroundedItem[str]] = Field(default_factory=list)
+
+  error: str | None
+
+
+# ===== Listing Drafts (Output of Scraping/Extraction) =====
+
+
+class BaseListingDraft(CamelModel):
   id: UUID = Field(default_factory=uuid4)
   url: HttpUrl
+
+
+class ListingDraftUnique(BaseListingDraft):
+  status: Literal['unique'] = 'unique'
+  listing: ListingExtraction
+  html: str
+
+
+class ListingDraftDuplicateUrl(BaseListingDraft):
+  status: Literal['duplicate_url'] = 'duplicate_url'
+  duplicate_of: Listing
+  duplicate_of_application_id: UUID  # To allow frontend redirection
+
+
+class ListingDraftDuplicateContent(BaseListingDraft):
+  status: Literal['duplicate_content'] = 'duplicate_content'
+  listing: ListingExtraction
+  duplicate_of: Listing
+  duplicate_of_application_id: UUID  # To allow frontend redirection
+  html: str
+
+
+class ListingDraftError(BaseListingDraft):
+  status: Literal['error'] = 'error'
+  error: str
   html: str | None
-  status: ScrapeStatus
-  duplicate_of: DuplicateOf | None = None
 
-  def to_listing(self) -> Listing:
-    if self.error is not None:
-      raise ValueError(f'Cannot convert to Listing: extraction failed with error: {self.error}')
-    return Listing(
-      **self.model_dump(exclude={'skills', 'requirements'}),
-      skills=[skill.value for skill in self.skills],
-      requirements=[req.value for req in self.requirements],
-    )
 
-  @classmethod
-  def from_error(
-    cls, url: HttpUrl, error: str, html: str | None = None, id: UUID | None = None
-  ) -> 'ScrapingListing':
-    return cls(
-      id=id or uuid4(),
-      url=url,
-      status=ScrapeStatus.FAILED,
-      error=error,
-      html=html,
-      title='',
-      company='',
-      domain='',
-      description='',
-    )
+ListingDraft = Annotated[
+  ListingDraftUnique | ListingDraftDuplicateUrl | ListingDraftDuplicateContent | ListingDraftError,
+  Field(discriminator='status'),
+]

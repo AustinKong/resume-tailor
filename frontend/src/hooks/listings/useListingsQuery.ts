@@ -1,11 +1,11 @@
 import { useQuery } from '@tanstack/react-query';
 
-import type { ScrapingListing } from '@/types/listing';
+import type { ListingDraft } from '@/types/listing';
 
 // TODO: I don't like this pattern, seems abit hacky
 // Reads from the cache, not from server
 export function useListingsQuery() {
-  const query = useQuery<ScrapingListing[]>({
+  const query = useQuery<ListingDraft[]>({
     queryKey: ['listings'],
     staleTime: Infinity,
     gcTime: Infinity,

@@ -2,9 +2,9 @@ import { Button, Textarea, VStack } from '@chakra-ui/react';
 import { useState } from 'react';
 
 import { useListingMutations } from '@/hooks/listings';
-import type { ScrapingListing } from '@/types/listing';
+import type { ListingDraft } from '@/types/listing';
 
-export default function Extract({ listing }: { listing: ScrapingListing }) {
+export default function Extract({ listing }: { listing: ListingDraft }) {
   const { extractListing, isExtractLoading } = useListingMutations();
   const [content, setContent] = useState<string>('');
 

@@ -2,22 +2,22 @@ import { Center, Heading, Tabs, Text } from '@chakra-ui/react';
 import { useEffect, useState } from 'react';
 import { PiBrowser, PiInfo, PiTextbox } from 'react-icons/pi';
 
-import type { ScrapingListing } from '@/types/listing';
+import type { ListingDraft } from '@/types/listing';
 
 import Extract from './Extract';
 import Info from './Info';
 import Source from './Source';
 
-const Reference = ({
-  listing,
-  highlight,
-}: {
-  listing: ScrapingListing;
-  highlight: string | null;
-}) => {
-  const isDuplicate = listing.status === 'duplicate_url' || listing.status === 'duplicate_semantic';
-  const isCompleted = listing.status === 'completed';
-  const hasHtml = !!listing.html;
+const Reference = ({ listing, highlight }: { listing: ListingDraft; highlight: string | null }) => {
+  const isDuplicate = listing.status === 'duplicate_url' || listing.status === 'duplicate_content';
+  const isCompleted = listing ? listing.status === 'unique' : false;
+  const hasHtml = listing
+    ? listing.status === 'unique'
+      ? !!listing.html
+      : listing.status === 'duplicate_content'
+        ? !!listing.html
+        : false
+    : false;
 
   const infoDisabled = isCompleted && !isDuplicate;
   const sourceDisabled = !hasHtml;

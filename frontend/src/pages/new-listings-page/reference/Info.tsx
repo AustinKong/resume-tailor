@@ -1,13 +1,13 @@
 import { Heading, Image, Link as ChakraLink, List, Text, VStack } from '@chakra-ui/react';
 import { Link } from 'react-router';
 
-import type { ScrapingListing } from '@/types/listing';
+import type { ListingDraft } from '@/types/listing';
 
 export default function Info({
   listing,
   setActiveTab,
 }: {
-  listing: ScrapingListing;
+  listing: ListingDraft;
   setActiveTab: React.Dispatch<React.SetStateAction<string>>;
 }) {
   switch (listing.status) {
@@ -15,12 +15,12 @@ export default function Info({
       return (
         <InfoSection
           imageSrc="https://http.cat/409"
-          heading="Already in Database"
+          heading="URL Already in Database"
           subtext="You have already scraped or applied to this exact URL. To prevent the database from imploding, we can't allow you to add it again."
         >
           <ChakraLink asChild>
             <Link
-              to={`/applications?applicationId=${listing.duplicateOf?.applicationId}`}
+              to={`/applications?applicationId=${listing.duplicateOfApplicationId}`}
               target="_blank"
             >
               View Existing Application
@@ -28,19 +28,24 @@ export default function Info({
           </ChakraLink>
         </InfoSection>
       );
-    case 'duplicate_semantic': {
-      const { company: duplicateCompany, title: duplicateTitle } = listing.duplicateOf!.listing;
+    case 'duplicate_content':
       return (
         <InfoSection
           imageSrc="https://http.cat/409"
-          heading="Potential Duplicate Found"
-          subtext={`Our AI detected that this job description is identical to an existing entry: "${duplicateTitle}" at ${duplicateCompany}.`}
+          heading="Similar Listing Found"
+          subtext="A listing with very similar content already exists in your database. This helps prevent duplicates while allowing for slight variations in job postings."
         >
-          <Text>Compare the details in the center column with your existing record.</Text>
+          <ChakraLink asChild>
+            <Link
+              to={`/applications?applicationId=${listing.duplicateOfApplicationId}`}
+              target="_blank"
+            >
+              View Existing Application
+            </Link>
+          </ChakraLink>
         </InfoSection>
       );
-    }
-    case 'failed':
+    case 'error':
       return (
         <InfoSection
           imageSrc="https://http.cat/422"
@@ -60,12 +65,13 @@ export default function Info({
           </List.Root>
         </InfoSection>
       );
+    case 'unique':
     default:
       return (
         <InfoSection
-          imageSrc="https://http.cat/500"
-          heading="Something went Wrong"
-          subtext="This listing has an unknown status, you really should not be seeing this."
+          imageSrc="https://http.cat/200"
+          heading="Ready to Save"
+          subtext="This listing has been successfully extracted and is ready to be saved to your database."
         />
       );
   }

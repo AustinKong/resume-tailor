@@ -1,46 +1,45 @@
-import type { Listing, ScrapingListing } from '@/types/listing';
+import type { Listing, ListingDraft, ListingDraftUnique } from '@/types/listing';
 
-export async function scrapeListings(urls: string[]): Promise<ScrapingListing[]> {
+export async function scrapeListing(url: string, id: string): Promise<ListingDraft> {
   const response = await fetch('/api/listings/scrape', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify(urls),
+    body: JSON.stringify({ url, id }),
   });
 
   if (!response.ok) {
-    throw new Error('Failed to scrape listings');
+    throw new Error('Failed to scrape listing');
   }
 
   const json = await response.json();
-  return json as ScrapingListing[];
+  return json as ListingDraft;
 }
 
-// Convert ScrapingListing to Listing before sending by removing transient fields (status, html etc.)
-export async function saveListings(listings: ScrapingListing[]) {
-  const transformedListings: Listing[] = listings.map(
-    ({
-      html: _html,
-      status: _status,
-      error: _error,
-      duplicateOf: _duplicateOf,
-      requirements,
-      skills,
-      ...rest
-    }) => ({
-      requirements: requirements.map((r) => r.value),
-      skills: skills.map((s) => s.value),
-      ...rest,
-    })
-  );
+// Convert ListingDraft to Listing for saving (only unique listings can be saved)
+export async function saveListings(drafts: ListingDraft[]) {
+  const listingsToSave: Listing[] = drafts
+    .filter((draft): draft is ListingDraftUnique => draft.status === 'unique')
+    .map((draft) => ({
+      id: draft.id,
+      url: draft.url,
+      title: draft.listing.title,
+      company: draft.listing.company,
+      domain: draft.listing.domain,
+      location: draft.listing.location,
+      description: draft.listing.description,
+      postedDate: draft.listing.postedDate,
+      skills: draft.listing.skills.map((s) => s.value),
+      requirements: draft.listing.requirements.map((r) => r.value),
+    }));
 
   const response = await fetch('/api/listings', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify(transformedListings),
+    body: JSON.stringify(listingsToSave),
   });
 
   if (!response.ok) {
@@ -66,7 +65,7 @@ export async function extractListing(
   id: string,
   url: string,
   content: string
-): Promise<ScrapingListing> {
+): Promise<ListingDraft> {
   const response = await fetch('/api/listings/extract', {
     method: 'POST',
     headers: {
@@ -80,5 +79,5 @@ export async function extractListing(
   }
 
   const json = await response.json();
-  return json as ScrapingListing;
+  return json as ListingDraft;
 }

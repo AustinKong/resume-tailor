@@ -5,9 +5,7 @@ from .experience import (
   ExperienceType,
   LLMResponseExperience,
 )
-from .listing import (
-  Listing,
-)
+from .listing import Listing, ListingBase
 from .profile import Education, Profile
 from .resume import (
   DetailedItem,
@@ -19,7 +17,16 @@ from .resume import (
   SectionContent,
   SimpleSectionContent,
 )
-from .scraping import DuplicateOf, ExtractionListing, GroundedItem, ScrapeStatus, ScrapingListing
+from .scraping import (
+  ExtractionResponse,
+  GroundedItem,
+  ListingDraft,
+  ListingDraftDuplicateContent,
+  ListingDraftDuplicateUrl,
+  ListingDraftError,
+  ListingDraftUnique,
+  ListingExtraction,
+)
 from .status_event import StatusEnum, StatusEvent
 from .types import CamelModel, Page
 
@@ -35,12 +42,16 @@ __all__ = [
   'ExperienceType',
   'LLMResponseExperience',
   # Listing
-  'DuplicateOf',
-  'ExtractionListing',
+  'ExtractionResponse',
   'GroundedItem',
   'Listing',
-  'ScrapeStatus',
-  'ScrapingListing',
+  'ListingBase',
+  'ListingDraft',
+  'ListingDraftDuplicateContent',
+  'ListingDraftDuplicateUrl',
+  'ListingDraftError',
+  'ListingDraftUnique',
+  'ListingExtraction',
   # Profile
   'Education',
   'Profile',

@@ -1,4 +1,12 @@
-import { Badge, Checkbox, HStack, Icon, Table as ChakraTable, Text } from '@chakra-ui/react';
+import {
+  Badge,
+  Checkbox,
+  HStack,
+  Icon,
+  Loader,
+  Table as ChakraTable,
+  Text,
+} from '@chakra-ui/react';
 import {
   createColumnHelper,
   flexRender,
@@ -9,9 +17,15 @@ import type { Dispatch, SetStateAction } from 'react';
 import { PiWarning } from 'react-icons/pi';
 
 import CompanyLogo from '@/components/custom/CompanyLogo';
-import { type ScrapingListing } from '@/types/listing';
+import {
+  DRAFT_LISTING_DEFINITIONS,
+  getCompany,
+  getDomain,
+  getTitle,
+} from '@/constants/draftListings';
+import { type ListingDraft } from '@/types/listing';
 
-const columnHelper = createColumnHelper<ScrapingListing>();
+const columnHelper = createColumnHelper<ListingDraft>();
 
 const columns = [
   columnHelper.display({
@@ -32,63 +46,50 @@ const columns = [
         onCheckedChange={(changes) => row.toggleSelected(!!changes.checked)}
         onClick={(e) => e.stopPropagation()}
         aria-label="Select row"
-        disabled={!row.getCanSelect()}
       >
-        {/* TODO: Add an explaination why this is disabled (tooltip) */}
         <Checkbox.HiddenInput />
         <Checkbox.Control />
       </Checkbox.Root>
     ),
   }),
-  columnHelper.accessor('title', {
+  columnHelper.accessor('listing', {
+    id: 'listing',
     header: 'Listing',
     cell: (info) => {
       const listing = info.row.original;
-      const isFailed = listing.status === 'failed';
+      const isError = listing.status === 'error';
+      const isPending = listing.status === 'pending';
 
       return (
         <HStack gap={2} alignItems={'center'} w="full" overflow="hidden" minW="0">
-          {isFailed ? (
+          {isError ? (
             <Icon size="lg" flexShrink={0}>
               <PiWarning />
             </Icon>
+          ) : isPending ? (
+            <Loader flexShrink={0} />
           ) : (
-            <CompanyLogo domain={listing.domain} companyName={listing.company} flexShrink={0} />
+            <CompanyLogo
+              domain={getDomain(listing)}
+              companyName={getCompany(listing)}
+              flexShrink={0}
+            />
           )}
           <Text truncate flex={1} minW={0}>
-            {isFailed ? listing.url : `${listing.company} - ${listing.title}`}
+            {isError || isPending ? listing.url : `${getCompany(listing)} - ${getTitle(listing)}`}
           </Text>
         </HStack>
       );
     },
   }),
   columnHelper.accessor('status', {
+    id: 'status',
     header: 'Status',
     cell: (info) => {
       const status = info.getValue();
-      let colorScheme: string = 'gray';
-      let label: string = status;
+      const definition = DRAFT_LISTING_DEFINITIONS[status];
 
-      switch (status) {
-        case 'completed':
-          colorScheme = 'green';
-          label = 'OK';
-          break;
-        case 'duplicate_url':
-          colorScheme = 'orange';
-          label = 'Duplicate (URL)';
-          break;
-        case 'duplicate_semantic':
-          colorScheme = 'yellow';
-          label = 'Duplicate (Semantic)';
-          break;
-        case 'failed':
-          colorScheme = 'red';
-          label = 'Failed';
-          break;
-      }
-
-      return <Badge colorScheme={colorScheme}>{label}</Badge>;
+      return <Badge colorScheme={definition.colorPalette}>{definition.label}</Badge>;
     },
   }),
 ];
@@ -100,7 +101,7 @@ export default function Table({
   selectedListingId,
   setSelectedListingId,
 }: {
-  listings: ScrapingListing[];
+  listings: ListingDraft[];
   rowSelection: Record<string, boolean>;
   setRowSelection: Dispatch<SetStateAction<Record<string, boolean>>>;
   selectedListingId: string | null;
@@ -111,7 +112,6 @@ export default function Table({
     columns,
     getCoreRowModel: getCoreRowModel(),
     onRowSelectionChange: setRowSelection,
-    enableRowSelection: (row) => row.original.status !== 'duplicate_url',
     getRowId: (row) => row.id,
     state: {
       rowSelection,
@@ -126,7 +126,7 @@ export default function Table({
             <ChakraTable.Row key={headerGroup.id} bg="bg.subtle">
               {headerGroup.headers.map((header) => {
                 // TODO: Abit complex, is there no native way to do this?
-                const isListing = header.column.id === 'title';
+                const isListing = header.column.id === 'listing';
                 const width = isListing ? '100%' : 'auto';
                 const whiteSpace = isListing ? 'normal' : 'nowrap';
 
@@ -151,7 +151,7 @@ export default function Table({
               cursor="pointer"
             >
               {row.getVisibleCells().map((cell) => {
-                const isListing = cell.column.id === 'title';
+                const isListing = cell.column.id === 'listing';
                 return (
                   <ChakraTable.Cell
                     key={cell.id}

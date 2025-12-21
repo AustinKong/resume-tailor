@@ -3,31 +3,59 @@ import { useMutation, useMutationState, useQueryClient } from '@tanstack/react-q
 import {
   extractListing as extractListingSvc,
   saveListings as saveListingsSvc,
-  scrapeListings as scrapeListingsSvc,
+  scrapeListing as scrapeListingSvc,
 } from '@/services/listings';
-import type { ScrapingListing } from '@/types/listing';
+import type { ListingDraft, ListingDraftPending } from '@/types/listing';
 
 export function useListingMutations() {
   const queryClient = useQueryClient();
 
-  const {
-    mutateAsync: scrapeListings,
-    isPending: isScrapeLoading,
-    isError: isScrapeError,
-  } = useMutation({
-    mutationFn: scrapeListingsSvc,
-    onSuccess: (listings) => {
-      queryClient.setQueryData(['listings'], listings);
+  const { mutateAsync: scrapeListing } = useMutation({
+    mutationFn: ({ url, id }: { url: string; id: string }) => scrapeListingSvc(url, id),
+    onSuccess: (listing) => {
+      queryClient.setQueryData(['listings'], (old: ListingDraft[] | undefined) => {
+        return old?.map((l) => (l.id === listing.id ? listing : l)) || [];
+      });
+    },
+    onError: (error, { id }) => {
+      queryClient.setQueryData(['listings'], (old: ListingDraft[] | undefined) => {
+        return (
+          old?.map((l) =>
+            l.id === id
+              ? {
+                  ...l,
+                  status: 'error',
+                  error: (error as Error).message,
+                }
+              : l
+          ) || []
+        );
+      });
     },
   });
 
+  const scrapeListings = async (urls: string[]) => {
+    const pending: ListingDraftPending[] = urls.map((url) => ({
+      id: crypto.randomUUID(),
+      url,
+      status: 'pending',
+    }));
+
+    queryClient.setQueryData(['listings'], (old: ListingDraft[] | undefined) => [
+      ...(old || []),
+      ...pending,
+    ]);
+
+    return Promise.allSettled(pending.map((p) => scrapeListing({ url: p.url, id: p.id })));
+  };
+
   const { mutateAsync: extractListing, isError: isExtractError } = useMutation({
     mutationKey: ['extractListing'],
-    mutationFn: ({ listing, content }: { listing: ScrapingListing; content: string }) => {
+    mutationFn: ({ listing, content }: { listing: ListingDraft; content: string }) => {
       return extractListingSvc(listing.id, listing.url, content);
     },
     onSuccess: (updatedListing) => {
-      queryClient.setQueryData(['listings'], (old: ScrapingListing[] | undefined) => {
+      queryClient.setQueryData(['listings'], (old: ListingDraft[] | undefined) => {
         return old?.map((l) => (l.id === updatedListing.id ? updatedListing : l));
       });
     },
@@ -40,7 +68,7 @@ export function useListingMutations() {
   });
 
   // If listing is null, check if any extraction is pending
-  const isExtractLoading = (listing: ScrapingListing | null) => {
+  const isExtractLoading = (listing: ListingDraft | null) => {
     if (!listing) return pendingExtractions.length > 0;
     return pendingExtractions.includes(listing.id);
   };
@@ -54,12 +82,13 @@ export function useListingMutations() {
   });
 
   return {
+    // scrapeListing,
     scrapeListings,
-    isScrapeLoading,
-    isScrapeError,
+
     extractListing,
     isExtractLoading,
     isExtractError,
+
     saveListings,
     isSaveLoading,
     isSaveError,

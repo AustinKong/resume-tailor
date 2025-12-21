@@ -7,15 +7,18 @@ from app.schemas.dates import ISODate
 from app.schemas.types import CamelModel, parse_json_list_as
 
 
-class Listing(CamelModel):
-  id: UUID = Field(default_factory=uuid4)
-  url: HttpUrl
+class ListingBase(CamelModel):
   title: str
   company: str
   domain: str
   location: str | None = None
   description: str
   posted_date: ISODate | None = None
+
+
+class Listing(ListingBase):
+  id: UUID = Field(default_factory=uuid4)
+  url: HttpUrl
 
   skills: Annotated[
     list[str],

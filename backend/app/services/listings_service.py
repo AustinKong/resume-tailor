@@ -13,24 +13,19 @@ class ListingsService(DatabaseRepository, VectorRepository):
   def __init__(self, **kwargs):
     super().__init__(**kwargs)
 
-  def get_by_urls(self, urls: list[HttpUrl]) -> list[Listing]:
-    if not urls:
-      return []
-
-    url_strings = [str(url) for url in urls]
-    placeholders = ','.join('?' * len(url_strings))
-    rows = self.fetch_all(
-      f"""
+  def get_by_url(self, url: HttpUrl) -> Listing | None:
+    row = self.fetch_one(
+      """
       SELECT 
         l.id, l.url, l.title, l.company, l.domain, l.location, l.description, l.posted_date,
         l.skills, l.requirements
       FROM listings l
-      WHERE l.url IN ({placeholders})
+      WHERE l.url = ?
       """,
-      tuple(url_strings),
+      (str(url),),
     )
 
-    return [Listing(**dict(row)) for row in rows]
+    return Listing(**dict(row)) if row else None
 
   def list_all(self) -> list[Listing]:
     rows = self.fetch_all(

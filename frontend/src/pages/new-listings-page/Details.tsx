@@ -16,8 +16,9 @@ import { PiBookmarkSimple, PiCheck } from 'react-icons/pi';
 import BulletInput from '@/components/custom/BulletInput';
 import CompanyLogo from '@/components/custom/CompanyLogo';
 import { ISODateInput } from '@/components/custom/DatePickers';
+import { getCompany, getDomain } from '@/constants/draftListings';
 import { useListingCache, useListingMutations } from '@/hooks/listings';
-import type { GroundedItem, ScrapingListing } from '@/types/listing';
+import type { GroundedItem, ListingDraft } from '@/types/listing';
 import type { ISODate } from '@/utils/date';
 
 interface FormValues {
@@ -30,15 +31,75 @@ interface FormValues {
   postedDate: ISODate | null;
 }
 
+// Helper functions to extract data from discriminated union
+
+const getUrl = (listing: ListingDraft): string => listing.url;
+
 export default function Details({
   listing,
   onHighlight: _onHighlight,
   onClearHighlight: _onClearHighlight,
 }: {
-  listing: ScrapingListing;
+  listing: ListingDraft;
   onHighlight: (text: string | null) => void;
   onClearHighlight: () => void;
 }) {
+  // Extract form values based on listing type
+  const getFormValues = (listing: ListingDraft): FormValues => {
+    switch (listing.status) {
+      case 'unique':
+        return {
+          title: listing.listing.title,
+          company: listing.listing.company,
+          location: listing.listing.location || '',
+          description: listing.listing.description,
+          requirements: listing.listing.requirements,
+          skills: listing.listing.skills,
+          postedDate: listing.listing.postedDate,
+        };
+      case 'duplicate_url':
+        return {
+          title: listing.duplicateOf.title,
+          company: listing.duplicateOf.company,
+          location: listing.duplicateOf.location || '',
+          description: listing.duplicateOf.description,
+          requirements: listing.duplicateOf.skills.map((s: string) => ({ value: s, quote: null })),
+          skills: listing.duplicateOf.requirements.map((r: string) => ({ value: r, quote: null })),
+          postedDate: listing.duplicateOf.postedDate,
+        };
+      case 'duplicate_content':
+        return {
+          title: listing.listing.title,
+          company: listing.listing.company,
+          location: listing.listing.location || '',
+          description: listing.listing.description,
+          requirements: listing.listing.requirements,
+          skills: listing.listing.skills,
+          postedDate: listing.listing.postedDate,
+        };
+      case 'error':
+        return {
+          title: '',
+          company: '',
+          location: '',
+          description: '',
+          requirements: [],
+          skills: [],
+          postedDate: null,
+        };
+      case 'pending':
+        return {
+          title: '',
+          company: '',
+          location: '',
+          description: '',
+          requirements: [],
+          skills: [],
+          postedDate: null,
+        };
+    }
+  };
+
   const {
     register,
     handleSubmit,
@@ -47,15 +108,17 @@ export default function Details({
     reset,
     getValues,
   } = useForm<FormValues>({
-    values: {
-      title: listing.title,
-      company: listing.company,
-      location: listing.location || '',
-      description: listing.description,
-      requirements: listing.requirements,
-      skills: listing.skills,
-      postedDate: listing.postedDate,
-    },
+    values: listing
+      ? getFormValues(listing)
+      : {
+          title: '',
+          company: '',
+          location: '',
+          description: '',
+          requirements: [],
+          skills: [],
+          postedDate: null,
+        },
   });
 
   const { isExtractLoading } = useListingMutations();
@@ -65,25 +128,27 @@ export default function Details({
   const onSubmit = (data: FormValues) => {
     const cleanedRequirements = data.requirements.filter((item) => item.value.trim() !== '');
     data.requirements = cleanedRequirements;
-    updateListing(listing.id, data);
+    updateListing(listing?.id || '', data as Partial<ListingDraft>);
     reset(data);
   };
 
   // Auto-save on unmount (switch listing)
   useEffect(() => {
     return () => {
-      if (isDirty) {
-        updateListing(listing.id, getValues());
+      if (isDirty && listing) {
+        updateListing(listing.id, getValues() as Partial<ListingDraft>);
       }
     };
-  }, [listing.id, isDirty, getValues, updateListing]);
+  }, [listing, isDirty, getValues, updateListing]);
 
   // INFO:
   // Unique - always allow edits and allow selecting
-  // URL similarity - disallow edits or even selecting
-  // Semantic similarity - allow edits but how to display that it is similar
+  // Duplicate - disallow edits
   // Error - Allow edits and pasting plaintext
-  const isDisabled = listing.status === 'duplicate_url' || isExtractLoading(listing);
+  const isDisabled =
+    listing.status === 'duplicate_url' ||
+    listing.status === 'duplicate_content' ||
+    isExtractLoading(listing);
 
   return (
     <VStack
@@ -98,13 +163,17 @@ export default function Details({
       overflowX="hidden"
     >
       <HStack gap="3" align="start">
-        <CompanyLogo domain={listing.domain} companyName={listing.company || '?'} size="xl" />
+        <CompanyLogo
+          domain={getDomain(listing)}
+          companyName={getCompany(listing) || '?'}
+          size="xl"
+        />
         <VStack alignItems="start" gap="0" flex="1" minW="0">
           <Text fontSize="xl" fontWeight="bold" lineHeight="shorter">
-            {listing.company}
+            {getCompany(listing)}
           </Text>
           <ChakraLink
-            href={listing.url}
+            href={getUrl(listing)}
             variant="underline"
             fontSize="sm"
             target="_blank"
@@ -113,7 +182,7 @@ export default function Details({
             display="block"
             w="full"
           >
-            {listing.url}
+            {getUrl(listing)}
           </ChakraLink>
         </VStack>
         <IconButton variant="ghost" type="submit" disabled={isDisabled || !isDirty}>

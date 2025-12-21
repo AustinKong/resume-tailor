@@ -2,21 +2,27 @@ import { Box } from '@chakra-ui/react';
 import { useEffect, useMemo, useRef } from 'react';
 
 import { HIGHLIGHT_SCRIPT } from '@/constants/highlight-script';
-import type { ScrapingListing } from '@/types/listing';
+import type { ListingDraft } from '@/types/listing';
 
 export default function Source({
   listing,
   highlight,
 }: {
-  listing: ScrapingListing;
+  listing: ListingDraft;
   highlight: string | null;
 }) {
   const iframeRef = useRef<HTMLIFrameElement>(null);
 
   const htmlContent = useMemo(() => {
-    if (!listing.html) return '';
-    return listing.html + HIGHLIGHT_SCRIPT;
-  }, [listing.html]);
+    const html =
+      listing.status === 'unique'
+        ? listing.html
+        : listing.status === 'duplicate_content'
+          ? listing.html
+          : '';
+    if (!html) return '';
+    return html + HIGHLIGHT_SCRIPT;
+  }, [listing]);
 
   useEffect(() => {
     const target = iframeRef.current?.contentWindow;

@@ -26,6 +26,7 @@ class VectorRepository:
         raise ServiceError(f'Failed to initialize ChromaDB client: {str(e)}') from e
     return self._chroma_client
 
+  # TODO: Must reset embedding_function if API key or model changes during runtime
   @property
   def embedding_function(self) -> chromadb.EmbeddingFunction:
     if self._embedding_function is None:
