@@ -53,7 +53,7 @@ type Marker = {
  * Example: `[{ value: "Item 1" }, { value: "Item 2" }]`.
  * @param props.label - The label text displayed above the list.
  */
-export default function BulletInput<TFieldValues extends FieldValues>({
+export function BulletInput<TFieldValues extends FieldValues>({
   control,
   register,
   name,

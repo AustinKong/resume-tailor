@@ -17,7 +17,7 @@ import { Controller, useForm } from 'react-hook-form';
 import { PiCheck } from 'react-icons/pi';
 import { z } from 'zod';
 
-import DisplayDate from '@/components/custom/DisplayDate';
+import { DisplayDate } from '@/components/custom/DisplayDate';
 import { STATUS_DEFINITIONS, STATUS_OPTIONS } from '@/constants/statuses';
 import { useApplicationMutations } from '@/hooks/applications';
 import type { Application, StatusEnum } from '@/types/application';
@@ -173,7 +173,7 @@ function StatusForm({ application }: { application: Application }) {
   );
 }
 
-export default function TimelineEditor({ application }: { application: Application }) {
+export function TimelineEditor({ application }: { application: Application }) {
   return (
     <VStack align="stretch">
       <Heading size="md">Your Application</Heading>

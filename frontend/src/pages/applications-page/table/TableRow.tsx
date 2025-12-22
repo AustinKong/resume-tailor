@@ -3,7 +3,7 @@ import { flexRender, type Row } from '@tanstack/react-table';
 
 import type { Application } from '@/types/application';
 
-export default function TableRow({
+export function TableRow({
   row,
   onRowClick,
   onRowHover,

@@ -7,11 +7,11 @@ import { useApplicationQuery } from '@/hooks/applications';
 import { useResumeMutations } from '@/hooks/resumes';
 import { useStickyState } from '@/hooks/utils/useStickyState';
 
-import Header from './Header';
-import JobDetails from './JobDetails';
-import TimelineEditor from './TimelineEditor';
+import { Header } from './Header';
+import { JobDetails } from './JobDetails';
+import { TimelineEditor } from './TimelineEditor';
 
-export default function Drawer({
+export function Drawer({
   onClose,
   selectedApplicationId,
 }: {

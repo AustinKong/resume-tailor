@@ -27,10 +27,7 @@ interface CollapsibleTableRowProps {
  * This component returns a React Fragment (no DOM wrapper) and uses the CSS Grid
  * technique (grid-template-rows: 0fr → 1fr) for height animations.
  */
-export default function CollapsibleTableRow({
-  children,
-  expandedContent,
-}: CollapsibleTableRowProps) {
+export function CollapsibleTableRow({ children, expandedContent }: CollapsibleTableRowProps) {
   const [isOpen, setIsOpen] = useState(false);
 
   const handleToggle = () => {

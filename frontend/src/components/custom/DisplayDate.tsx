@@ -7,7 +7,7 @@ interface DisplayDateProps extends TextProps {
   options?: Intl.DateTimeFormatOptions;
 }
 
-export default function DisplayDate({ date, options, ...props }: DisplayDateProps) {
+export function DisplayDate({ date, options, ...props }: DisplayDateProps) {
   const { locale = 'en-US' } = useLocaleContext();
 
   if (!date) {

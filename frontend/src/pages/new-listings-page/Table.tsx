@@ -16,7 +16,7 @@ import {
 import type { Dispatch, SetStateAction } from 'react';
 import { PiWarning } from 'react-icons/pi';
 
-import CompanyLogo from '@/components/custom/CompanyLogo';
+import { CompanyLogo } from '@/components/custom/CompanyLogo';
 import {
   DRAFT_LISTING_DEFINITIONS,
   getCompany,
@@ -94,7 +94,7 @@ const columns = [
   }),
 ];
 
-export default function Table({
+export function Table({
   listings,
   rowSelection,
   setRowSelection,

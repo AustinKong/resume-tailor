@@ -1,8 +1,8 @@
 import { Tabs } from '@chakra-ui/react';
 
-import Education from './Education';
-import Experience from './Experience';
-import PersonalInformation from './PersonalInformation';
+import { Education } from './Education';
+import { Experience } from './Experience';
+import { PersonalInformation } from './PersonalInformation';
 
 const TABS = [
   { label: 'Personal Information', value: 'personal', page: <PersonalInformation /> },
@@ -14,7 +14,7 @@ const TABS = [
 // A) Continue using key resetting: https://react.dev/learn/preserving-and-resetting-state
 // B) Use RHF + Controllers to manage form state instead
 // Either way, the entire profile page needs to be redone
-export default function ProfilePage() {
+export function ProfilePage() {
   return (
     <Tabs.Root defaultValue="personal" w="full">
       <Tabs.List mb="4">

@@ -1,7 +1,7 @@
 import { HStack, Icon, Spinner, Text } from '@chakra-ui/react';
 import { PiCheck } from 'react-icons/pi';
 
-export default function Footer({
+export function Footer({
   selectedCount,
   totalCount,
   pendingCount,

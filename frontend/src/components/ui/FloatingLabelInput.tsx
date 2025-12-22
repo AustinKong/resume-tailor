@@ -9,7 +9,7 @@ interface FloatingLabelInputProps extends InputProps {
   onValueChange?: ((value: string) => void) | undefined;
 }
 
-export default function FloatingLabelInput(props: FloatingLabelInputProps) {
+export function FloatingLabelInput(props: FloatingLabelInputProps) {
   const { label, onValueChange, value, defaultValue = '', required, ...rest } = props;
 
   const [inputState, setInputState] = useControllableState({

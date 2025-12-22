@@ -4,7 +4,7 @@ import { Link, useLocation } from 'react-router';
 
 import { toTitleCase } from '@/utils/text';
 
-export default function Breadcrumb({ separator = '/ ', ...rest }) {
+export function Breadcrumb({ separator = '/ ', ...rest }) {
   const { pathname } = useLocation();
   const pathSegments = pathname.split('/').filter(Boolean);
   const pathLinks = pathSegments.map((segment, index) => {

@@ -85,7 +85,7 @@ function PersonalInformationForm({ initialData }: PersonalInformationProps) {
   );
 }
 
-export default function PersonalInformation() {
+export function PersonalInformation() {
   const { profile, isLoading } = useProfileQuery();
 
   if (isLoading || !profile) {

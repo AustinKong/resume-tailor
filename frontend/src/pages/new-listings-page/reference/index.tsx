@@ -4,10 +4,10 @@ import { PiBrowser, PiInfo } from 'react-icons/pi';
 
 import type { ListingDraft } from '@/types/listing';
 
-import Info from './Info';
+import { Info } from './Info';
 import { Source, useHighlight } from './source';
 
-const Reference = ({ listing }: { listing: ListingDraft | null }) => {
+export const Reference = ({ listing }: { listing: ListingDraft | null }) => {
   const { highlight } = useHighlight();
   const hasHtml = !!listing && 'html' in listing && !!listing.html;
 
@@ -69,5 +69,3 @@ const Reference = ({ listing }: { listing: ListingDraft | null }) => {
     </Tabs.Root>
   );
 };
-
-export default Reference;

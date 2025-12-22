@@ -26,7 +26,7 @@ interface DetailedItemEditorProps {
   onItemsChange: (items: DetailedItem[]) => void;
 }
 
-export default function DetailedItemEditor({ items, onItemsChange }: DetailedItemEditorProps) {
+export function DetailedItemEditor({ items, onItemsChange }: DetailedItemEditorProps) {
   const idsRef = useRef<string[]>([]);
 
   // Sync ids with items length

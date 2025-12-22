@@ -14,8 +14,8 @@ import { useEffect } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { PiBookmarkSimple, PiCheck } from 'react-icons/pi';
 
-import BulletInput from '@/components/custom/BulletInput';
-import CompanyLogo from '@/components/custom/CompanyLogo';
+import { BulletInput } from '@/components/custom/BulletInput';
+import { CompanyLogo } from '@/components/custom/CompanyLogo';
 import { ISODateInput } from '@/components/custom/DatePickers';
 import { getCompany, getDomain } from '@/constants/draftListings';
 import { useListingCache } from '@/hooks/listings';
@@ -38,7 +38,7 @@ interface FormValues {
 
 const getUrl = (listing: ListingDraft): string => listing.url;
 
-export default function Details({ listing }: { listing: ListingDraft | null }) {
+export function Details({ listing }: { listing: ListingDraft | null }) {
   const { setHighlight, clearHighlight } = useHighlight();
   // Extract form values based on listing type
   const getFormValues = (listing: ListingDraft): FormValues => {

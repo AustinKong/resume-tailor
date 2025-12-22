@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef } from 'react';
 import { HIGHLIGHT_SCRIPT } from '@/constants/highlight-script';
 import type { ListingDraft } from '@/types/listing';
 
-export default function Source({
+export function Source({
   listing,
   highlight,
 }: {

@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { PiArrowSquareOut } from 'react-icons/pi';
 
 // import BulletInput from '@/components/custom/BulletInput';
-import FloatingLabelInput from '@/components/ui/FloatingLabelInput';
+import { FloatingLabelInput } from '@/components/ui/FloatingLabelInput';
 import { useExperienceMutations, useExperiencesQuery } from '@/hooks/experiences';
 import { emptyExperience, type Experience, type ExperienceType } from '@/types/experience';
 import { ISOYearMonth } from '@/utils/date';
@@ -97,7 +97,7 @@ function ExperienceForm({ initialData }: ExperienceFormProps) {
   );
 }
 
-export default function Experience() {
+export function Experience() {
   const { experiences, isLoading } = useExperiencesQuery();
 
   if (isLoading || !experiences) {

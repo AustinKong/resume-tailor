@@ -4,7 +4,7 @@ import { PiCaretDown, PiCaretUp, PiCaretUpDown } from 'react-icons/pi';
 
 import type { Application } from '@/types/application';
 
-export default function TableHeader({ table }: { table: Table<Application> }) {
+export function TableHeader({ table }: { table: Table<Application> }) {
   return (
     <ChakraTable.Header>
       {table.getHeaderGroups().map((headerGroup) => (

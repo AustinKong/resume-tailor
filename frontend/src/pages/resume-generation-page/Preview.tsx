@@ -10,7 +10,7 @@ interface PreviewProps {
   isGenerating?: boolean;
 }
 
-export default function Preview({ html, isSaving, isGenerating }: PreviewProps) {
+export function Preview({ html, isSaving, isGenerating }: PreviewProps) {
   const previewRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(1);
 

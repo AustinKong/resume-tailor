@@ -2,7 +2,7 @@ import { Button, HStack, Input, InputGroup, Spacer } from '@chakra-ui/react';
 import { PiDownload, PiMagnifyingGlass, PiPlus } from 'react-icons/pi';
 import { Link } from 'react-router';
 
-export default function Toolbar({
+export function Toolbar({
   searchInput,
   onSearchChange,
 }: {

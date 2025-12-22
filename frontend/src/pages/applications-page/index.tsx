@@ -9,11 +9,11 @@ import { useUrlSyncedState } from '@/hooks/utils/useUrlSyncedState';
 import { getApplication } from '@/services/applications';
 import type { Application } from '@/types/application';
 
-import Drawer from './drawer';
-import Table from './table';
-import Toolbar from './Toolbar';
+import { Drawer } from './drawer';
+import { Table } from './table';
+import { Toolbar } from './Toolbar';
 
-export default function ApplicationsPage() {
+export function ApplicationsPage() {
   const queryClient = useQueryClient();
 
   const [searchInput, debouncedSearchInput, setSearchInput] = useDebouncedUrlSyncedState('q', '', {

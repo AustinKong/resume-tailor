@@ -4,15 +4,15 @@ import { useState } from 'react';
 import { useListingsQuery } from '@/hooks/listings';
 import { useLocalStorage } from '@/hooks/utils/useLocalStorage';
 
-import Details from './Details';
-import Footer from './Footer';
+import { Details } from './Details';
+import { Footer } from './Footer';
 import { IngestionModal, IngestionProvider } from './ingestion-modal';
-import Reference from './reference';
+import { Reference } from './reference';
 import { HighlightProvider } from './reference/source';
-import Table from './Table';
-import Toolbar from './Toolbar';
+import { Table } from './Table';
+import { Toolbar } from './Toolbar';
 
-export default function NewListingsPage() {
+export function NewListingsPage() {
   const { listings } = useListingsQuery();
   const [selectedListingId, setSelectedListingId] = useState<string | null>(null);
   const [rowSelection, setRowSelection] = useState<Record<string, boolean>>({});

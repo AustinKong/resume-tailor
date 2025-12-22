@@ -1,10 +1,10 @@
 import { CloseButton, HStack, Text, VStack } from '@chakra-ui/react';
 import { Link as ChakraLink } from '@chakra-ui/react';
 
-import CompanyLogo from '@/components/custom/CompanyLogo';
+import { CompanyLogo } from '@/components/custom/CompanyLogo';
 import type { Application } from '@/types/application';
 
-export default function Header({
+export function Header({
   application,
   onClose,
 }: {

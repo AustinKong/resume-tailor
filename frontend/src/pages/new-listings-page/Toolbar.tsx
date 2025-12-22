@@ -5,7 +5,7 @@ import { useListingCache, useListingMutations, useListingsQuery } from '@/hooks/
 
 import { useIngestion } from './ingestion-modal';
 
-export default function Toolbar({ rowSelection }: { rowSelection: Record<string, boolean> }) {
+export function Toolbar({ rowSelection }: { rowSelection: Record<string, boolean> }) {
   const { listings } = useListingsQuery();
   const { saveListings } = useListingMutations();
   const { open } = useIngestion();

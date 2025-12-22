@@ -8,17 +8,17 @@ import {
 } from '@tanstack/react-table';
 import React, { useCallback } from 'react';
 
-import CompanyLogo from '@/components/custom/CompanyLogo';
-import DisplayDate from '@/components/custom/DisplayDate';
+import { CompanyLogo } from '@/components/custom/CompanyLogo';
+import { DisplayDate } from '@/components/custom/DisplayDate';
 import { STATUS_DEFINITIONS } from '@/constants/statuses';
 import { useApplicationsQuery } from '@/hooks/applications';
 import { type ParamHandler, useUrlSyncedState } from '@/hooks/utils/useUrlSyncedState';
 import type { Application, StatusEnum } from '@/types/application';
 
-import StatusFilterMenu from './StatusFilterMenu';
-import TableFooter from './TableFooter';
-import TableHeader from './TableHeader';
-import TableRow from './TableRow';
+import { StatusFilterMenu } from './StatusFilterMenu';
+import { TableFooter } from './TableFooter';
+import { TableHeader } from './TableHeader';
+import { TableRow } from './TableRow';
 
 interface TableMetaType {
   onStatusesChange: (statuses: StatusEnum[]) => void;
@@ -112,7 +112,7 @@ const columns = [
   }),
 ];
 
-function Table({
+const Table = React.memo(function Table({
   debouncedSearch,
   onRowClick,
   onRowHover,
@@ -193,7 +193,7 @@ function Table({
       </ChakraTable.Root>
     </ChakraTable.ScrollArea>
   );
-}
+});
 
 // Table is a very heavy component to render, so we memoize it. But its props MUST be stable.
-export default React.memo(Table);
+export { Table };

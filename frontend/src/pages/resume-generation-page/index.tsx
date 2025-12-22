@@ -14,10 +14,10 @@ import {
 } from '@/services/resume';
 import type { Resume, ResumeData } from '@/types/resume';
 
-import Editor from './Editor';
-import Preview from './Preview';
+import { Editor } from './Editor';
+import { Preview } from './Preview';
 
-export default function ResumeGenerationPage() {
+export function ResumeGenerationPage() {
   const { resumeId } = useParams();
   const queryClient = useQueryClient();
 

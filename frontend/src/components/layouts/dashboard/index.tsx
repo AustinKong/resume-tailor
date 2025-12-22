@@ -1,11 +1,10 @@
 import { Box, HStack, VStack } from '@chakra-ui/react';
 import { Outlet } from 'react-router';
 
-import Sidebar from '@/components/layouts/dashboard/Sidebar';
+import { Navbar } from './Navbar';
+import { Sidebar } from './Sidebar';
 
-import Navbar from './Navbar';
-
-export default function DashboardLayout() {
+export function DashboardLayout() {
   return (
     <HStack w="100vw" h="100vh" overflow="hidden" gap="0">
       <Sidebar />

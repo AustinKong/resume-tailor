@@ -2,9 +2,9 @@ import { Avatar, DataList, Heading, HStack, Menu, Portal, Spacer, VStack } from 
 
 import { ColorModeButton } from '@/components/ui/color-mode';
 
-import Breadcrumb from './Breadcrumb';
+import { Breadcrumb } from './Breadcrumb';
 
-export default function Navbar() {
+export function Navbar() {
   return (
     <HStack
       as="nav"

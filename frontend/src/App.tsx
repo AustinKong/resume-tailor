@@ -1,13 +1,13 @@
 import { Route, Routes } from 'react-router';
 
-import DashboardLayout from '@/components/layouts/dashboard';
+import { DashboardLayout } from '@/components/layouts/dashboard';
 import { Toaster } from '@/components/ui/toaster';
-import ApplicationsPage from '@/pages/applications-page';
-import NewListingsPage from '@/pages/new-listings-page';
-import ProfilePage from '@/pages/profile-page';
-import ResumeGenerationPage from '@/pages/resume-generation-page';
+import { ApplicationsPage } from '@/pages/applications-page';
+import { NewListingsPage } from '@/pages/new-listings-page';
+import { ProfilePage } from '@/pages/profile-page';
+import { ResumeGenerationPage } from '@/pages/resume-generation-page';
 
-function App() {
+export function App() {
   return (
     <>
       <Routes>
@@ -22,5 +22,3 @@ function App() {
     </>
   );
 }
-
-export default App;

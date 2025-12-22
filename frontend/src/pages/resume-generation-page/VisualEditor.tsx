@@ -13,14 +13,14 @@ import { useCallback, useRef } from 'react';
 
 import type { ResumeData, Section } from '@/types/resume';
 
-import SectionEditor from './SectionEditor';
+import { SectionEditor } from './SectionEditor';
 
 interface VisualEditorProps {
   data: ResumeData;
   onChange: (data: ResumeData) => void;
 }
 
-export default function VisualEditor({ data, onChange }: VisualEditorProps) {
+export function VisualEditor({ data, onChange }: VisualEditorProps) {
   const idsRef = useRef<string[]>([]);
 
   // Sync ids with sections length

@@ -5,7 +5,7 @@ import { PiSliders } from 'react-icons/pi';
 import { STATUS_OPTIONS } from '@/constants/statuses';
 import type { StatusEnum } from '@/types/application';
 
-export default function StatusFilterMenu({
+export function StatusFilterMenu({
   currentStatuses,
   onStatusesChange,
 }: {

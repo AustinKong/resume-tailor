@@ -15,7 +15,7 @@ import { BrowserRouter } from 'react-router';
 import { Provider as ChakraProvider } from '@/components/ui/provider';
 import { toaster } from '@/components/ui/toaster.tsx';
 
-import App from './App.tsx';
+import { App } from './App.tsx';
 
 function handleError(
   error: Error,

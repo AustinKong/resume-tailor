@@ -14,7 +14,7 @@ import { useListingMutations } from '@/hooks/listings';
 
 import { useIngestion } from './ingestionContext';
 
-export default function IngestionModal() {
+export function IngestionModal() {
   const { ingestListing } = useListingMutations();
   const { dialog, context, close } = useIngestion();
 

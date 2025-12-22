@@ -2,7 +2,7 @@ import { Center, Spinner, Table as ChakraTable, Text } from '@chakra-ui/react';
 import { useEffect } from 'react';
 import { useInView } from 'react-intersection-observer';
 
-export default function TableFooter({
+export function TableFooter({
   onFetchNext,
   hasNextPage,
   isLoading,

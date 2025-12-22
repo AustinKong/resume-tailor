@@ -3,14 +3,14 @@ import { LuCode, LuPencil } from 'react-icons/lu';
 
 import type { ResumeData } from '@/types/resume';
 
-import VisualEditor from './VisualEditor';
+import { VisualEditor } from './VisualEditor';
 
 interface EditorProps {
   value: string;
   onChange: (value: string) => void;
 }
 
-export default function Editor({ value, onChange }: EditorProps) {
+export function Editor({ value, onChange }: EditorProps) {
   const handleVisualEditorChange = (data: ResumeData) => {
     const jsonString = JSON.stringify(data, null, 2);
     onChange(jsonString);

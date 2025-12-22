@@ -1,11 +1,11 @@
 import { DataList, Heading, List, Tag, Text, VStack, Wrap } from '@chakra-ui/react';
 import { PiCheck } from 'react-icons/pi';
 
-import DisplayDate from '@/components/custom/DisplayDate';
+import { DisplayDate } from '@/components/custom/DisplayDate';
 import type { Application } from '@/types/application';
 
 // TODO: Consider taking in listing: Listing instead of application
-export default function JobDetails({ application }: { application: Application }) {
+export function JobDetails({ application }: { application: Application }) {
   return (
     <>
       <VStack align="stretch">

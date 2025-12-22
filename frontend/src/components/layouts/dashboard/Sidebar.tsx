@@ -26,7 +26,7 @@ const NAV_ITEMS: NavItemConfig[] = [
   { label: 'Settings', path: '/settings', icon: <PiGear /> },
 ];
 
-export default function Sidebar() {
+export function Sidebar() {
   const { open: isOpen, onToggle } = useDisclosure();
 
   return (

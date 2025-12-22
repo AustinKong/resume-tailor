@@ -5,7 +5,7 @@ import type { ListingDraft } from '@/types/listing';
 
 import { useIngestion } from '../ingestion-modal/ingestionContext';
 
-export default function Info({ listing }: { listing: ListingDraft }) {
+export function Info({ listing }: { listing: ListingDraft }) {
   const { open } = useIngestion();
   switch (listing.status) {
     case 'duplicate_url':

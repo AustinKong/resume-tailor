@@ -22,7 +22,7 @@ import type {
   // SimpleSectionContent,
 } from '@/types/resume';
 
-import DetailedItemEditor from './DetailedItemEditor';
+import { DetailedItemEditor } from './DetailedItemEditor';
 
 interface SectionEditorProps {
   id: string;
@@ -33,7 +33,7 @@ interface SectionEditorProps {
   handleDelete: () => void;
 }
 
-export default function SectionEditor({
+export function SectionEditor({
   id,
   section,
   onSectionChange,

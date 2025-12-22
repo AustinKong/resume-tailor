@@ -46,12 +46,7 @@ function getFaviconSize(size: AvatarRootProps['size']): number {
  * @param domain - The company's domain name (e.g., 'google.com').
  * @param companyName - The company's display name (used for fallback initials).
  */
-export default function CompanyLogo({
-  domain,
-  companyName,
-  size = '2xs',
-  ...rest
-}: CompanyLogoProps) {
+export function CompanyLogo({ domain, companyName, size = '2xs', ...rest }: CompanyLogoProps) {
   const [imageSrc, setImageSrc] = useState<string | undefined>(undefined);
 
   useEffect(() => {
