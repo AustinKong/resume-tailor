@@ -3,7 +3,7 @@ import {
   Checkbox,
   HStack,
   Icon,
-  Loader,
+  Spinner,
   Table as ChakraTable,
   Text,
 } from '@chakra-ui/react';
@@ -67,7 +67,7 @@ const columns = [
               <PiWarning />
             </Icon>
           ) : isPending ? (
-            <Loader flexShrink={0} />
+            <Spinner size="sm" />
           ) : (
             <CompanyLogo
               domain={getDomain(listing)}
@@ -89,7 +89,7 @@ const columns = [
       const status = info.getValue();
       const definition = DRAFT_LISTING_DEFINITIONS[status];
 
-      return <Badge colorScheme={definition.colorPalette}>{definition.label}</Badge>;
+      return <Badge colorPalette={definition.colorPalette}>{definition.label}</Badge>;
     },
   }),
 ];

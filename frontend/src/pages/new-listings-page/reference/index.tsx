@@ -1,4 +1,4 @@
-import { Center, Tabs, Text } from '@chakra-ui/react';
+import { EmptyState, Tabs, VStack } from '@chakra-ui/react';
 import { useEffect, useState } from 'react';
 import { PiBrowser, PiInfo } from 'react-icons/pi';
 
@@ -7,7 +7,7 @@ import type { ListingDraft } from '@/types/listing';
 import { Info } from './Info';
 import { Source, useHighlight } from './source';
 
-export const Reference = ({ listing }: { listing: ListingDraft | null }) => {
+export function Reference({ listing }: { listing: ListingDraft | null }) {
   const { highlight } = useHighlight();
   const hasHtml = !!listing && 'html' in listing && !!listing.html;
 
@@ -45,15 +45,11 @@ export const Reference = ({ listing }: { listing: ListingDraft | null }) => {
       </Tabs.List>
 
       <Tabs.Content value="no-selection" h="full">
-        <Center h="full">
-          <Text color="fg.muted">Select a listing to view reference</Text>
-        </Center>
+        <NoSelection />
       </Tabs.Content>
 
       <Tabs.Content value="pending" h="full">
-        <Center h="full">
-          <Text color="fg.muted">Scraping listing...</Text>
-        </Center>
+        <Pending />
       </Tabs.Content>
 
       {listing && (
@@ -68,4 +64,40 @@ export const Reference = ({ listing }: { listing: ListingDraft | null }) => {
       )}
     </Tabs.Root>
   );
-};
+}
+
+function NoSelection() {
+  return (
+    <EmptyState.Root h="full">
+      <EmptyState.Content h="full">
+        <EmptyState.Indicator>
+          <PiBrowser />
+        </EmptyState.Indicator>
+        <VStack textAlign="center">
+          <EmptyState.Title>No Listing Selected</EmptyState.Title>
+          <EmptyState.Description>
+            Select a listing from the list to view its details and source
+          </EmptyState.Description>
+        </VStack>
+      </EmptyState.Content>
+    </EmptyState.Root>
+  );
+}
+
+function Pending() {
+  return (
+    <EmptyState.Root h="full">
+      <EmptyState.Content h="full">
+        <EmptyState.Indicator>
+          <PiBrowser />
+        </EmptyState.Indicator>
+        <VStack textAlign="center">
+          <EmptyState.Title>Listing is being scraped</EmptyState.Title>
+          <EmptyState.Description>
+            Please wait while we fetch the listing details
+          </EmptyState.Description>
+        </VStack>
+      </EmptyState.Content>
+    </EmptyState.Root>
+  );
+}

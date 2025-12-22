@@ -1,5 +1,5 @@
 import {
-  Center,
+  EmptyState,
   Field,
   HStack,
   IconButton,
@@ -12,7 +12,7 @@ import {
 import { Link as ChakraLink } from '@chakra-ui/react';
 import { useEffect } from 'react';
 import { Controller, useForm } from 'react-hook-form';
-import { PiBookmarkSimple, PiCheck } from 'react-icons/pi';
+import { PiBookmarkSimple, PiBrowser, PiCheck } from 'react-icons/pi';
 
 import { BulletInput } from '@/components/custom/BulletInput';
 import { CompanyLogo } from '@/components/custom/CompanyLogo';
@@ -141,11 +141,11 @@ export function Details({ listing }: { listing: ListingDraft | null }) {
   // Error - Allow edits and pasting plaintext
 
   if (!listing) {
-    return (
-      <Center h="full">
-        <Text color="fg.muted">Select a listing to view details</Text>
-      </Center>
-    );
+    return <NoSelection />;
+  }
+
+  if (listing.status === 'pending') {
+    return <Pending />;
   }
 
   const isDisabled = listing.status === 'duplicate_url' || listing.status === 'duplicate_content';
@@ -278,5 +278,41 @@ export function Details({ listing }: { listing: ListingDraft | null }) {
         defaultItem={{ value: '', quote: null }}
       />
     </VStack>
+  );
+}
+
+function NoSelection() {
+  return (
+    <EmptyState.Root h="full">
+      <EmptyState.Content h="full">
+        <EmptyState.Indicator>
+          <PiBrowser />
+        </EmptyState.Indicator>
+        <VStack textAlign="center">
+          <EmptyState.Title>No Listing Selected</EmptyState.Title>
+          <EmptyState.Description>
+            Select a listing from the list to view its details and source
+          </EmptyState.Description>
+        </VStack>
+      </EmptyState.Content>
+    </EmptyState.Root>
+  );
+}
+
+function Pending() {
+  return (
+    <EmptyState.Root h="full">
+      <EmptyState.Content h="full">
+        <EmptyState.Indicator>
+          <PiBrowser />
+        </EmptyState.Indicator>
+        <VStack textAlign="center">
+          <EmptyState.Title>Scraping Listing...</EmptyState.Title>
+          <EmptyState.Description>
+            Please wait while we fetch the listing details
+          </EmptyState.Description>
+        </VStack>
+      </EmptyState.Content>
+    </EmptyState.Root>
   );
 }

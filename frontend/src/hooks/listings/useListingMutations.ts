@@ -40,16 +40,25 @@ export function useListingMutations() {
     return id;
   };
 
+  // Optimistically remove's listing from UI on save but rolls back if it fails
   const { mutateAsync: saveListing } = useMutation({
     mutationFn: saveListingSvc,
-    onSuccess: (savedListing) => {
+    onMutate: (listing: ListingDraft) => {
+      const previousListings = queryClient.getQueryData<ListingDraft[]>(['listings']);
+
       queryClient.setQueryData(['listings'], (old: ListingDraft[] | undefined) => {
-        return old?.filter((l) => l.id !== savedListing.id) || [];
+        return old?.filter((l) => l.id !== listing.id) || [];
       });
+
+      return { previousListings };
+    },
+    onError: (_err, _listing, context) => {
+      if (context?.previousListings) {
+        queryClient.setQueryData(['listings'], context.previousListings);
+      }
     },
   });
 
-  // TODO: Update statuses
   const saveListings = async (listings: ListingDraft[]) => {
     return Promise.allSettled(listings.map((listing) => saveListing(listing)));
   };

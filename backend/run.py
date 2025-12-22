@@ -49,4 +49,11 @@ if __name__ == '__main__':
   if getattr(sys, 'frozen', False):
     Timer(1.5, open_browser).start()
 
-  uvicorn.run(app, host='127.0.0.1', port=8000, log_level='info')
+  uvicorn.run(
+    'run:app',
+    host='127.0.0.1',
+    port=8000,
+    log_level='info',
+    reload=True,
+    reload_dirs=[str(Path(__file__).parent)],
+  )

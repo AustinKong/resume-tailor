@@ -30,10 +30,6 @@ export function useListingCache() {
     [queryClient]
   );
 
-  const clearListings = useCallback(() => {
-    queryClient.setQueryData(['listings'], []);
-  }, [queryClient]);
-
   const setPending = useCallback(
     (id: string, url: string) => {
       queryClient.setQueryData<ListingDraft[]>(['listings'], (old) => {
@@ -53,7 +49,6 @@ export function useListingCache() {
   return {
     updateListing,
     discardListings,
-    clearListings,
     setPending,
   };
 }

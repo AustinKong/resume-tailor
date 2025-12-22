@@ -1,5 +1,5 @@
 import { Splitter, VStack } from '@chakra-ui/react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import { useListingsQuery } from '@/hooks/listings';
 import { useLocalStorage } from '@/hooks/utils/useLocalStorage';
@@ -24,6 +24,26 @@ export function NewListingsPage() {
   const selectedListing = listings.find((listing) => listing.id === selectedListingId) || null;
 
   const selectedCount = Object.values(rowSelection).filter(Boolean).length;
+
+  // Sync selections when listings change
+  useEffect(() => {
+    const selectedKeys = Object.keys(rowSelection);
+
+    const existingIds = new Set(listings.map((l) => l.id));
+    const deadKeys = selectedKeys.filter((id) => !existingIds.has(id));
+
+    if (deadKeys.length > 0) {
+      setRowSelection((prev) => {
+        const next = { ...prev };
+        deadKeys.forEach((key) => delete next[key]);
+        return next;
+      });
+
+      if (selectedListingId && deadKeys.includes(selectedListingId)) {
+        setSelectedListingId(null);
+      }
+    }
+  }, [listings, selectedListingId, rowSelection]);
 
   return (
     <IngestionProvider>
@@ -62,7 +82,6 @@ export function NewListingsPage() {
               <Reference listing={selectedListing} />
             </Splitter.Panel>
           </Splitter.Root>
-          {/*  FIXME: Not sure if there even is a save state*/}
           <Footer
             selectedCount={selectedCount}
             totalCount={listings.length}

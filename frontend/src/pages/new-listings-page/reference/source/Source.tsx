@@ -1,7 +1,7 @@
 import { Box } from '@chakra-ui/react';
 import { useEffect, useMemo, useRef } from 'react';
 
-import { HIGHLIGHT_SCRIPT } from '@/constants/highlight-script';
+import { HIGHLIGHT_SCRIPT } from '@/constants/highlightScript';
 import type { ListingDraft } from '@/types/listing';
 
 export function Source({
@@ -34,6 +34,8 @@ export function Source({
       target.postMessage({ type: 'CLEAR' }, '*');
     }
   }, [highlight]);
+
+  console.log(htmlContent);
 
   return (
     <Box w="full" h="full">

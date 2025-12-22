@@ -60,6 +60,15 @@ async def ingest_listing(
     content = page.content
     html = page.html
 
+  print(content)
+  print(html)
+  return ListingDraftError(
+    id=id,
+    url=url,
+    error="Ingestions without 'content' are currently not supported.",
+    html=html,
+  )
+
   try:
     extraction = await llm_service.call_structured(
       input=LISTING_EXTRACTION_PROMPT.format(

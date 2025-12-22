@@ -1,5 +1,4 @@
 import { Button, HStack, Spacer } from '@chakra-ui/react';
-import { useNavigate } from 'react-router';
 
 import { useListingCache, useListingMutations, useListingsQuery } from '@/hooks/listings';
 
@@ -10,16 +9,17 @@ export function Toolbar({ rowSelection }: { rowSelection: Record<string, boolean
   const { saveListings } = useListingMutations();
   const { open } = useIngestion();
   const { discardListings } = useListingCache();
-  const navigate = useNavigate();
 
   const selectedCount = Object.values(rowSelection).filter(Boolean).length;
 
   const handleSaveListings = async () => {
-    console.log(rowSelection);
     const selectedListings = listings.filter((listing) => rowSelection[listing.id]);
     await saveListings(selectedListings);
+  };
 
-    navigate('/applications');
+  const handleDiscardListings = () => {
+    const selectedIds = Object.keys(rowSelection).filter((id) => rowSelection[id]);
+    discardListings(selectedIds);
   };
 
   return (
@@ -35,7 +35,7 @@ export function Toolbar({ rowSelection }: { rowSelection: Record<string, boolean
       <Spacer />
 
       <Button
-        onClick={() => discardListings(Object.keys(rowSelection).filter((id) => rowSelection[id]))}
+        onClick={handleDiscardListings}
         variant="outline"
         colorPalette="red"
         disabled={selectedCount === 0}
