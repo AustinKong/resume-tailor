@@ -1,96 +1,61 @@
-import { useMutation, useMutationState, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 
+import { useListingCache } from '@/hooks/listings/useListingCache';
 import {
-  extractListing as extractListingSvc,
-  saveListings as saveListingsSvc,
-  scrapeListing as scrapeListingSvc,
+  ingestListing as ingestListingSvc,
+  saveListing as saveListingSvc,
 } from '@/services/listings';
-import type { ListingDraft, ListingDraftPending } from '@/types/listing';
+import type { ListingDraft } from '@/types/listing';
 
 export function useListingMutations() {
   const queryClient = useQueryClient();
+  const { updateListing, setPending } = useListingCache();
 
-  const { mutateAsync: scrapeListing } = useMutation({
-    mutationFn: ({ url, id }: { url: string; id: string }) => scrapeListingSvc(url, id),
-    onSuccess: (listing) => {
-      queryClient.setQueryData(['listings'], (old: ListingDraft[] | undefined) => {
-        return old?.map((l) => (l.id === listing.id ? listing : l)) || [];
-      });
+  const { mutate: runIngest } = useMutation({
+    mutationFn: ({ id, url, content }: { id: string; url: string; content?: string }) =>
+      ingestListingSvc(url, content, id),
+    onSuccess: (newDraft) => {
+      updateListing(newDraft.id, newDraft);
     },
-    onError: (error, { id }) => {
-      queryClient.setQueryData(['listings'], (old: ListingDraft[] | undefined) => {
-        return (
-          old?.map((l) =>
-            l.id === id
-              ? {
-                  ...l,
-                  status: 'error',
-                  error: (error as Error).message,
-                }
-              : l
-          ) || []
-        );
+    onError: (error, variables) => {
+      updateListing(variables.id, {
+        status: 'error',
+        error: (error as Error).message,
       });
     },
   });
 
-  const scrapeListings = async (urls: string[]) => {
-    const pending: ListingDraftPending[] = urls.map((url) => ({
-      id: crypto.randomUUID(),
-      url,
-      status: 'pending',
-    }));
+  const ingestListing = (url: string, content?: string, existingId?: string) => {
+    const id = existingId ?? crypto.randomUUID();
+    const isNew = !existingId;
 
-    queryClient.setQueryData(['listings'], (old: ListingDraft[] | undefined) => [
-      ...(old || []),
-      ...pending,
-    ]);
+    if (isNew) {
+      setPending(id, url);
+    } else {
+      updateListing(id, { status: 'pending' } as Partial<ListingDraft>);
+    }
 
-    return Promise.allSettled(pending.map((p) => scrapeListing({ url: p.url, id: p.id })));
+    runIngest({ id, url, content });
+
+    return id;
   };
 
-  const { mutateAsync: extractListing, isError: isExtractError } = useMutation({
-    mutationKey: ['extractListing'],
-    mutationFn: ({ listing, content }: { listing: ListingDraft; content: string }) => {
-      return extractListingSvc(listing.id, listing.url, content);
-    },
-    onSuccess: (updatedListing) => {
+  const { mutateAsync: saveListing } = useMutation({
+    mutationFn: saveListingSvc,
+    onSuccess: (savedListing) => {
       queryClient.setQueryData(['listings'], (old: ListingDraft[] | undefined) => {
-        return old?.map((l) => (l.id === updatedListing.id ? updatedListing : l));
+        return old?.filter((l) => l.id !== savedListing.id) || [];
       });
     },
   });
 
-  // Track pending extractions even across component unmounts
-  const pendingExtractions = useMutationState({
-    filters: { status: 'pending', mutationKey: ['extractListing'] },
-    select: (mutation) => (mutation.state.variables as { id: string })?.id,
-  });
-
-  // If listing is null, check if any extraction is pending
-  const isExtractLoading = (listing: ListingDraft | null) => {
-    if (!listing) return pendingExtractions.length > 0;
-    return pendingExtractions.includes(listing.id);
+  // TODO: Update statuses
+  const saveListings = async (listings: ListingDraft[]) => {
+    return Promise.allSettled(listings.map((listing) => saveListing(listing)));
   };
-
-  const {
-    mutateAsync: saveListings,
-    isPending: isSaveLoading,
-    isError: isSaveError,
-  } = useMutation({
-    mutationFn: saveListingsSvc,
-  });
 
   return {
-    // scrapeListing,
-    scrapeListings,
-
-    extractListing,
-    isExtractLoading,
-    isExtractError,
-
+    ingestListing,
     saveListings,
-    isSaveLoading,
-    isSaveError,
   };
 }

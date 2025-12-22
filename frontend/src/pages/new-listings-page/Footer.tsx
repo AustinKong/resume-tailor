@@ -4,11 +4,11 @@ import { PiCheck } from 'react-icons/pi';
 export default function Footer({
   selectedCount,
   totalCount,
-  isSaving = false,
+  pendingCount,
 }: {
   selectedCount: number;
   totalCount: number;
-  isSaving?: boolean;
+  pendingCount: number;
 }) {
   return (
     <HStack
@@ -29,17 +29,17 @@ export default function Footer({
       <Text textAlign="center">AI can make mistakes, double-check everything</Text>
 
       <HStack align="center">
-        {isSaving ? (
+        {pendingCount > 0 ? (
           <>
             <Spinner size="xs" mb="1" />
-            <Text>Saving</Text>
+            <Text>{pendingCount} listings pending</Text>
           </>
         ) : (
           <>
             <Icon mb="1">
               <PiCheck />
             </Icon>
-            <Text>Saved</Text>
+            <Text>No actions pending</Text>
           </>
         )}
       </HStack>

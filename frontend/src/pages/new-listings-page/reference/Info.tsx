@@ -1,15 +1,12 @@
-import { Heading, Image, Link as ChakraLink, List, Text, VStack } from '@chakra-ui/react';
+import { Button, Heading, Image, Link as ChakraLink, List, Text, VStack } from '@chakra-ui/react';
 import { Link } from 'react-router';
 
 import type { ListingDraft } from '@/types/listing';
 
-export default function Info({
-  listing,
-  setActiveTab,
-}: {
-  listing: ListingDraft;
-  setActiveTab: React.Dispatch<React.SetStateAction<string>>;
-}) {
+import { useIngestion } from '../ingestion-modal/ingestionContext';
+
+export default function Info({ listing }: { listing: ListingDraft }) {
+  const { open } = useIngestion();
   switch (listing.status) {
     case 'duplicate_url':
       return (
@@ -57,10 +54,13 @@ export default function Info({
             <List.Item>Open the original URL in your browser.</List.Item>
             <List.Item>Copy the entire job description text.</List.Item>
             <List.Item>
-              Paste the text into the{' '}
-              <ChakraLink variant="underline" onClick={() => setActiveTab('extract')}>
-                manual extraction terminal
-              </ChakraLink>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => open({ id: listing.id, url: listing.url })}
+              >
+                Open Manual Extraction
+              </Button>
             </List.Item>
           </List.Root>
         </InfoSection>

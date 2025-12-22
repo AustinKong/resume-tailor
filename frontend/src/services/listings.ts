@@ -1,16 +1,28 @@
-import type { Listing, ListingDraft, ListingDraftUnique } from '@/types/listing';
+import type { Listing, ListingDraft } from '@/types/listing';
 
-export async function scrapeListing(url: string, id: string): Promise<ListingDraft> {
-  const response = await fetch('/api/listings/scrape', {
+export async function ingestListing(
+  url: string,
+  content?: string,
+  id?: string
+): Promise<ListingDraft> {
+  const body: { url: string; content?: string; id?: string } = { url };
+  if (content && content.trim() !== '') {
+    body.content = content;
+  }
+  if (id) {
+    body.id = id;
+  }
+
+  const response = await fetch('/api/listings/draft', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({ url, id }),
+    body: JSON.stringify(body),
   });
 
   if (!response.ok) {
-    throw new Error('Failed to scrape listing');
+    throw new Error('Failed to ingest listing');
   }
 
   const json = await response.json();
@@ -18,36 +30,39 @@ export async function scrapeListing(url: string, id: string): Promise<ListingDra
 }
 
 // Convert ListingDraft to Listing for saving (only unique listings can be saved)
-export async function saveListings(drafts: ListingDraft[]) {
-  const listingsToSave: Listing[] = drafts
-    .filter((draft): draft is ListingDraftUnique => draft.status === 'unique')
-    .map((draft) => ({
-      id: draft.id,
-      url: draft.url,
-      title: draft.listing.title,
-      company: draft.listing.company,
-      domain: draft.listing.domain,
-      location: draft.listing.location,
-      description: draft.listing.description,
-      postedDate: draft.listing.postedDate,
-      skills: draft.listing.skills.map((s) => s.value),
-      requirements: draft.listing.requirements.map((r) => r.value),
-    }));
+export async function saveListing(draft: ListingDraft) {
+  // Only unique listings can be saved
+  if (draft.status !== 'unique') {
+    throw new Error('Only unique listings can be saved');
+  }
+
+  const listingToSave: Listing = {
+    id: draft.id,
+    url: draft.url,
+    title: draft.listing.title,
+    company: draft.listing.company,
+    domain: draft.listing.domain,
+    location: draft.listing.location,
+    description: draft.listing.description,
+    postedDate: draft.listing.postedDate,
+    skills: draft.listing.skills.map((s) => s.value),
+    requirements: draft.listing.requirements.map((r) => r.value),
+  };
 
   const response = await fetch('/api/listings', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify(listingsToSave),
+    body: JSON.stringify(listingToSave),
   });
 
   if (!response.ok) {
-    throw new Error('Failed to save listings');
+    throw new Error('Failed to save listing');
   }
 
   const json = await response.json();
-  return json as Listing[];
+  return json as Listing;
 }
 
 export async function getListings() {
@@ -59,25 +74,4 @@ export async function getListings() {
 
   const json = await response.json();
   return json as Listing[];
-}
-
-export async function extractListing(
-  id: string,
-  url: string,
-  content: string
-): Promise<ListingDraft> {
-  const response = await fetch('/api/listings/extract', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ id, url, content }),
-  });
-
-  if (!response.ok) {
-    throw new Error('Failed to extract listing');
-  }
-
-  const json = await response.json();
-  return json as ListingDraft;
 }

@@ -1,4 +1,5 @@
 import {
+  Center,
   Field,
   HStack,
   IconButton,
@@ -17,9 +18,11 @@ import BulletInput from '@/components/custom/BulletInput';
 import CompanyLogo from '@/components/custom/CompanyLogo';
 import { ISODateInput } from '@/components/custom/DatePickers';
 import { getCompany, getDomain } from '@/constants/draftListings';
-import { useListingCache, useListingMutations } from '@/hooks/listings';
+import { useListingCache } from '@/hooks/listings';
 import type { GroundedItem, ListingDraft } from '@/types/listing';
 import type { ISODate } from '@/utils/date';
+
+import { useHighlight } from './reference/source/highlightContext';
 
 interface FormValues {
   title: string;
@@ -35,15 +38,8 @@ interface FormValues {
 
 const getUrl = (listing: ListingDraft): string => listing.url;
 
-export default function Details({
-  listing,
-  onHighlight: _onHighlight,
-  onClearHighlight: _onClearHighlight,
-}: {
-  listing: ListingDraft;
-  onHighlight: (text: string | null) => void;
-  onClearHighlight: () => void;
-}) {
+export default function Details({ listing }: { listing: ListingDraft | null }) {
+  const { setHighlight, clearHighlight } = useHighlight();
   // Extract form values based on listing type
   const getFormValues = (listing: ListingDraft): FormValues => {
     switch (listing.status) {
@@ -121,8 +117,6 @@ export default function Details({
         },
   });
 
-  const { isExtractLoading } = useListingMutations();
-
   const { updateListing } = useListingCache();
 
   const onSubmit = (data: FormValues) => {
@@ -145,10 +139,16 @@ export default function Details({
   // Unique - always allow edits and allow selecting
   // Duplicate - disallow edits
   // Error - Allow edits and pasting plaintext
-  const isDisabled =
-    listing.status === 'duplicate_url' ||
-    listing.status === 'duplicate_content' ||
-    isExtractLoading(listing);
+
+  if (!listing) {
+    return (
+      <Center h="full">
+        <Text color="fg.muted">Select a listing to view details</Text>
+      </Center>
+    );
+  }
+
+  const isDisabled = listing.status === 'duplicate_url' || listing.status === 'duplicate_content';
 
   return (
     <VStack
@@ -246,8 +246,8 @@ export default function Details({
               {field.value.map((skill, index) => (
                 <TagsInput.Item key={skill.value} index={index} value={skill.value}>
                   <TagsInput.ItemPreview
-                    onMouseEnter={() => skill.quote && _onHighlight(skill.quote)}
-                    onMouseLeave={_onClearHighlight}
+                    onMouseEnter={() => skill.quote && setHighlight(skill.quote)}
+                    onMouseLeave={clearHighlight}
                   >
                     <TagsInput.ItemText>{skill.value}</TagsInput.ItemText>
                     <TagsInput.ItemDeleteTrigger />
@@ -272,8 +272,8 @@ export default function Details({
         name="requirements"
         label="Requirements"
         marker={{ icon: <PiCheck />, color: 'green' }}
-        onItemMouseEnter={(item) => item.quote && _onHighlight(item.quote)}
-        onItemMouseLeave={_onClearHighlight}
+        onItemMouseEnter={(item) => item.quote && setHighlight(item.quote)}
+        onItemMouseLeave={clearHighlight}
         disabled={isDisabled}
         defaultItem={{ value: '', quote: null }}
       />

@@ -37,7 +37,7 @@ type BaseListingDraft = {
 export type ListingDraftUnique = BaseListingDraft & {
   status: 'unique';
   listing: ListingExtraction;
-  html: string;
+  html: string | null;
 };
 
 export type ListingDraftDuplicateUrl = BaseListingDraft & {
@@ -51,7 +51,7 @@ export type ListingDraftDuplicateContent = BaseListingDraft & {
   listing: ListingExtraction;
   duplicateOf: Listing;
   duplicateOfApplicationId: string;
-  html: string;
+  html: string | null;
 };
 
 export type ListingDraftError = BaseListingDraft & {

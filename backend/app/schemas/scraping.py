@@ -50,7 +50,7 @@ class BaseListingDraft(CamelModel):
 class ListingDraftUnique(BaseListingDraft):
   status: Literal['unique'] = 'unique'
   listing: ListingExtraction
-  html: str
+  html: str | None
 
 
 class ListingDraftDuplicateUrl(BaseListingDraft):
@@ -64,7 +64,7 @@ class ListingDraftDuplicateContent(BaseListingDraft):
   listing: ListingExtraction
   duplicate_of: Listing
   duplicate_of_application_id: UUID  # To allow frontend redirection
-  html: str
+  html: str | None
 
 
 class ListingDraftError(BaseListingDraft):

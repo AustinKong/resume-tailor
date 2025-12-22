@@ -1,7 +1,7 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { useCallback } from 'react';
 
-import type { ListingDraft } from '@/types/listing';
+import type { ListingDraft, ListingDraftPending } from '@/types/listing';
 
 export function useListingCache() {
   const queryClient = useQueryClient();
@@ -19,21 +19,41 @@ export function useListingCache() {
     [queryClient]
   );
 
+  const discardListings = useCallback(
+    (ids: string[]) => {
+      queryClient.setQueryData(['listings'], (old: ListingDraft[] | undefined) => {
+        if (!old) return [];
+
+        return old.filter((listing) => !ids.includes(listing.id));
+      });
+    },
+    [queryClient]
+  );
+
   const clearListings = useCallback(() => {
     queryClient.setQueryData(['listings'], []);
   }, [queryClient]);
 
-  const getListing = useCallback(
-    (id: string | null) => {
-      const listings = queryClient.getQueryData<ListingDraft[]>(['listings']) ?? [];
-      return listings.find((l) => l.id === id);
+  const setPending = useCallback(
+    (id: string, url: string) => {
+      queryClient.setQueryData<ListingDraft[]>(['listings'], (old) => {
+        const pendingItem = { id, url, status: 'pending' } as ListingDraftPending;
+        if (!old) return [pendingItem];
+
+        const exists = old.some((l) => l.id === id);
+        if (exists) {
+          return old.map((l) => (l.id === id ? pendingItem : l));
+        }
+        return [pendingItem, ...old];
+      });
     },
     [queryClient]
   );
 
   return {
     updateListing,
+    discardListings,
     clearListings,
-    getListing,
+    setPending,
   };
 }
