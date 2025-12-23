@@ -62,10 +62,8 @@ export function NewListingsPage() {
           >
             <Splitter.Panel id="table">
               <Table
-                listings={listings}
                 rowSelection={rowSelection}
                 setRowSelection={setRowSelection}
-                selectedListingId={selectedListingId}
                 setSelectedListingId={setSelectedListingId}
               />
             </Splitter.Panel>
@@ -73,13 +71,13 @@ export function NewListingsPage() {
               <Splitter.ResizeTriggerSeparator />
             </Splitter.ResizeTrigger>
             <Splitter.Panel id="details">
-              <Details listing={selectedListing} />
+              <Details listing={selectedListing} key={selectedListingId} />
             </Splitter.Panel>
             <Splitter.ResizeTrigger id="details:preview">
               <Splitter.ResizeTriggerSeparator />
             </Splitter.ResizeTrigger>
             <Splitter.Panel id="preview">
-              <Reference listing={selectedListing} />
+              <Reference listing={selectedListing} key={selectedListingId} />
             </Splitter.Panel>
           </Splitter.Root>
           <Footer

@@ -5,10 +5,10 @@ import { PiBrowser, PiInfo } from 'react-icons/pi';
 import type { ListingDraft } from '@/types/listing';
 
 import { Info } from './Info';
-import { Source, useHighlight } from './source';
+import { Source, useHighlightValue } from './source';
 
 export function Reference({ listing }: { listing: ListingDraft | null }) {
-  const { highlight } = useHighlight();
+  const highlight = useHighlightValue();
   const hasHtml = !!listing && 'html' in listing && !!listing.html;
 
   const showSource = hasHtml;

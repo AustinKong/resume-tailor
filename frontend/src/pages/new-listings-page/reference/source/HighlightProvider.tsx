@@ -1,6 +1,10 @@
 import { type ReactNode, useCallback, useMemo, useState } from 'react';
 
-import { HighlightContext } from './highlightContext';
+import {
+  HighlightContext,
+  HighlightSetterContext,
+  HighlightValueContext,
+} from './highlightContext';
 
 export function HighlightProvider({ children }: { children: ReactNode }) {
   const [highlight, setHighlightState] = useState<string | null>(null);
@@ -22,5 +26,21 @@ export function HighlightProvider({ children }: { children: ReactNode }) {
     [highlight, setHighlight, clearHighlight]
   );
 
-  return <HighlightContext.Provider value={value}>{children}</HighlightContext.Provider>;
+  const setterValue = useMemo(
+    () => ({
+      setHighlight,
+      clearHighlight,
+    }),
+    [setHighlight, clearHighlight]
+  );
+
+  return (
+    <HighlightContext.Provider value={value}>
+      <HighlightSetterContext.Provider value={setterValue}>
+        <HighlightValueContext.Provider value={highlight}>
+          {children}
+        </HighlightValueContext.Provider>
+      </HighlightSetterContext.Provider>
+    </HighlightContext.Provider>
+  );
 }

@@ -23,6 +23,7 @@ import {
   getDomain,
   getTitle,
 } from '@/constants/draftListings';
+import { useListingsQuery } from '@/hooks/listings';
 import { type ListingDraft } from '@/types/listing';
 
 const columnHelper = createColumnHelper<ListingDraft>();
@@ -57,26 +58,26 @@ const columns = [
     header: 'Listing',
     cell: (info) => {
       const listing = info.row.original;
-      const isError = listing.status === 'error';
-      const isPending = listing.status === 'pending';
+
+      let icon = <CompanyLogo domain={getDomain(listing)} companyName={getCompany(listing)} />;
+      let text = listing.url;
+      if (listing.status === 'error') {
+        icon = (
+          <Icon size="lg">
+            <PiWarning />
+          </Icon>
+        );
+      } else if (listing.status === 'pending') {
+        icon = <Spinner size="sm" />;
+      } else {
+        text = `${getCompany(listing)} - ${getTitle(listing)}`;
+      }
 
       return (
         <HStack gap={2} alignItems={'center'} w="full" overflow="hidden" minW="0">
-          {isError ? (
-            <Icon size="lg" flexShrink={0}>
-              <PiWarning />
-            </Icon>
-          ) : isPending ? (
-            <Spinner size="sm" />
-          ) : (
-            <CompanyLogo
-              domain={getDomain(listing)}
-              companyName={getCompany(listing)}
-              flexShrink={0}
-            />
-          )}
+          {icon}
           <Text truncate flex={1} minW={0}>
-            {isError || isPending ? listing.url : `${getCompany(listing)} - ${getTitle(listing)}`}
+            {text}
           </Text>
         </HStack>
       );
@@ -95,18 +96,18 @@ const columns = [
 ];
 
 export function Table({
-  listings,
   rowSelection,
   setRowSelection,
-  selectedListingId,
   setSelectedListingId,
 }: {
-  listings: ListingDraft[];
   rowSelection: Record<string, boolean>;
   setRowSelection: Dispatch<SetStateAction<Record<string, boolean>>>;
-  selectedListingId: string | null;
   setSelectedListingId: (id: string | null) => void;
 }) {
+  const { listings } = useListingsQuery();
+
+  console.log(listings);
+
   const table = useReactTable({
     data: listings,
     columns,
@@ -125,13 +126,10 @@ export function Table({
           {table.getHeaderGroups().map((headerGroup) => (
             <ChakraTable.Row key={headerGroup.id} bg="bg.subtle">
               {headerGroup.headers.map((header) => {
-                // TODO: Abit complex, is there no native way to do this?
-                const isListing = header.column.id === 'listing';
-                const width = isListing ? '100%' : 'auto';
-                const whiteSpace = isListing ? 'normal' : 'nowrap';
+                const width = header.column.id === 'listing' ? '100%' : 'auto';
 
                 return (
-                  <ChakraTable.ColumnHeader key={header.id} w={width} whiteSpace={whiteSpace}>
+                  <ChakraTable.ColumnHeader key={header.id} w={width}>
                     {header.isPlaceholder
                       ? null
                       : flexRender(header.column.columnDef.header, header.getContext())}
@@ -145,9 +143,7 @@ export function Table({
           {table.getRowModel().rows.map((row) => (
             <ChakraTable.Row
               key={row.id}
-              onClick={() =>
-                setSelectedListingId(selectedListingId === row.original.id ? null : row.original.id)
-              }
+              onClick={() => setSelectedListingId(row.original.id)}
               cursor="pointer"
             >
               {row.getVisibleCells().map((cell) => {
@@ -157,7 +153,6 @@ export function Table({
                     key={cell.id}
                     maxW={isListing ? '0' : 'none'}
                     w={isListing ? '100%' : 'auto'}
-                    whiteSpace={isListing ? 'normal' : 'nowrap'}
                   >
                     {flexRender(cell.column.columnDef.cell, cell.getContext())}
                   </ChakraTable.Cell>

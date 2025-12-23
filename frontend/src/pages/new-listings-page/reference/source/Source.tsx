@@ -14,13 +14,8 @@ export function Source({
   const iframeRef = useRef<HTMLIFrameElement>(null);
 
   const htmlContent = useMemo(() => {
-    const html =
-      listing.status === 'unique'
-        ? listing.html
-        : listing.status === 'duplicate_content'
-          ? listing.html
-          : '';
-    if (!html) return '';
+    // Already checked in parent
+    const html = (listing as { html: string }).html;
     return html + HIGHLIGHT_SCRIPT;
   }, [listing]);
 
@@ -34,8 +29,6 @@ export function Source({
       target.postMessage({ type: 'CLEAR' }, '*');
     }
   }, [highlight]);
-
-  console.log(htmlContent);
 
   return (
     <Box w="full" h="full">

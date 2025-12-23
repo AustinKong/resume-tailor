@@ -40,7 +40,9 @@ export function IngestionModal() {
 
   const onSubmit = handleSubmit((data) => {
     ingestListing(data.url, data.content, context?.id);
-    close();
+    if (context?.id) {
+      close();
+    }
     reset();
   });
 
@@ -55,7 +57,7 @@ export function IngestionModal() {
             </Dialog.Header>
             <Dialog.Body>
               <VStack>
-                <Field.Root required>
+                <Field.Root required readOnly={!!context?.id}>
                   <Field.Label>
                     URL <Field.RequiredIndicator />
                   </Field.Label>

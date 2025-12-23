@@ -10,19 +10,19 @@ import {
   VStack,
 } from '@chakra-ui/react';
 import { Link as ChakraLink } from '@chakra-ui/react';
-import { useEffect } from 'react';
+import { useCallback, useEffect } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { PiBookmarkSimple, PiBrowser, PiCheck } from 'react-icons/pi';
 
-import { BulletInput } from '@/components/custom/BulletInput';
 import { CompanyLogo } from '@/components/custom/CompanyLogo';
 import { ISODateInput } from '@/components/custom/DatePickers';
+import { SortableListInput } from '@/components/custom/sortable-list-input';
 import { getCompany, getDomain } from '@/constants/draftListings';
 import { useListingCache } from '@/hooks/listings';
 import type { GroundedItem, ListingDraft } from '@/types/listing';
 import type { ISODate } from '@/utils/date';
 
-import { useHighlight } from './reference/source/highlightContext';
+import { useHighlightSetter } from './reference/source/highlightContext';
 
 interface FormValues {
   title: string;
@@ -34,111 +34,95 @@ interface FormValues {
   postedDate: ISODate | null;
 }
 
-// Helper functions to extract data from discriminated union
+const getFormValues = (listingDraft: ListingDraft): FormValues => {
+  const isDuplicateUrl = listingDraft.status === 'duplicate_url';
+  if (!isDuplicateUrl && !('listing' in listingDraft)) {
+    return {
+      title: '',
+      company: '',
+      location: '',
+      description: '',
+      requirements: [],
+      skills: [],
+      postedDate: null,
+    };
+  }
+  const data = isDuplicateUrl ? listingDraft.duplicateOf : listingDraft.listing;
 
-const getUrl = (listing: ListingDraft): string => listing.url;
+  return {
+    ...data,
+    location: data.location || '',
+    requirements: isDuplicateUrl
+      ? (data.requirements as string[]).map((r) => ({ value: r, quote: null }))
+      : (data.requirements as GroundedItem[]),
+    skills: isDuplicateUrl
+      ? (data.skills as string[]).map((s) => ({ value: s, quote: null }))
+      : (data.skills as GroundedItem[]),
+  };
+};
 
 export function Details({ listing }: { listing: ListingDraft | null }) {
-  const { setHighlight, clearHighlight } = useHighlight();
-  // Extract form values based on listing type
-  const getFormValues = (listing: ListingDraft): FormValues => {
-    switch (listing.status) {
-      case 'unique':
-        return {
-          title: listing.listing.title,
-          company: listing.listing.company,
-          location: listing.listing.location || '',
-          description: listing.listing.description,
-          requirements: listing.listing.requirements,
-          skills: listing.listing.skills,
-          postedDate: listing.listing.postedDate,
-        };
-      case 'duplicate_url':
-        return {
-          title: listing.duplicateOf.title,
-          company: listing.duplicateOf.company,
-          location: listing.duplicateOf.location || '',
-          description: listing.duplicateOf.description,
-          requirements: listing.duplicateOf.skills.map((s: string) => ({ value: s, quote: null })),
-          skills: listing.duplicateOf.requirements.map((r: string) => ({ value: r, quote: null })),
-          postedDate: listing.duplicateOf.postedDate,
-        };
-      case 'duplicate_content':
-        return {
-          title: listing.listing.title,
-          company: listing.listing.company,
-          location: listing.listing.location || '',
-          description: listing.listing.description,
-          requirements: listing.listing.requirements,
-          skills: listing.listing.skills,
-          postedDate: listing.listing.postedDate,
-        };
-      case 'error':
-        return {
-          title: '',
-          company: '',
-          location: '',
-          description: '',
-          requirements: [],
-          skills: [],
-          postedDate: null,
-        };
-      case 'pending':
-        return {
-          title: '',
-          company: '',
-          location: '',
-          description: '',
-          requirements: [],
-          skills: [],
-          postedDate: null,
-        };
-    }
-  };
+  const { setHighlight, clearHighlight } = useHighlightSetter();
 
   const {
     register,
     handleSubmit,
     control,
     formState: { isDirty },
-    reset,
     getValues,
+    reset,
   } = useForm<FormValues>({
-    values: listing
-      ? getFormValues(listing)
-      : {
-          title: '',
-          company: '',
-          location: '',
-          description: '',
-          requirements: [],
-          skills: [],
-          postedDate: null,
-        },
+    defaultValues: {
+      title: '',
+      company: '',
+      location: '',
+      description: '',
+      requirements: [],
+      skills: [],
+      postedDate: null,
+    },
+    values: listing ? getFormValues(listing) : undefined,
   });
 
-  const { updateListing } = useListingCache();
+  const { patchListingContent } = useListingCache();
 
-  const onSubmit = (data: FormValues) => {
-    const cleanedRequirements = data.requirements.filter((item) => item.value.trim() !== '');
-    data.requirements = cleanedRequirements;
-    updateListing(listing?.id || '', data as Partial<ListingDraft>);
-    reset(data);
-  };
+  const onSubmit = useCallback(
+    (data: FormValues) => {
+      if (!listing) return;
+      const updatedData = {
+        ...data,
+        requirements: data.requirements.filter((item) => item.value.trim() !== ''),
+        skills: data.skills.filter((item) => item.value.trim() !== ''),
+        location: data.location || null,
+      };
+
+      patchListingContent(listing.id, updatedData);
+      reset(data);
+    },
+    [listing, patchListingContent, reset]
+  );
+
+  const handleInputListMouseEnter = useCallback(
+    (item: GroundedItem) => {
+      if (item.quote) setHighlight(item.quote);
+    },
+    [setHighlight]
+  );
+
+  const handleInputListMouseLeave = useCallback(() => {
+    clearHighlight();
+  }, [clearHighlight]);
+
+  console.log('details rerender');
 
   // Auto-save on unmount (switch listing)
   useEffect(() => {
     return () => {
-      if (isDirty && listing) {
-        updateListing(listing.id, getValues() as Partial<ListingDraft>);
+      if (isDirty) {
+        onSubmit(getValues());
       }
     };
-  }, [listing, isDirty, getValues, updateListing]);
-
-  // INFO:
-  // Unique - always allow edits and allow selecting
-  // Duplicate - disallow edits
-  // Error - Allow edits and pasting plaintext
+  }, [isDirty, getValues, onSubmit]);
 
   if (!listing) {
     return <NoSelection />;
@@ -148,7 +132,7 @@ export function Details({ listing }: { listing: ListingDraft | null }) {
     return <Pending />;
   }
 
-  const isDisabled = listing.status === 'duplicate_url' || listing.status === 'duplicate_content';
+  const isReadOnly = listing.status === 'duplicate_url' || listing.status === 'duplicate_content';
 
   return (
     <VStack
@@ -173,7 +157,7 @@ export function Details({ listing }: { listing: ListingDraft | null }) {
             {getCompany(listing)}
           </Text>
           <ChakraLink
-            href={getUrl(listing)}
+            href={listing.url}
             variant="underline"
             fontSize="sm"
             target="_blank"
@@ -182,42 +166,36 @@ export function Details({ listing }: { listing: ListingDraft | null }) {
             display="block"
             w="full"
           >
-            {getUrl(listing)}
+            {listing.url}
           </ChakraLink>
         </VStack>
-        <IconButton variant="ghost" type="submit" disabled={isDisabled || !isDirty}>
+        <IconButton variant="ghost" type="submit" disabled={isReadOnly || !isDirty}>
           {isDirty ? <PiBookmarkSimple /> : <PiCheck />}
         </IconButton>
       </HStack>
 
-      <Field.Root disabled={isDisabled}>
+      <Field.Root readOnly={isReadOnly}>
         <Field.Label>Company</Field.Label>
-        <Input {...register('company', { disabled: isDisabled })} />
+        <Input {...register('company')} />
       </Field.Root>
 
-      <Field.Root disabled={isDisabled}>
+      <Field.Root readOnly={isReadOnly}>
         <Field.Label>Role</Field.Label>
-        <Input {...register('title', { disabled: isDisabled })} />
+        <Input {...register('title')} />
       </Field.Root>
 
-      <Field.Root disabled={isDisabled}>
+      <Field.Root readOnly={isReadOnly}>
         <Field.Label>Location</Field.Label>
-        <Input {...register('location', { disabled: isDisabled })} />
+        <Input {...register('location')} />
       </Field.Root>
 
-      <Field.Root disabled={isDisabled}>
+      <Field.Root readOnly={isReadOnly}>
         <Field.Label>Posted Date</Field.Label>
         <Controller
           control={control}
           name="postedDate"
-          disabled={isDisabled}
           render={({ field }) => (
-            <ISODateInput
-              value={field.value}
-              onChange={field.onChange}
-              onBlur={field.onBlur}
-              disabled={field.disabled}
-            />
+            <ISODateInput value={field.value} onChange={field.onChange} onBlur={field.onBlur} />
           )}
         />
       </Field.Root>
@@ -225,7 +203,6 @@ export function Details({ listing }: { listing: ListingDraft | null }) {
       <Controller
         control={control}
         name="skills"
-        disabled={isDisabled}
         render={({ field }) => (
           <TagsInput.Root
             value={field.value.map((s) => s.value)}
@@ -238,7 +215,7 @@ export function Details({ listing }: { listing: ListingDraft | null }) {
               field.onChange(newSkills);
             }}
             onBlur={field.onBlur}
-            disabled={field.disabled}
+            readOnly={isReadOnly}
             editable
           >
             <TagsInput.Label>Skills</TagsInput.Label>
@@ -261,22 +238,35 @@ export function Details({ listing }: { listing: ListingDraft | null }) {
         )}
       />
 
-      <Field.Root disabled={isDisabled}>
+      <Field.Root readOnly={isReadOnly}>
         <Field.Label>Description</Field.Label>
-        <Textarea {...register('description', { disabled: isDisabled })} autoresize resize="none" />
+        <Textarea {...register('description')} autoresize resize="none" />
       </Field.Root>
 
-      <BulletInput
+      <SortableListInput.Root<FormValues>
         control={control}
         register={register}
         name="requirements"
-        label="Requirements"
-        marker={{ icon: <PiCheck />, color: 'green' }}
-        onItemMouseEnter={(item) => item.quote && setHighlight(item.quote)}
-        onItemMouseLeave={clearHighlight}
-        disabled={isDisabled}
-        defaultItem={{ value: '', quote: null }}
-      />
+        readOnly={isReadOnly}
+      >
+        <HStack justify="space-between">
+          <SortableListInput.Label>Requirements (Sortable)</SortableListInput.Label>
+          <SortableListInput.AddButton />
+        </HStack>
+
+        <SortableListInput.List>
+          <SortableListInput.Item<FormValues>
+            onMouseEnter={handleInputListMouseEnter}
+            onMouseLeave={handleInputListMouseLeave}
+          >
+            <SortableListInput.Marker color="green">
+              <PiCheck />
+            </SortableListInput.Marker>
+            <SortableListInput.Input placeholder="Enter requirement..." />
+            <SortableListInput.DeleteButton />
+          </SortableListInput.Item>
+        </SortableListInput.List>
+      </SortableListInput.Root>
     </VStack>
   );
 }

@@ -9,19 +9,22 @@ import type { ListingDraft } from '@/types/listing';
 
 export function useListingMutations() {
   const queryClient = useQueryClient();
-  const { updateListing, setPending } = useListingCache();
+  const { setListing, setExistingToPending, addPendingListing } = useListingCache();
 
   const { mutate: runIngest } = useMutation({
     mutationFn: ({ id, url, content }: { id: string; url: string; content?: string }) =>
       ingestListingSvc(url, content, id),
     onSuccess: (newDraft) => {
-      updateListing(newDraft.id, newDraft);
+      setListing(newDraft.id, newDraft);
     },
     onError: (error, variables) => {
-      updateListing(variables.id, {
+      setListing(variables.id, {
+        id: variables.id,
+        url: variables.url,
         status: 'error',
         error: (error as Error).message,
-      });
+        html: null,
+      } as ListingDraft);
     },
   });
 
@@ -30,9 +33,9 @@ export function useListingMutations() {
     const isNew = !existingId;
 
     if (isNew) {
-      setPending(id, url);
+      addPendingListing(id, url);
     } else {
-      updateListing(id, { status: 'pending' } as Partial<ListingDraft>);
+      setExistingToPending(id);
     }
 
     runIngest({ id, url, content });
