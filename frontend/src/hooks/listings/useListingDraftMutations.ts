@@ -3,13 +3,15 @@ import { useCallback } from 'react';
 
 import type { ListingDraft, ListingDraftPending, ListingExtraction } from '@/types/listing';
 
+// TODO: Better to rename as useListingDraftMutations
+
 // DO NOT attempt to merge these functions into a single "updateListing" function
 // Doing so makes things prone to breaking and harder to reason about
 export function useListingDraftMutations() {
   const queryClient = useQueryClient();
 
   // Replaces the entire listing object at the specified ID.
-  const setListing = useCallback(
+  const setListingDraft = useCallback(
     (id: string, listing: ListingDraft) => {
       queryClient.setQueryData<ListingDraft[]>(
         ['listings'],
@@ -20,7 +22,7 @@ export function useListingDraftMutations() {
   );
 
   // Retains the ID and URL but resets status to 'pending'.
-  const setExistingToPending = useCallback(
+  const setPendingListingDraft = useCallback(
     (id: string) => {
       queryClient.setQueryData<ListingDraft[]>(
         ['listings'],
@@ -34,7 +36,7 @@ export function useListingDraftMutations() {
   );
 
   // Appends a new pending item with ID to the list.
-  const addPendingListing = useCallback(
+  const addPendingListingDraft = useCallback(
     (id: string, url: string) => {
       queryClient.setQueryData<ListingDraft[]>(['listings'], (old) => [
         ...(old ?? []),
@@ -45,7 +47,7 @@ export function useListingDraftMutations() {
   );
 
   // Targets the nested data object without changing the listing status.
-  const patchListingContent = useCallback(
+  const patchListingDraftContent = useCallback(
     (id: string, updates: Partial<ListingExtraction>) => {
       queryClient.setQueryData<ListingDraft[]>(['listings'], (old) => {
         return (
@@ -62,7 +64,7 @@ export function useListingDraftMutations() {
   );
 
   // Removes listings with the specified IDs from the cache.
-  const discardListings = useCallback(
+  const discardListingDrafts = useCallback(
     (ids: string[]) => {
       queryClient.setQueryData<ListingDraft[]>(
         ['listings'],
@@ -73,10 +75,10 @@ export function useListingDraftMutations() {
   );
 
   return {
-    setListing,
-    setExistingToPending,
-    addPendingListing,
-    patchListingContent,
-    discardListings,
+    setListingDraft,
+    setPendingListingDraft,
+    addPendingListingDraft,
+    patchListingDraftContent,
+    discardListingDrafts,
   };
 }

@@ -2,9 +2,8 @@ import { useQuery } from '@tanstack/react-query';
 
 import type { ListingDraft } from '@/types/listing';
 
-// TODO: I don't like this pattern, seems abit hacky
-// Reads from the cache, not from server
-export function useListingsQuery() {
+// Client-side state, never synced to server
+export function useListingDraftsQuery() {
   const query = useQuery<ListingDraft[]>({
     queryKey: ['listings'],
     staleTime: Infinity,
@@ -18,7 +17,7 @@ export function useListingsQuery() {
   });
 
   return {
-    listings: query.data ?? [],
+    listingDrafts: query.data ?? [],
     ...query,
   };
 }

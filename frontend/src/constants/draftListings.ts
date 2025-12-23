@@ -14,13 +14,13 @@ export const DRAFT_LISTING_DEFINITIONS: Record<
   error: { label: 'Error', icon: PiWarning, colorPalette: 'red' },
 };
 
-export const getTitle = (listing: ListingDraft): string => {
-  switch (listing.status) {
+export const getTitle = (listingDraft: ListingDraft): string => {
+  switch (listingDraft.status) {
     case 'unique':
-      return listing.listing.title;
+      return listingDraft.listing.title;
     case 'duplicate_url':
     case 'duplicate_content':
-      return listing.duplicateOf.title;
+      return listingDraft.duplicateOf.title;
     case 'error':
       return 'Error';
     case 'pending':
@@ -28,13 +28,13 @@ export const getTitle = (listing: ListingDraft): string => {
   }
 };
 
-export const getCompany = (listing: ListingDraft): string => {
-  switch (listing.status) {
+export const getCompany = (listingDraft: ListingDraft): string => {
+  switch (listingDraft.status) {
     case 'unique':
-      return listing.listing.company;
+      return listingDraft.listing.company;
     case 'duplicate_url':
     case 'duplicate_content':
-      return listing.duplicateOf.company;
+      return listingDraft.duplicateOf.company;
     case 'error':
       return '';
     case 'pending':
@@ -42,13 +42,13 @@ export const getCompany = (listing: ListingDraft): string => {
   }
 };
 
-export const getDomain = (listing: ListingDraft): string => {
-  switch (listing.status) {
+export const getDomain = (listingDraft: ListingDraft): string => {
+  switch (listingDraft.status) {
     case 'unique':
-      return listing.listing.domain;
+      return listingDraft.listing.domain;
     case 'duplicate_url':
     case 'duplicate_content':
-      return listing.duplicateOf.domain;
+      return listingDraft.duplicateOf.domain;
     case 'error':
       return '';
     case 'pending':

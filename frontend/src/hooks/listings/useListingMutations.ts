@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 
-import { useListingCache } from '@/hooks/listings/useListingCache';
+import { useListingDraftMutations } from '@/hooks/listings/useListingDraftMutations';
 import {
   ingestListing as ingestListingSvc,
   saveListing as saveListingSvc,
@@ -9,16 +9,17 @@ import type { ListingDraft } from '@/types/listing';
 
 export function useListingMutations() {
   const queryClient = useQueryClient();
-  const { setListing, setExistingToPending, addPendingListing } = useListingCache();
+  const { setListingDraft, setPendingListingDraft, addPendingListingDraft } =
+    useListingDraftMutations();
 
   const { mutate: runIngest } = useMutation({
     mutationFn: ({ id, url, content }: { id: string; url: string; content?: string }) =>
       ingestListingSvc(url, content, id),
     onSuccess: (newDraft) => {
-      setListing(newDraft.id, newDraft);
+      setListingDraft(newDraft.id, newDraft);
     },
     onError: (error, variables) => {
-      setListing(variables.id, {
+      setListingDraft(variables.id, {
         id: variables.id,
         url: variables.url,
         status: 'error',
@@ -33,9 +34,9 @@ export function useListingMutations() {
     const isNew = !existingId;
 
     if (isNew) {
-      addPendingListing(id, url);
+      addPendingListingDraft(id, url);
     } else {
-      setExistingToPending(id);
+      setPendingListingDraft(id);
     }
 
     runIngest({ id, url, content });

@@ -23,7 +23,7 @@ import {
   getDomain,
   getTitle,
 } from '@/constants/draftListings';
-import { useListingsQuery } from '@/hooks/listings';
+import { useListingDraftsQuery } from '@/hooks/listings';
 import { type ListingDraft } from '@/types/listing';
 
 const columnHelper = createColumnHelper<ListingDraft>();
@@ -74,7 +74,7 @@ const columns = [
       }
 
       return (
-        <HStack gap={2} alignItems={'center'} w="full" overflow="hidden" minW="0">
+        <HStack alignItems="center" w="full" overflow="hidden" minW="0">
           {icon}
           <Text truncate flex={1} minW={0}>
             {text}
@@ -104,12 +104,10 @@ export function Table({
   setRowSelection: Dispatch<SetStateAction<Record<string, boolean>>>;
   setSelectedListingId: (id: string | null) => void;
 }) {
-  const { listings } = useListingsQuery();
-
-  console.log(listings);
+  const { listingDrafts } = useListingDraftsQuery();
 
   const table = useReactTable({
-    data: listings,
+    data: listingDrafts,
     columns,
     getCoreRowModel: getCoreRowModel(),
     onRowSelectionChange: setRowSelection,
@@ -120,7 +118,7 @@ export function Table({
   });
 
   return (
-    <ChakraTable.ScrollArea h="full" overflowY="scroll" w="full" overflowX="hidden">
+    <ChakraTable.ScrollArea h="full" overflowY="scroll" overflowX="hidden">
       <ChakraTable.Root size="sm" stickyHeader interactive>
         <ChakraTable.Header>
           {table.getHeaderGroups().map((headerGroup) => (

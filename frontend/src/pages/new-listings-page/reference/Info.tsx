@@ -2,7 +2,7 @@ import { Button, ButtonGroup, EmptyState, List, VStack } from '@chakra-ui/react'
 import { PiCheck, PiLink, PiQuestion, PiWarning } from 'react-icons/pi';
 import { Link } from 'react-router';
 
-import { useListingCache } from '@/hooks/listings/useListingCache';
+import { useListingDraftMutations } from '@/hooks/listings/useListingDraftMutations';
 import { useListingMutations } from '@/hooks/listings/useListingMutations';
 import type { ListingDraft } from '@/types/listing';
 
@@ -10,7 +10,7 @@ import { useIngestion } from '../ingestion-modal/ingestionContext';
 
 export function Info({ listing }: { listing: ListingDraft }) {
   const { open } = useIngestion();
-  const { discardListings } = useListingCache();
+  const { discardListingDrafts } = useListingDraftMutations();
   const { saveListings } = useListingMutations();
 
   switch (listing.status) {
@@ -37,7 +37,7 @@ export function Info({ listing }: { listing: ListingDraft }) {
                   View Existing Application
                 </Link>
               </Button>
-              <Button variant="outline" onClick={() => discardListings([listing.id])}>
+              <Button variant="outline" onClick={() => discardListingDrafts([listing.id])}>
                 Discard
               </Button>
             </ButtonGroup>
@@ -68,7 +68,7 @@ export function Info({ listing }: { listing: ListingDraft }) {
                 </Link>
               </Button>
               <ButtonGroup>
-                <Button variant="outline" onClick={() => discardListings([listing.id])}>
+                <Button variant="outline" onClick={() => discardListingDrafts([listing.id])}>
                   Discard
                 </Button>
                 <Button onClick={() => saveListings([listing])}>Save Anyways</Button>
@@ -102,7 +102,11 @@ export function Info({ listing }: { listing: ListingDraft }) {
                 <Button size="sm" onClick={() => open({ id: listing.id, url: listing.url })}>
                   Open Manual Extraction
                 </Button>
-                <Button variant="outline" size="sm" onClick={() => discardListings([listing.id])}>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => discardListingDrafts([listing.id])}
+                >
                   Discard
                 </Button>
               </ButtonGroup>

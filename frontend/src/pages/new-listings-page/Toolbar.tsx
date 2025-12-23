@@ -1,25 +1,29 @@
 import { Button, HStack, Spacer } from '@chakra-ui/react';
 
-import { useListingCache, useListingMutations, useListingsQuery } from '@/hooks/listings';
+import {
+  useListingDraftMutations,
+  useListingDraftsQuery,
+  useListingMutations,
+} from '@/hooks/listings';
 
 import { useIngestion } from './ingestion-modal';
 
 export function Toolbar({ rowSelection }: { rowSelection: Record<string, boolean> }) {
-  const { listings } = useListingsQuery();
+  const { listingDrafts } = useListingDraftsQuery();
   const { saveListings } = useListingMutations();
   const { open } = useIngestion();
-  const { discardListings } = useListingCache();
+  const { discardListingDrafts } = useListingDraftMutations();
 
   const selectedCount = Object.values(rowSelection).filter(Boolean).length;
 
   const handleSaveListings = async () => {
-    const selectedListings = listings.filter((listing) => rowSelection[listing.id]);
+    const selectedListings = listingDrafts.filter((listingDraft) => rowSelection[listingDraft.id]);
     await saveListings(selectedListings);
   };
 
-  const handleDiscardListings = () => {
+  const handleDiscardListingDrafts = () => {
     const selectedIds = Object.keys(rowSelection).filter((id) => rowSelection[id]);
-    discardListings(selectedIds);
+    discardListingDrafts(selectedIds);
   };
 
   return (
@@ -35,7 +39,7 @@ export function Toolbar({ rowSelection }: { rowSelection: Record<string, boolean
       <Spacer />
 
       <Button
-        onClick={handleDiscardListings}
+        onClick={handleDiscardListingDrafts}
         variant="outline"
         colorPalette="red"
         disabled={selectedCount === 0}
