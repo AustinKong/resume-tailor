@@ -17,7 +17,7 @@ def get_data_dir() -> Path:
     # ~/.local/share
     base = Path(os.path.expanduser('~/.local/share'))
 
-  app_folder = 'ResumeTailor'
+  app_folder = 'Atto'
 
   if not getattr(sys, 'frozen', False):
     app_folder += '-Dev'

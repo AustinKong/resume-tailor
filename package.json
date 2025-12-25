@@ -1,4 +1,8 @@
 {
+  "name": "atto",
+  "version": "0.1.0-alpha",
+  "private": true,
+  "description": "A local-first, open-source tool for applicants' to track and customize job applications.",
   "devDependencies": {
     "concurrently": "^9.2.1"
   },
@@ -13,7 +17,7 @@
     "lint:fix": "npm run lint:fix:backend && npm run lint:fix:frontend",
 
     "build:frontend": "cd frontend && npm run build",
-    "build:exe": "backend/venv/bin/pyinstaller run.spec",
+    "build:exe": "backend/venv/bin/pyinstaller atto.spec",
     "dist": "npm run build:frontend && npm run build:exe"
   }
 }

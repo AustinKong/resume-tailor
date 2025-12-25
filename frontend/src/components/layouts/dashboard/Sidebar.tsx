@@ -1,4 +1,15 @@
-import { Box, chakra, HStack, Icon, Image, Text, useDisclosure, VStack } from '@chakra-ui/react';
+import {
+  Box,
+  Center,
+  chakra,
+  Heading,
+  HStack,
+  Icon,
+  Image,
+  Text,
+  useDisclosure,
+  VStack,
+} from '@chakra-ui/react';
 import {
   PiBookmarkSimple,
   PiCards,
@@ -10,6 +21,10 @@ import {
   PiUser,
 } from 'react-icons/pi';
 import { NavLink } from 'react-router';
+
+import { useColorModeValue } from '@/components/ui/color-mode';
+
+import rootPackage from '../../../../../package.json';
 
 type NavItemConfig = {
   label: string;
@@ -65,18 +80,20 @@ export function Sidebar() {
 }
 
 function Logo({ isOpen }: { isOpen: boolean }) {
+  const imageSrc = useColorModeValue('/light-icon.png', '/dark-icon.png');
+
   return (
     <SidebarItem gap="2">
-      <Box w="6" h="6" flexShrink={0}>
-        <Image
-          w="full"
-          h="full"
-          objectFit="contain"
-          src="https://play-lh.googleusercontent.com/Edz6eN6m8D-g6wEPFpIOC_ZyLE9AOSonFNGBM5jib_ImFbmezVlzj-HlxFWt6WS-ig4h"
-        />
-      </Box>
-      <SidebarLabel as="h1" fontSize="md" fontWeight="bold" opacity={isOpen ? 1 : 0}>
-        Unknown Project
+      <Center w="6" h="6" flexShrink={0}>
+        <Image w="5" h="5" objectFit="contain" src={imageSrc} />
+      </Center>
+      <SidebarLabel opacity={isOpen ? 1 : 0} as={HStack}>
+        <Heading as="h1" size="xl">
+          Atto
+        </Heading>
+        <Text textStyle="xs" color="fg.muted">
+          v{rootPackage.version}
+        </Text>
       </SidebarLabel>
     </SidebarItem>
   );
@@ -130,6 +147,7 @@ const SidebarItem = chakra(HStack, {
     justifyContent: 'flex-start',
     overflow: 'hidden',
     borderRadius: 'sm',
+    alignItems: 'center',
   },
 });
 
