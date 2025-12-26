@@ -1,7 +1,8 @@
-import { Route, Routes } from 'react-router';
+import { Navigate, Route, Routes } from 'react-router';
 
 import { DashboardLayout } from '@/components/layouts/dashboard';
 import { Toaster } from '@/components/ui/toaster';
+import { AboutPage } from '@/pages/about-page';
 import { ApplicationsPage } from '@/pages/applications-page';
 import { NewListingsPage } from '@/pages/new-listings-page';
 import { SettingsPage } from '@/pages/settings-page';
@@ -11,6 +12,8 @@ export function App() {
     <>
       <Routes>
         <Route element={<DashboardLayout />}>
+          <Route index element={<Navigate to="applications" replace />} />
+          <Route path="about" element={<AboutPage />} />
           <Route path="applications" element={<ApplicationsPage />} />
           <Route path="listings/new" element={<NewListingsPage />} />
           <Route path="settings" element={<SettingsPage />} />

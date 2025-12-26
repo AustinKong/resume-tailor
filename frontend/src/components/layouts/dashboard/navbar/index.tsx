@@ -60,7 +60,7 @@ function UserMenu() {
       >
         <Avatar.Root size="sm">
           <Avatar.Fallback name="User" />
-          <Avatar.Image src="https://bit.ly/sage-adebayo" alt="" />
+          <Avatar.Image alt="" src="https://api.dicebear.com/9.x/notionists-neutral/svg?seed=Leo" />
         </Avatar.Root>
       </Menu.Trigger>
       <Portal>

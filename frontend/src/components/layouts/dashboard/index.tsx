@@ -1,8 +1,8 @@
 import { Box, HStack, VStack } from '@chakra-ui/react';
 import { Outlet } from 'react-router';
 
-import { Navbar } from './Navbar';
-import { Sidebar } from './Sidebar';
+import { Navbar } from './navbar';
+import { Sidebar } from './sidebar';
 
 export function DashboardLayout() {
   return (

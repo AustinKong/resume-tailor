@@ -1,21 +1,12 @@
-import {
-  Box,
-  Center,
-  chakra,
-  Heading,
-  HStack,
-  Icon,
-  Image,
-  Text,
-  useDisclosure,
-  VStack,
-} from '@chakra-ui/react';
+import { Box, Center, chakra, Heading, HStack, Icon, Image, Text, VStack } from '@chakra-ui/react';
 import { PiBookmarkSimple, PiCaretLeft, PiCaretRight, PiGear, PiPlus } from 'react-icons/pi';
 import { NavLink } from 'react-router';
 
 import { useColorModeValue } from '@/components/ui/color-mode';
+import { useLocalStorage } from '@/hooks/utils/useLocalStorage';
 
 import rootPackage from '../../../../../package.json';
+import { Alert } from './Alert';
 
 type NavItemConfig = {
   label: string;
@@ -30,7 +21,9 @@ const NAV_ITEMS: NavItemConfig[] = [
 ];
 
 export function Sidebar() {
-  const { open: isOpen, onToggle } = useDisclosure();
+  const [isOpen, setIsOpen] = useLocalStorage('sidebar-open', true);
+
+  const onToggle = () => setIsOpen(!isOpen);
 
   return (
     <VStack
@@ -61,6 +54,8 @@ export function Sidebar() {
           <NavItem key={item.path} isOpen={isOpen} item={item} />
         ))}
       </VStack>
+
+      {isOpen && <Alert />}
 
       <CollapseButton isOpen={isOpen} onToggle={onToggle} />
     </VStack>
