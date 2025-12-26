@@ -76,13 +76,13 @@ class ScrapingService:
 
     # Remove boilerplate tags
     tags_to_remove = SNAPSHOT_TAGS + BASIC_TAGS
-    if settings.scraping.aggressive:
+    if settings.ingestion.aggressive:
       tags_to_remove += AGGRESSIVE_TAGS
     for tag in soup(tags_to_remove):
       tag.decompose()
 
     # Remove elements containing boilerplate keywords
-    if settings.scraping.aggressive:
+    if settings.ingestion.aggressive:
       for tag in reversed(soup.find_all(True)):
         text = tag.get_text(strip=True)
         if text and any(keyword.lower() in text.lower() for keyword in BOILERPLATE_KEYWORDS):
@@ -92,7 +92,7 @@ class ScrapingService:
     text = re.sub(r'\s+', ' ', text)
 
     # Remove duplicate sentences
-    if settings.scraping.aggressive:
+    if settings.ingestion.aggressive:
       sentences = re.split(r'(?<=[.!?]) +', text)
       seen = set()
       filtered_sentences = []
@@ -103,7 +103,7 @@ class ScrapingService:
           filtered_sentences.append(sentence.strip())
       text = ' '.join(filtered_sentences)
 
-    return text[: settings.scraping.max_length]
+    return text[: settings.ingestion.max_length]
 
   async def _inline_assets(self, page: Page, base_url: str):
     # Ensures links are resolved correctly
@@ -185,7 +185,7 @@ class ScrapingService:
   async def fetch_and_clean(self, url: HttpUrl) -> ScrapingResult:
     try:
       async with async_playwright() as p:
-        browser = await p.chromium.launch(headless=settings.scraping.headless)
+        browser = await p.chromium.launch(headless=settings.ingestion.headless)
         context = await browser.new_context(
           user_agent=(
             'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 '

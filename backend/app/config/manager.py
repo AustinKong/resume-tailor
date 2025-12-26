@@ -7,11 +7,11 @@ from dotenv import load_dotenv
 from app.config.schemas import (
   AppConfig,
   ExperiencesPrefs,
+  IngestionPrefs,
   ListingsPrefs,
   ModelPrefs,
   PathsPrefs,
   ResumePrefs,
-  ScrapingPrefs,
   get_data_dir,
 )
 from app.utils.structure import assign_path, deep_merge, flatten_structure
@@ -83,8 +83,8 @@ class ConfigManager:
     return self.config.experiences
 
   @property
-  def scraping(self) -> ScrapingPrefs:
-    return self.config.scraping
+  def ingestion(self) -> IngestionPrefs:
+    return self.config.ingestion
 
   def save(self, updates: dict) -> None:
     yaml_updates: dict = {}

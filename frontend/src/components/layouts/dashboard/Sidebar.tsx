@@ -10,16 +10,7 @@ import {
   useDisclosure,
   VStack,
 } from '@chakra-ui/react';
-import {
-  PiBookmarkSimple,
-  PiCards,
-  PiCaretLeft,
-  PiCaretRight,
-  PiGear,
-  PiNewspaper,
-  PiPlus,
-  PiUser,
-} from 'react-icons/pi';
+import { PiBookmarkSimple, PiCaretLeft, PiCaretRight, PiGear, PiPlus } from 'react-icons/pi';
 import { NavLink } from 'react-router';
 
 import { useColorModeValue } from '@/components/ui/color-mode';
@@ -34,10 +25,7 @@ type NavItemConfig = {
 
 const NAV_ITEMS: NavItemConfig[] = [
   { label: 'Applications', path: '/applications', icon: <PiBookmarkSimple /> },
-  { label: 'Profile', path: '/profile', icon: <PiUser /> },
   { label: 'New Listing', path: '/listings/new', icon: <PiPlus /> },
-  { label: 'Latest News', path: '/news', icon: <PiNewspaper /> },
-  { label: 'My Cards', path: '/cards', icon: <PiCards /> },
   { label: 'Settings', path: '/settings', icon: <PiGear /> },
 ];
 
