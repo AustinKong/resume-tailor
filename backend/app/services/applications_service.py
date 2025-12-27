@@ -11,144 +11,6 @@ class ApplicationsService(DatabaseRepository):
   def __init__(self, **kwargs):
     super().__init__(**kwargs)
 
-  def list_all(
-    self,
-    page,
-    size,
-    search: str | None = None,
-    status: list[StatusEnum] | None = None,
-    sort_by: Literal['title', 'company', 'posted_at', 'updated_at'] | None = None,
-    sort_dir: Literal['asc', 'desc'] | None = None,
-  ) -> Page[Application]:
-    offset = (page - 1) * size
-
-    conditions = []
-    params = []
-
-    if search:
-      conditions.append('(l.title LIKE ? OR l.company LIKE ? OR l.domain LIKE ?)')
-      search_term = f'%{search}%'
-      params.extend([search_term, search_term, search_term])
-
-    if status:
-      placeholders = ', '.join('?' for _ in status)
-      conditions.append(f'cs.status IN ({placeholders})')
-      params.extend([s.value for s in status])
-
-    where_clause = f'WHERE {" AND ".join(conditions)}' if conditions else ''
-
-    sort_map = {
-      'title': 'l.title',
-      'company': 'l.company',
-      'posted_at': 'l.posted_date',
-      'updated_at': 'cs.created_at',
-    }
-
-    if sort_by:
-      sql_sort_col = sort_map.get(sort_by, 'l.posted_date')
-      sql_sort_dir = 'ASC' if sort_dir == 'asc' else 'DESC'
-      order_by = f'{sql_sort_col} {sql_sort_dir}'
-    else:
-      # Order by id if no sorting is specified
-      order_by = 'a.id ASC'
-
-    query = f"""
-      WITH latest_events AS (
-        SELECT 
-          application_id, 
-          status, 
-          created_at,
-          ROW_NUMBER() OVER (
-            PARTITION BY application_id 
-            ORDER BY created_at DESC, id DESC
-          ) as rn
-        FROM status_events
-      ),
-      paginated_apps AS (
-        SELECT 
-          a.id,
-          ROW_NUMBER() OVER (ORDER BY {order_by}) as sort_rank
-        FROM applications a
-        JOIN listings l ON a.listing_id = l.id
-        JOIN latest_events cs ON a.id = cs.application_id AND cs.rn = 1
-        {where_clause}
-        ORDER BY sort_rank ASC
-        LIMIT ? OFFSET ?
-      )
-      SELECT 
-        a.id as application_id,
-        a.resume_id,
-        l.id as listing_id, l.url, l.title, l.company, l.domain,
-        l.location, l.description, l.posted_date, l.skills, l.requirements,
-        COALESCE(
-          json_group_array(
-            json_object(
-              'id', se.id,
-              'status', se.status,
-              'stage', se.stage,
-              'created_at', se.created_at,
-              'notes', se.notes
-            )
-          ) FILTER (WHERE se.id IS NOT NULL), 
-          json_array()
-        ) as status_events_json
-      FROM paginated_apps pa
-      JOIN applications a ON pa.id = a.id
-      JOIN listings l ON a.listing_id = l.id
-      JOIN status_events se ON a.id = se.application_id
-      GROUP BY a.id, l.id
-      ORDER BY pa.sort_rank ASC
-    """
-
-    rows = self.fetch_all(query, tuple(params + [size, offset]))
-
-    applications = []
-    for row in rows:
-      row_dict = dict(row)
-
-      status_events_json = row_dict.pop('status_events_json')
-      application_id = row_dict.pop('application_id')
-      resume_id = row_dict.pop('resume_id')
-      listing_id = row_dict.pop('listing_id')
-
-      events_data = json.loads(status_events_json)
-      status_events = [StatusEvent(**event) for event in events_data]
-
-      row_dict['id'] = listing_id
-
-      applications.append(
-        Application(
-          id=application_id,
-          resume_id=resume_id,
-          listing=Listing(**row_dict),
-          status_events=status_events,
-        )
-      )
-
-    count_query = f"""
-      WITH latest_events AS (
-        SELECT 
-          application_id, status, created_at,
-          ROW_NUMBER() OVER (PARTITION BY application_id ORDER BY created_at DESC, id DESC) as rn
-        FROM status_events
-      )
-      SELECT COUNT(*)
-      FROM applications a
-      JOIN listings l ON a.listing_id = l.id
-      JOIN latest_events cs ON a.id = cs.application_id AND cs.rn = 1
-      {where_clause}
-    """
-    total_count = self.fetch_one(count_query, tuple(params))
-    total_count = total_count[0] if total_count else 0
-
-    return Page(
-      items=applications,
-      total=total_count,
-      page=page,
-      size=size,
-      pages=(total_count + size - 1) // size,
-    )
-
   def get(self, application_id: UUID) -> Application:
     row = self.fetch_one(
       """
@@ -192,7 +54,7 @@ class ApplicationsService(DatabaseRepository):
 
     return Application(
       id=application_id,
-      listing=Listing(**row_dict),
+      listing_id=row_dict['listing_id'],
       resume_id=resume_id,
       status_events=status_events,
     )
@@ -241,7 +103,7 @@ class ApplicationsService(DatabaseRepository):
 
     return Application(
       id=application_id,
-      listing=Listing(**row_dict),
+      listing_id=row_dict['listing_id'],
       resume_id=resume_id,
       status_events=status_events,
     )
@@ -292,7 +154,7 @@ class ApplicationsService(DatabaseRepository):
 
     return Application(
       id=application_id,
-      listing=Listing(**row_dict),
+      listing_id=row_dict['listing_id'],
       resume_id=resume_id,
       status_events=status_events,
     )
@@ -306,7 +168,7 @@ class ApplicationsService(DatabaseRepository):
         'INSERT INTO applications (id, listing_id, resume_id) VALUES (?, ?, ?)',
         (
           str(application.id),
-          str(application.listing.id),
+          str(application.listing_id),
           str(application.resume_id) if application.resume_id else None,
         ),
       ),

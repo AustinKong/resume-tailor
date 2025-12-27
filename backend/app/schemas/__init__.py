@@ -5,7 +5,7 @@ from .experience import (
   ExperienceType,
   LLMResponseExperience,
 )
-from .listing import Listing, ListingBase
+from .listing import Listing, ListingBase, ListingSummary
 from .profile import Education, Profile
 from .resume import (
   DetailedItem,
@@ -46,6 +46,7 @@ __all__ = [
   'GroundedItem',
   'Listing',
   'ListingBase',
+  'ListingSummary',
   'ListingDraft',
   'ListingDraftDuplicateContent',
   'ListingDraftDuplicateUrl',

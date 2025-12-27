@@ -1,14 +1,14 @@
 import { Table as ChakraTable } from '@chakra-ui/react';
 import { flexRender, type Row } from '@tanstack/react-table';
 
-import type { Application } from '@/types/application';
+import type { ListingSummary } from '@/types/listing';
 
 export function TableRow({
   row,
   onRowClick,
   onRowHover,
 }: {
-  row: Row<Application>;
+  row: Row<ListingSummary>;
   onRowClick: () => void;
   onRowHover: () => void;
 }) {

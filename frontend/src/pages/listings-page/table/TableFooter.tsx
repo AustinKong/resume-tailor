@@ -29,7 +29,7 @@ export function TableFooter({
 
           {!hasNextPage && !isLoading && (
             <Text fontSize="xs" color="fg.subtle">
-              No more applications
+              No more Listings
             </Text>
           )}
         </Center>

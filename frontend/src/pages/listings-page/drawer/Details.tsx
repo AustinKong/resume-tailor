@@ -2,34 +2,33 @@ import { DataList, Heading, List, Tag, Text, VStack, Wrap } from '@chakra-ui/rea
 import { PiCheck } from 'react-icons/pi';
 
 import { DisplayDate } from '@/components/custom/DisplayDate';
-import type { Application } from '@/types/application';
+import type { Listing } from '@/types/listing';
 
-// TODO: Consider taking in listing: Listing instead of application
-export function JobDetails({ application }: { application: Application }) {
+export function Details({ listing }: { listing: Listing }) {
   return (
-    <>
+    <VStack px="4" gap="4" align="stretch">
       <VStack align="stretch">
         <Heading size="md">About the Role</Heading>
         <DataList.Root orientation="horizontal" w="full" gap="2" size="lg">
           <DataList.Item>
             <DataList.ItemLabel>Role</DataList.ItemLabel>
-            <DataList.ItemValue>{application.listing.title}</DataList.ItemValue>
+            <DataList.ItemValue>{listing.title}</DataList.ItemValue>
           </DataList.Item>
           <DataList.Item>
             <DataList.ItemLabel>Location</DataList.ItemLabel>
-            <DataList.ItemValue>{application.listing.location}</DataList.ItemValue>
+            <DataList.ItemValue>{listing.location}</DataList.ItemValue>
           </DataList.Item>
           <DataList.Item>
             <DataList.ItemLabel>Posted</DataList.ItemLabel>
             <DataList.ItemValue>
-              <DisplayDate date={application.listing.postedDate} />
+              <DisplayDate date={listing.postedDate} />
             </DataList.ItemValue>
           </DataList.Item>
           <DataList.Item>
             <DataList.ItemLabel>Skills</DataList.ItemLabel>
             <DataList.ItemValue>
               <Wrap>
-                {application.listing.skills.map((skill) => (
+                {listing.skills.map((skill) => (
                   <Tag.Root key={skill} variant="subtle" size="lg">
                     <Tag.Label>{skill}</Tag.Label>
                   </Tag.Root>
@@ -42,13 +41,13 @@ export function JobDetails({ application }: { application: Application }) {
 
       <VStack align="stretch">
         <Heading size="md">Description</Heading>
-        <Text color="fg.muted">{application.listing.description}</Text>
+        <Text color="fg.muted">{listing.description}</Text>
       </VStack>
 
       <VStack align="stretch">
         <Heading size="md">Requirements</Heading>
         <List.Root variant="plain">
-          {application.listing.requirements.map((req, index) => (
+          {listing.requirements.map((req, index) => (
             <List.Item key={index}>
               <List.Indicator asChild color="green">
                 <PiCheck />
@@ -58,6 +57,6 @@ export function JobDetails({ application }: { application: Application }) {
           ))}
         </List.Root>
       </VStack>
-    </>
+    </VStack>
   );
 }

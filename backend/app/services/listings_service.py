@@ -1,12 +1,14 @@
 import json
+from typing import Literal
 
 from chromadb.api.types import Metadata
 from pydantic import HttpUrl
 
 from app.config import settings
 from app.repositories import DatabaseRepository, VectorRepository
-from app.schemas import Listing
+from app.schemas import Application, Listing, ListingSummary, Page, StatusEnum, StatusEvent
 from app.utils.deduplication import fuzzy_text_similarity
+from app.utils.errors import NotFoundError
 
 
 class ListingsService(DatabaseRepository, VectorRepository):
@@ -27,18 +29,186 @@ class ListingsService(DatabaseRepository, VectorRepository):
 
     return Listing(**dict(row)) if row else None
 
-  def list_all(self) -> list[Listing]:
-    rows = self.fetch_all(
-      """
+  def list_all(
+    self,
+    page,
+    size,
+    search: str | None = None,
+    status: list[StatusEnum] | None = None,
+    sort_by: Literal['title', 'company', 'posted_at', 'updated_at'] | None = None,
+    sort_dir: Literal['asc', 'desc'] | None = None,
+  ) -> Page[ListingSummary]:
+    offset = (page - 1) * size
+
+    conditions = []
+    params = []
+
+    if search:
+      conditions.append('(l.title LIKE ? OR l.company LIKE ? OR l.domain LIKE ?)')
+      search_term = f'%{search}%'
+      params.extend([search_term, search_term, search_term])
+
+    if status:
+      placeholders = ', '.join('?' for _ in status)
+      conditions.append(f'cs.status IN ({placeholders})')
+      params.extend([s.value for s in status])
+
+    where_clause = f'WHERE {" AND ".join(conditions)}' if conditions else ''
+
+    sort_map = {
+      'title': 'l.title',
+      'company': 'l.company',
+      'posted_at': 'l.posted_date',
+      'updated_at': 'MAX(cs.created_at)',
+    }
+
+    if sort_by:
+      sql_sort_col = sort_map.get(sort_by, 'l.posted_date')
+      sql_sort_dir = 'ASC' if sort_dir == 'asc' else 'DESC'
+      order_by = f'{sql_sort_col} {sql_sort_dir}'
+    else:
+      # Order by id if no sorting is specified
+      order_by = 'l.id ASC'
+
+    query = f"""
+      WITH latest_events AS (
+        -- Get the absolute latest event for EVERY application
+        SELECT application_id, status, created_at,
+          ROW_NUMBER() OVER (PARTITION BY application_id ORDER BY created_at DESC, id DESC) as rn
+        FROM status_events
+      ),
+      paginated_listings AS (
+        SELECT l.id, ROW_NUMBER() OVER (ORDER BY {order_by}) as sort_rank
+        FROM listings l
+        LEFT JOIN applications a ON l.id = a.listing_id
+        LEFT JOIN latest_events cs ON a.id = cs.application_id AND cs.rn = 1
+        {where_clause}
+        GROUP BY l.id
+        ORDER BY sort_rank ASC
+        LIMIT ? OFFSET ?
+      ),
+      aggregated_apps AS (
+        -- Pre-aggregate events into apps to avoid duplicating apps in the final join
+        SELECT 
+          a.listing_id,
+          json_object(
+            'id', a.id,
+            'listing_id', a.listing_id,
+            'resume_id', a.resume_id,
+            'status_events', (
+               SELECT json_group_array(json_object(
+                 'id', se.id, 'status', se.status, 'stage', se.stage, 
+                 'created_at', se.created_at, 'notes', se.notes
+               )) FROM status_events se WHERE se.application_id = a.id
+            )
+          ) as app_json
+        FROM applications a
+      )
       SELECT 
-        l.id, l.url, l.title, l.company, l.domain, l.location, l.description, l.posted_date,
-        l.skills, l.requirements
+        l.id, l.url, l.title, l.company, l.domain, l.location, l.posted_date,
+        (SELECT MAX(le.created_at) FROM latest_events le 
+         WHERE le.application_id IN (SELECT a.id FROM applications a WHERE a.listing_id = l.id) 
+         AND le.rn = 1) as last_updated,
+        (SELECT le.status FROM latest_events le 
+         WHERE le.application_id IN (SELECT a.id FROM applications a WHERE a.listing_id = l.id) 
+         AND le.rn = 1 
+         ORDER BY le.created_at DESC LIMIT 1) as current_status,
+        COALESCE(json_group_array(aa.app_json) FILTER (WHERE aa.app_json IS NOT NULL), json_array()) as applications_json
+      FROM paginated_listings pl
+      JOIN listings l ON pl.id = l.id
+      LEFT JOIN aggregated_apps aa ON l.id = aa.listing_id
+      GROUP BY l.id
+      ORDER BY pl.sort_rank ASC
+    """
+
+    rows = self.fetch_all(query, tuple(params + [size, offset]))
+
+    listings = []
+    for row in rows:
+      row_dict = dict(row)
+      # For ListingSummary, no applications
+      listings.append(ListingSummary(**row_dict))
+
+    count_query = f"""
+      WITH latest_events AS (
+        SELECT 
+          application_id, status, created_at,
+          ROW_NUMBER() OVER (PARTITION BY application_id ORDER BY created_at DESC, id DESC) as rn
+        FROM status_events
+      )
+      SELECT COUNT(DISTINCT l.id)
       FROM listings l
-      ORDER BY l.posted_date DESC
-      """
+      LEFT JOIN applications a ON l.id = a.listing_id
+      LEFT JOIN latest_events cs ON a.id = cs.application_id AND cs.rn = 1
+      {where_clause}
+    """
+    total_count = self.fetch_one(count_query, tuple(params))
+    total_count = total_count[0] if total_count else 0
+
+    return Page(
+      items=listings,
+      total=total_count,
+      page=page,
+      size=size,
+      pages=(total_count + size - 1) // size,
     )
 
-    return [Listing(**dict(row)) for row in rows]
+  def get(self, listing_id) -> Listing:
+    # We use correlated subqueries to build the JSON layers independently
+    query = """
+      SELECT 
+        l.id as listing_id, l.url, l.title, l.company, l.domain,
+        l.location, l.description, l.posted_date, l.skills, l.requirements,
+        (
+          SELECT json_group_array(
+            json_object(
+              'id', a.id,
+              'listing_id', a.listing_id,
+              'resume_id', a.resume_id,
+              'status_events', (
+                SELECT json_group_array(
+                  json_object(
+                    'id', se.id,
+                    'status', se.status,
+                    'stage', se.stage,
+                    'created_at', se.created_at,
+                    'notes', se.notes
+                  )
+                )
+                FROM status_events se
+                WHERE se.application_id = a.id
+              )
+            )
+          )
+          FROM applications a
+          WHERE a.listing_id = l.id
+        ) as applications_json
+      FROM listings l
+      WHERE l.id = ?
+    """
+
+    row = self.fetch_one(query, (str(listing_id),))
+    if not row:
+      raise NotFoundError(f'Listing {listing_id} not found')
+
+    row_dict = dict(row)
+    apps_json_raw = row_dict.pop('applications_json')
+    listing_id = row_dict.pop('listing_id')
+
+    # Parse nested JSON
+    apps_data = json.loads(apps_json_raw) if apps_json_raw else []
+    applications = []
+
+    for app_data in apps_data:
+      # SQLite nests inner arrays as JSON strings
+      events_raw = app_data.pop('status_events')
+      events_list = json.loads(events_raw) if isinstance(events_raw, str) else (events_raw or [])
+      
+      status_events = [StatusEvent(**e) for e in events_list if e.get('id')]
+      applications.append(Application(**app_data, status_events=status_events))
+
+    row_dict['id'] = listing_id
+    return Listing(**row_dict, applications=applications)
 
   def find_similar(
     self,

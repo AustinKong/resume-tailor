@@ -1,4 +1,6 @@
-import type { Listing, ListingDraft } from '@/types/listing';
+import type { StatusEnum } from '@/types/application';
+import type { Page } from '@/types/common';
+import type { Listing, ListingDraft, ListingSummary } from '@/types/listing';
 
 export async function ingestListing(
   url: string,
@@ -42,6 +44,7 @@ export async function saveListing(listingDraft: ListingDraft) {
     url: listingDraft.url,
     skills: listingDraft.listing.skills.map((s) => s.value),
     requirements: listingDraft.listing.requirements.map((r) => r.value),
+    applications: [],
   };
 
   const response = await fetch('/api/listings', {
@@ -60,13 +63,43 @@ export async function saveListing(listingDraft: ListingDraft) {
   return json as Listing;
 }
 
-export async function getListings() {
-  const response = await fetch('/api/listings');
+export async function getListings(
+  page: number = 1,
+  size: number = 10,
+  search?: string,
+  status?: StatusEnum[],
+  sortBy?: 'title' | 'company' | 'posted_at' | 'updated_at',
+  sortDir?: 'asc' | 'desc'
+): Promise<Page<ListingSummary>> {
+  const params = new URLSearchParams({
+    page: page.toString(),
+    size: size.toString(),
+  });
+
+  if (sortBy) params.append('sort_by', sortBy);
+  if (sortDir) params.append('sort_dir', sortDir);
+  if (search) params.append('search', search);
+  if (status && status.length > 0) {
+    status.forEach((s) => params.append('status', s));
+  }
+
+  const response = await fetch(`/api/listings?${params.toString()}`);
 
   if (!response.ok) {
     throw new Error('Failed to fetch listings');
   }
 
   const json = await response.json();
-  return json as Listing[];
+  return json as Page<ListingSummary>;
+}
+
+export async function getListing(listingId: string): Promise<Listing> {
+  const response = await fetch(`/api/listings/${listingId}`);
+
+  if (!response.ok) {
+    throw new Error('Failed to fetch listing');
+  }
+
+  const json = await response.json();
+  return json as Listing;
 }

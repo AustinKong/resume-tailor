@@ -14,7 +14,7 @@ export function Toolbar({
       <InputGroup startElement={<PiMagnifyingGlass />} w="md">
         <Input
           size="md"
-          placeholder="Search applications"
+          placeholder="Search listings"
           value={searchInput}
           onChange={(e) => onSearchChange(e.target.value)}
         />

@@ -1,10 +1,10 @@
 import { useInfiniteQuery } from '@tanstack/react-query';
 import { useMemo } from 'react';
 
-import { getApplications } from '@/services/applications';
+import { getListings } from '@/services/listings';
 import type { StatusEnum } from '@/types/application';
 
-export function useApplicationsQuery({
+export function useListingsQuery({
   search,
   sortBy,
   sortOrder,
@@ -19,10 +19,10 @@ export function useApplicationsQuery({
 } = {}) {
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading, isError } =
     useInfiniteQuery({
-      queryKey: ['applications', search, sortBy, sortOrder, statuses],
+      queryKey: ['listings', search, sortBy, sortOrder, statuses],
       initialPageParam: 1,
       queryFn: ({ pageParam }) =>
-        getApplications(
+        getListings(
           pageParam,
           pageSize,
           search,
@@ -36,11 +36,11 @@ export function useApplicationsQuery({
       },
     });
 
-  const applications = useMemo(() => data?.pages.flatMap((page) => page.items) ?? [], [data]);
+  const listings = useMemo(() => data?.pages.flatMap((page) => page.items) ?? [], [data]);
 
   return {
     data,
-    applications,
+    listings,
     fetchNextPage,
     hasNextPage,
     isLoading: isLoading || isFetchingNextPage,

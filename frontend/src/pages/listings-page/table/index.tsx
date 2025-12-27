@@ -11,9 +11,10 @@ import React, { useCallback } from 'react';
 import { CompanyLogo } from '@/components/custom/CompanyLogo';
 import { DisplayDate } from '@/components/custom/DisplayDate';
 import { STATUS_DEFINITIONS } from '@/constants/statuses';
-import { useApplicationsQuery } from '@/hooks/applications';
+import { useListingsQuery } from '@/hooks/listings';
 import { type ParamHandler, useUrlSyncedState } from '@/hooks/utils/useUrlSyncedState';
-import type { Application, StatusEnum } from '@/types/application';
+import type { StatusEnum } from '@/types/application';
+import type { ListingSummary } from '@/types/listing';
 
 import { StatusFilterMenu } from './StatusFilterMenu';
 import { TableFooter } from './TableFooter';
@@ -25,7 +26,7 @@ interface TableMetaType {
   statuses: StatusEnum[];
 }
 
-const columnHelper = createColumnHelper<Application>();
+const columnHelper = createColumnHelper<ListingSummary>();
 
 const tableSortHandler: ParamHandler<SortingState> = {
   serialize: (v: SortingState) => {
@@ -43,12 +44,12 @@ const tableSortHandler: ParamHandler<SortingState> = {
 };
 
 const columns = [
-  columnHelper.accessor('listing.company', {
+  columnHelper.accessor('company', {
     id: 'company',
     header: 'Company',
     cell: (info) => {
       const company = info.getValue();
-      const domain = info.row.original.listing.domain;
+      const domain = info.row.original.domain;
 
       return (
         <HStack gap={2} alignItems={'center'} w="full" overflow="hidden">
@@ -61,7 +62,7 @@ const columns = [
     },
     size: 15,
   }),
-  columnHelper.accessor('listing.title', {
+  columnHelper.accessor('title', {
     id: 'title',
     header: 'Role',
     cell: (info) => info.getValue(),
@@ -74,7 +75,7 @@ const columns = [
     },
     cell: (info) => {
       const status = info.getValue();
-      const stage = info.row.original.currentStage;
+      if (!status) return null;
       const statusInfo = STATUS_DEFINITIONS[status];
 
       return (
@@ -82,7 +83,6 @@ const columns = [
           <HStack gap={1}>
             <statusInfo.icon />
             <Text>{statusInfo.label}</Text>
-            {stage > 0 && <Text>{stage}</Text>}
           </HStack>
         </Badge>
       );
@@ -90,23 +90,23 @@ const columns = [
     size: 15,
     enableSorting: false,
   }),
-  columnHelper.accessor('listing.location', {
+  columnHelper.accessor('location', {
     header: 'Location',
     cell: (info) => info.getValue(),
     size: 15,
     enableSorting: false,
   }),
-  columnHelper.accessor('listing.postedDate', {
+  columnHelper.accessor('postedDate', {
     id: 'posted_at',
     header: 'Posted',
     cell: (info) => <DisplayDate date={info.getValue()} />,
     size: 15,
     sortDescFirst: false,
   }),
-  columnHelper.accessor('timeline', {
+  columnHelper.accessor('lastUpdated', {
     id: 'updated_at',
     header: 'Last Updated',
-    cell: (info) => <DisplayDate date={info.getValue()[0].createdAt} />,
+    cell: (info) => <DisplayDate date={info.getValue()} />,
     size: 15,
     sortDescFirst: false,
   }),
@@ -118,7 +118,7 @@ const Table = React.memo(function Table({
   onRowHover,
 }: {
   debouncedSearch: string;
-  onRowClick: (application: Application) => void;
+  onRowClick: (listing: ListingSummary) => void;
   onRowHover: (id: string) => void;
 }) {
   const [sorting, setSorting] = useUrlSyncedState<SortingState>('sort', [], {
@@ -138,7 +138,7 @@ const Table = React.memo(function Table({
     [setSorting, sorting]
   );
 
-  const { applications, fetchNextPage, hasNextPage, isLoading } = useApplicationsQuery({
+  const { listings, fetchNextPage, hasNextPage, isLoading } = useListingsQuery({
     search: debouncedSearch,
     sortBy: sortBy as 'title' | 'company' | 'posted_at' | 'updated_at',
     sortOrder: sortOrder as 'asc' | 'desc',
@@ -146,7 +146,7 @@ const Table = React.memo(function Table({
   });
 
   const table = useReactTable({
-    data: applications,
+    data: listings,
     columns,
     getCoreRowModel: getCoreRowModel(),
     state: {

@@ -3,7 +3,6 @@ from uuid import UUID, uuid4
 
 from pydantic import Field, computed_field
 
-from app.schemas.listing import Listing
 from app.schemas.status_event import StatusEnum, StatusEvent
 from app.schemas.types import CamelModel
 
@@ -14,7 +13,7 @@ def default_status_events():
 
 class Application(CamelModel):
   id: UUID = Field(default_factory=uuid4)
-  listing: Listing
+  listing_id: UUID
   resume_id: UUID | None = None
   status_events: list[StatusEvent] = Field(default_factory=default_status_events)
 

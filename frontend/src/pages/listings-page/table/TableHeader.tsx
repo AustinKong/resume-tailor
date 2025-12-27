@@ -2,9 +2,9 @@ import { HStack, Table as ChakraTable } from '@chakra-ui/react';
 import { flexRender, type Table } from '@tanstack/react-table';
 import { PiCaretDown, PiCaretUp, PiCaretUpDown } from 'react-icons/pi';
 
-import type { Application } from '@/types/application';
+import type { ListingSummary } from '@/types/listing';
 
-export function TableHeader({ table }: { table: Table<Application> }) {
+export function TableHeader({ table }: { table: Table<ListingSummary> }) {
   return (
     <ChakraTable.Header>
       {table.getHeaderGroups().map((headerGroup) => (

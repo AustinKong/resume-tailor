@@ -1,8 +1,8 @@
 from datetime import date
-from typing import Annotated
+from typing import Annotated, Literal
 from uuid import UUID
 
-from fastapi import APIRouter, Body
+from fastapi import APIRouter, Body, Query
 from pydantic import HttpUrl
 
 from app.resources.prompts import LISTING_EXTRACTION_PROMPT
@@ -16,6 +16,9 @@ from app.schemas import (
   ListingDraftError,
   ListingDraftUnique,
   ListingExtraction,
+  ListingSummary,
+  Page,
+  StatusEnum,
 )
 from app.services import applications_service, listings_service, llm_service, scraping_service
 from app.utils.url import normalize_url
@@ -120,14 +123,26 @@ async def ingest_listing(
   return ListingDraftUnique(id=id, url=url, listing=listing, html=html)
 
 
-@router.get('', response_model=list[Listing])
-async def get_listings():
-  return listings_service.list_all()
+@router.get('', response_model=Page[ListingSummary])
+async def get_listings(
+  page: int = 1,
+  size: int = 10,
+  search: str | None = None,
+  status: Annotated[list[StatusEnum] | None, Query()] = None,
+  sort_by: Literal['title', 'company', 'posted_at', 'updated_at'] | None = None,
+  sort_dir: Literal['asc', 'desc'] | None = None,
+):
+  return listings_service.list_all(page, size, search, status, sort_by, sort_dir)
+
+
+@router.get('/{id}', response_model=Listing)
+async def get_listing(id: UUID):
+  return listings_service.get(id)
 
 
 @router.post('')
 async def save_listing(listing: Listing):
   saved_listing = listings_service.create(listing)
-  application = Application(listing=listing)
+  application = Application(listing_id=listing.id)
   applications_service.create(application)
   return saved_listing

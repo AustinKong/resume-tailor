@@ -1,7 +1,5 @@
 import type { ISODatetime } from '@/utils/date';
 
-import type { Listing } from './listing';
-
 export type StatusEnum =
   | 'SAVED'
   | 'APPLIED'
@@ -16,7 +14,7 @@ export type StatusEnum =
 
 export type Application = {
   id: string;
-  listing: Listing;
+  listingId: string;
   resumeId: string | null;
   statusEvents: StatusEvent[];
   currentStatus: StatusEnum;

@@ -5,46 +5,43 @@ import { useCallback } from 'react';
 import { useDebouncedUrlSyncedState } from '@/hooks/utils/useDebouncedUrlSyncedState';
 import { useLocalStorage } from '@/hooks/utils/useLocalStorage';
 import { useUrlSyncedState } from '@/hooks/utils/useUrlSyncedState';
-import { getApplication } from '@/services/applications';
-import type { Application } from '@/types/application';
+import { getListing } from '@/services/listings';
+import type { ListingSummary } from '@/types/listing';
 
 import { Drawer } from './drawer';
 import { Table } from './table';
 import { Toolbar } from './Toolbar';
 
-export function ApplicationsPage() {
+export function ListingsPage() {
   const queryClient = useQueryClient();
-
   const [searchInput, debouncedSearchInput, setSearchInput] = useDebouncedUrlSyncedState('q', '', {
     type: 'STRING',
     debounceMs: 700,
   });
 
-  const [applicationId, setApplicationId] = useUrlSyncedState('applicationId', '', {
+  const [listingId, setListingId] = useUrlSyncedState('listingId', '', {
     type: 'STRING',
   });
 
   const [drawerOpenSizes, setDrawerOpenSizes] = useLocalStorage(
-    'applications-splitter-sizes',
+    'listings-splitter-sizes',
     [70, 30]
   );
 
-  const isDrawerOpen = Boolean(applicationId);
+  const isDrawerOpen = Boolean(listingId);
 
   const handleRowClick = useCallback(
-    (application: Application) => {
-      setApplicationId(application.id);
+    (listing: ListingSummary) => {
+      setListingId(listing.id);
     },
-    [setApplicationId]
+    [setListingId]
   );
 
-  // Prefetch on hover because the drawer's query fights for resources with the drawer's animations
   const handleRowHover = useCallback(
     (id: string) => {
       queryClient.prefetchQuery({
-        queryKey: ['application', id],
-        queryFn: () => getApplication(id),
-        staleTime: 1000 * 60 * 5,
+        queryKey: ['listing', id],
+        queryFn: () => getListing(id),
       });
     },
     [queryClient]
@@ -78,7 +75,11 @@ export function ApplicationsPage() {
               <Splitter.ResizeTriggerSeparator />
             </Splitter.ResizeTrigger>
             <Splitter.Panel id="drawer">
-              <Drawer onClose={() => setApplicationId('')} selectedApplicationId={applicationId} />
+              <Drawer
+                onClose={() => setListingId('')}
+                selectedListingId={listingId}
+                key={listingId}
+              />
             </Splitter.Panel>
           </>
         )}
