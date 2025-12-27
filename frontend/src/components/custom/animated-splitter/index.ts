@@ -1,7 +1,7 @@
 import { Splitter } from '@chakra-ui/react';
 
-import Panel from './Panel';
-import Root from './Root';
+import { Panel } from './Panel';
+import { Root } from './Root';
 
 const ResizeTrigger = Splitter.ResizeTrigger;
 const ResizeTriggerSeparator = Splitter.ResizeTriggerSeparator;

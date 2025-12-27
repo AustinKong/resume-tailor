@@ -1,7 +1,7 @@
 import { Splitter, type SplitterRootProps } from '@chakra-ui/react';
 import { type CSSProperties, forwardRef, useState } from 'react';
 
-const Root = forwardRef<HTMLDivElement, SplitterRootProps>(function AnimatedSplitterRoot(
+export const Root = forwardRef<HTMLDivElement, SplitterRootProps>(function AnimatedSplitterRoot(
   { onResizeStart, onResizeEnd, style, ...props },
   ref
 ) {
