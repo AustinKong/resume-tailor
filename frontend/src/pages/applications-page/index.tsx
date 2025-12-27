@@ -1,8 +1,7 @@
-import { VStack } from '@chakra-ui/react';
+import { Splitter, VStack } from '@chakra-ui/react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useCallback } from 'react';
 
-import * as Splitter from '@/components/custom/AnimatedSpliter';
 import { useDebouncedUrlSyncedState } from '@/hooks/utils/useDebouncedUrlSyncedState';
 import { useLocalStorage } from '@/hooks/utils/useLocalStorage';
 import { useUrlSyncedState } from '@/hooks/utils/useUrlSyncedState';
@@ -30,8 +29,7 @@ export function ApplicationsPage() {
     [70, 30]
   );
 
-  const splitterSizes = applicationId !== '' ? drawerOpenSizes : [100, 0];
-  const setSplitterSizes = applicationId !== '' ? setDrawerOpenSizes : () => {};
+  const isDrawerOpen = Boolean(applicationId);
 
   const handleRowClick = useCallback(
     (application: Application) => {
@@ -60,8 +58,10 @@ export function ApplicationsPage() {
           { id: 'table', minSize: 40 },
           { id: 'drawer', minSize: 30 },
         ]}
-        size={splitterSizes}
-        onResize={(details) => setSplitterSizes(details.size)}
+        size={drawerOpenSizes}
+        onResize={(details) => {
+          if (isDrawerOpen) setDrawerOpenSizes(details.size);
+        }}
         h="full"
         w="full"
       >
@@ -72,15 +72,16 @@ export function ApplicationsPage() {
             onRowHover={handleRowHover}
           />
         </Splitter.Panel>
-        <Splitter.ResizeTrigger id="table:drawer">
-          <Splitter.ResizeTriggerSeparator />
-        </Splitter.ResizeTrigger>
-        <Splitter.Panel id="drawer">
-          <Drawer
-            onClose={() => setApplicationId('')}
-            selectedApplicationId={applicationId || null}
-          />
-        </Splitter.Panel>
+        {isDrawerOpen && (
+          <>
+            <Splitter.ResizeTrigger id="table:drawer">
+              <Splitter.ResizeTriggerSeparator />
+            </Splitter.ResizeTrigger>
+            <Splitter.Panel id="drawer">
+              <Drawer onClose={() => setApplicationId('')} selectedApplicationId={applicationId} />
+            </Splitter.Panel>
+          </>
+        )}
       </Splitter.Root>
     </VStack>
   );

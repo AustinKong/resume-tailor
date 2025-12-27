@@ -5,7 +5,6 @@ import { Link } from 'react-router';
 
 import { useApplicationQuery } from '@/hooks/applications';
 import { useResumeMutations } from '@/hooks/resumes';
-import { useStickyState } from '@/hooks/utils/useStickyState';
 
 import { Header } from './Header';
 import { JobDetails } from './JobDetails';
@@ -16,50 +15,48 @@ export function Drawer({
   selectedApplicationId,
 }: {
   onClose: () => void;
-  selectedApplicationId: string | null;
+  selectedApplicationId: string;
 }) {
   const { application } = useApplicationQuery(selectedApplicationId);
   const { createResume, isCreateLoading } = useResumeMutations();
   const navigate = useNavigate();
 
-  const displayApplication = useStickyState(application);
-
   const handleGenerateResume = async () => {
-    if (!displayApplication) return;
-    const resume = await createResume(displayApplication.id);
+    if (!application) return;
+    const resume = await createResume(application.id);
     navigate(`/resumes/${resume.id}`);
   };
 
+  if (!application) {
+    return (
+      <Center h="full">
+        <Spinner size="lg" />
+      </Center>
+    );
+  }
+
   return (
-    <VStack h="full" w="full" overflow="hidden" alignItems="stretch" bg="bg.panel" overflowY="auto">
-      {!displayApplication ? (
-        <Center h="full">
-          <Spinner size="lg" />
-        </Center>
+    <VStack h="full" p="4" alignItems="stretch" gap="4" bg="bg.panel" overflowY="auto">
+      <Header application={application} onClose={onClose} />
+      <JobDetails application={application} />
+      <Separator />
+      <TimelineEditor application={application} />
+      {application.resumeId ? (
+        <Button asChild>
+          <Link to={`resumes/${application.resumeId}`}>
+            <PiFile /> Resume
+          </Link>
+        </Button>
       ) : (
-        <VStack p="4" alignItems="stretch" gap="4" minW="md">
-          <Header application={displayApplication} onClose={onClose} />
-          <JobDetails application={displayApplication} />
-          <Separator />
-          <TimelineEditor application={displayApplication} />
-          {displayApplication.resumeId ? (
-            <Button asChild>
-              <Link to={`resumes/${displayApplication.resumeId}`}>
-                <PiFile /> Resume
-              </Link>
-            </Button>
-          ) : (
-            <Button onClick={handleGenerateResume} loading={isCreateLoading}>
-              <PiFile /> Generate Resume
-            </Button>
-          )}
-          <Button asChild disabled>
-            <Link to={`/404`}>
-              <PiFile /> Cover Letter
-            </Link>
-          </Button>
-        </VStack>
+        <Button onClick={handleGenerateResume} loading={isCreateLoading}>
+          <PiFile /> Generate Resume
+        </Button>
       )}
+      <Button asChild disabled>
+        <Link to={`/404`}>
+          <PiFile /> Cover Letter
+        </Link>
+      </Button>
     </VStack>
   );
 }
